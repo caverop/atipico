@@ -1,10 +1,10 @@
-﻿using Moq;
+using Moq;
 using Moq.EntityFrameworkCore;
 using Atipico.Infraestructure.Persistence.Repositories;
 using Atipico.Infraestructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Atipico.Tests
+namespace Atipico.Infraestructure.Tests
 {
     public class RepositoryTest
     {
@@ -14,7 +14,7 @@ namespace Atipico.Tests
             var testObject = new TestClass();
 
             var context = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
-            var dbSetMock = new Mock<DbSet<TestClass>>(); 
+            var dbSetMock = new Mock<DbSet<TestClass>>();
 
             context.Setup(x => x.Set<TestClass>()).Returns(dbSetMock.Object);
             dbSetMock.Setup(x => x.Add(It.IsAny<TestClass>()));
@@ -25,6 +25,25 @@ namespace Atipico.Tests
 
             context.Verify(x => x.Set<TestClass>());
             dbSetMock.Verify(x => x.Add(It.Is<TestClass>(t => t == testObject)));
+        }
+
+        [Fact]
+        public void Update_TestClassObjectPassed_ProperMethodCalled()
+        {
+            var testObject = new TestClass();
+
+            var context = new Mock<AppDbContext>(new DbContextOptions<AppDbContext>());
+            var dbSetMock = new Mock<DbSet<TestClass>>();
+
+            context.Setup(x => x.Set<TestClass>()).Returns(dbSetMock.Object);
+            dbSetMock.Setup(x => x.Update(It.IsAny<TestClass>()));
+
+            var repository = new Repository<TestClass>(context.Object);
+
+            repository.Update(testObject);
+
+            context.Verify(x => x.Set<TestClass>());
+            dbSetMock.Verify(x => x.Update(It.Is<TestClass>(t => t == testObject)));
         }
 
         [Fact]

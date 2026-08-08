@@ -1,6 +1,147 @@
 @Atipico.Api_HostAddress = http://localhost:5197
 
-GET {{Atipico.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+# Flujo completo de ejemplo: mesero -> tipo de plato -> plato -> mesa -> pedido
+# -> se sirve el plato -> se abre cuenta -> se factura -> se cobra.
+# Cada paso usa el id que devolvió el paso anterior (variables @name / {{...response.body.$.id}}),
+# así que hay que ejecutarlos en orden.
+#
+# Nota: "numero" de mesa y "nombre" de tipo de plato son UNIQUE en la base.
+# Si corres el archivo una segunda vez sin limpiar los datos, esos dos POST van a fallar
+# por violar la restricción única (esperado, no es un bug).
 
-###
+### 1. Crear un mesero
+# @name crearMesero
+POST {{Atipico.Api_HostAddress}}/api/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Mesero de Prueba",
+  "rol": "Mesero",
+  "activo": true
+}
+
+### 2. Crear un cajero
+# @name crearCajero
+POST {{Atipico.Api_HostAddress}}/api/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Cajero de Prueba",
+  "rol": "Cajero",
+  "activo": true
+}
+
+### 3. Crear un tipo de plato
+# @name crearTipoPlato
+POST {{Atipico.Api_HostAddress}}/api/tipos-plato
+Content-Type: application/json
+
+{
+  "nombre": "Entradas de Prueba",
+  "observacion": "Categoria creada para probar la API"
+}
+
+### 4. Crear un plato de ese tipo
+# @name crearPlato
+POST {{Atipico.Api_HostAddress}}/api/platos
+Content-Type: application/json
+
+{
+  "nombre": "Tequeños de Prueba",
+  "precio": 18.50,
+  "activo": true,
+  "idTipoPlato": {{crearTipoPlato.response.body.$.id}}
+}
+
+### 5. Crear una mesa
+# @name crearMesa
+POST {{Atipico.Api_HostAddress}}/api/mesas
+Content-Type: application/json
+
+{
+  "numero": 999,
+  "capacidad": 4
+}
+
+### 6. Crear un pedido atendido por el mesero
+# @name crearPedido
+POST {{Atipico.Api_HostAddress}}/api/pedidos
+Content-Type: application/json
+
+{
+  "comensal": "Cliente de Prueba",
+  "idMesero": {{crearMesero.response.body.$.id}}
+}
+
+### 7. Asociar el pedido con la mesa
+# @name crearPedidoMesa
+POST {{Atipico.Api_HostAddress}}/api/pedido-mesas
+Content-Type: application/json
+
+{
+  "idPedido": {{crearPedido.response.body.$.id}},
+  "idMesa": {{crearMesa.response.body.$.id}}
+}
+
+### 8. Agregar el plato al pedido
+# @name crearPedidoPlato
+POST {{Atipico.Api_HostAddress}}/api/pedido-platos
+Content-Type: application/json
+
+{
+  "idPedido": {{crearPedido.response.body.$.id}},
+  "idPlato": {{crearPlato.response.body.$.id}}
+}
+
+### 9. Ver el pedido creado
+GET {{Atipico.Api_HostAddress}}/api/pedidos/{{crearPedido.response.body.$.id}}
+
+### 10. Marcar el plato como servido (PUT reemplaza el recurso completo)
+PUT {{Atipico.Api_HostAddress}}/api/pedido-platos/{{crearPedidoPlato.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "id": {{crearPedidoPlato.response.body.$.id}},
+  "estado": "Servido",
+  "servidoEn": "2026-08-08T22:00:00Z",
+  "idPedido": {{crearPedido.response.body.$.id}},
+  "idPlato": {{crearPlato.response.body.$.id}}
+}
+
+### 11. Abrir la cuenta del pedido
+# @name crearCuenta
+POST {{Atipico.Api_HostAddress}}/api/cuentas
+Content-Type: application/json
+
+{
+  "comensal": "Cliente de Prueba",
+  "idMesero": {{crearMesero.response.body.$.id}}
+}
+
+### 12. Facturar el plato servido en la cuenta
+POST {{Atipico.Api_HostAddress}}/api/detalle-cuentas
+Content-Type: application/json
+
+{
+  "precioUnitario": 18.50,
+  "idCuenta": {{crearCuenta.response.body.$.id}},
+  "idPedidoPlato": {{crearPedidoPlato.response.body.$.id}}
+}
+
+### 13. Cobrar la cuenta (PUT completo: estado + metodoPago + pagadoEn + idCajero juntos)
+PUT {{Atipico.Api_HostAddress}}/api/cuentas/{{crearCuenta.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "id": {{crearCuenta.response.body.$.id}},
+  "comensal": "Cliente de Prueba",
+  "estado": "Pagada",
+  "metodoPago": "Efectivo",
+  "monto": 18.50,
+  "pagadoEn": "2026-08-08T22:55:00Z",
+  "idMesero": {{crearMesero.response.body.$.id}},
+  "idCajero": {{crearCajero.response.body.$.id}}
+}
+
+### 14. Ver la cuenta ya cobrada
+GET {{Atipico.Api_HostAddress}}/api/cuentas/{{crearCuenta.response.body.$.id}}
