@@ -1,7 +1,4 @@
-﻿using Atipico.Domain.Interfaces.Repositories;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using Atipico.Domain.Interfaces.Repositories;
 
 namespace Atipico.Application.Common.Interfaces
 {
