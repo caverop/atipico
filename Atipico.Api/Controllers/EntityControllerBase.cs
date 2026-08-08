@@ -1,6 +1,7 @@
 using Atipico.Application.Interfaces.Services;
 using Atipico.Domain.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Atipico.Api.Controllers
 {
@@ -40,10 +41,15 @@ namespace Atipico.Api.Controllers
             if (id != entity.Id)
                 return BadRequest("El id de la ruta no coincide con el id del cuerpo.");
 
-            if (await _service.GetByIdAsync(id) is null)
+            try
+            {
+                await _service.UpdateAsync(entity);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
                 return NotFound();
+            }
 
-            await _service.UpdateAsync(entity);
             return NoContent();
         }
 

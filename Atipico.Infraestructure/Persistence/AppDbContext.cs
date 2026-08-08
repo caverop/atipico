@@ -13,6 +13,9 @@ namespace Atipico.Infraestructure.Persistence
         }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
+            if (optionsBuilder.IsConfigured)
+                return;
+
             var connectionString = Environment.GetEnvironmentVariable("DB_CONNECTION_STRING");
             optionsBuilder
                 .UseNpgsql(connectionString);
