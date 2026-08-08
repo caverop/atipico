@@ -1,11 +1,12 @@
 ﻿using Atipico.Domain.Enums;
+using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Atipico.Domain.Entities
 {
-    public class Mesa
+    public class Mesa : IEntity
     {
         public long Id { get; set; }
         public int Numero { get; set; }

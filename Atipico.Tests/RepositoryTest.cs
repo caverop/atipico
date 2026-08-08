@@ -61,7 +61,7 @@ namespace Atipico.Tests
             var result = await repository.GetByIdAsync(1);
 
             context.Verify(x => x.Set<TestClass>());
-            dbSetMock.Verify(x => x.FindAsync(It.Is<object[]>(ids => (int)ids[0] == 1)));
+            dbSetMock.Verify(x => x.FindAsync(It.Is<object[]>(ids => (long)ids[0] == 1)));
 
             Assert.Equal(testObject, result);
         }

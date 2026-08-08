@@ -1,11 +1,12 @@
 ﻿using Atipico.Domain.Enums;
+using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Atipico.Domain.Entities
 {
-    public class Pedido
+    public class Pedido : IEntity
     {
         public long Id { get; set; }
         public string? Comensal { get; set; }

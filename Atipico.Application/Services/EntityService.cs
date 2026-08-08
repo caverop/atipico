@@ -15,7 +15,7 @@ namespace Atipico.Application.Services
             _repository = unitOfWork.Repository<TEntity>();
         }
 
-        public Task<TEntity?> GetByIdAsync(int id)
+        public Task<TEntity?> GetByIdAsync(long id)
         {
             return _repository.GetByIdAsync(id);
         }

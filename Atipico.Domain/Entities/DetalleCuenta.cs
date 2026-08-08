@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Atipico.Domain.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Atipico.Domain.Entities
 {
-    public class DetalleCuenta
+    public class DetalleCuenta : IEntity
     {
         public long Id { get; set; }
         public decimal PrecioUnitario { get; set; }

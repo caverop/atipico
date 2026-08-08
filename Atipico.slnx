@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="Atipico.Api/Atipico.Api.csproj" Id="bda24492-3a37-4cdd-a46d-7fbfb4777e16" />
     <Project Path="Atipico.Application/Atipico.Application.csproj" />
     <Project Path="Atipico.Domain/Atipico.Domain.csproj" />
     <Project Path="Atipico.Infraestructure/Atipico.Infraestructure.csproj" />

@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Atipico.Domain.Interfaces;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Atipico.Domain.Entities
 {
-    public class PedidoMesa
+    public class PedidoMesa : IEntity
     {
         public long Id { get; set; }
 

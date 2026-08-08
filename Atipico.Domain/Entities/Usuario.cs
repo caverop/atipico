@@ -1,11 +1,12 @@
 ﻿using Atipico.Domain.Enums;
+using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace Atipico.Domain.Entities
 {
-    public class Usuario
+    public class Usuario : IEntity
     {
         public long Id { get; set; }
         public string Nombre { get; set; } = null!;

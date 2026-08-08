@@ -1,0 +1,6 @@
+@Atipico.Api_HostAddress = http://localhost:5197
+
+GET {{Atipico.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
