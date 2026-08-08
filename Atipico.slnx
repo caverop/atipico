@@ -4,5 +4,7 @@
     <Project Path="Atipico.Domain/Atipico.Domain.csproj" />
     <Project Path="Atipico.Infraestructure/Atipico.Infraestructure.csproj" />
   </Folder>
-  <Folder Name="/tests/" />
+  <Folder Name="/tests/">
+    <Project Path="Atipico.Tests/Atipico.Tests.csproj" />
+  </Folder>
 </Solution>
