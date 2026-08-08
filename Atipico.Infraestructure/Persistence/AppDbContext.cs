@@ -17,6 +17,21 @@ namespace Atipico.Infraestructure.Persistence
             optionsBuilder
                 .UseNpgsql(connectionString);
         }
-        public DbSet<Usuario> Users => Set<Usuario>();
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+            base.OnModelCreating(modelBuilder);
+        }
+
+        public DbSet<Usuario> Usuarios => Set<Usuario>();
+        public DbSet<TipoPlato> TipoPlatos => Set<TipoPlato>();
+        public DbSet<Plato> Platos => Set<Plato>();
+        public DbSet<Mesa> Mesas => Set<Mesa>();
+        public DbSet<Pedido> Pedidos => Set<Pedido>();
+        public DbSet<PedidoMesa> PedidoMesas => Set<PedidoMesa>();
+        public DbSet<PedidoPlato> PedidoPlatos => Set<PedidoPlato>();
+        public DbSet<Cuenta> Cuentas => Set<Cuenta>();
+        public DbSet<DetalleCuenta> DetalleCuentas => Set<DetalleCuenta>();
     }
 }
