@@ -1,0 +1,45 @@
+@page "/platos"
+@attribute [Authorize]
+@inject IEntityApiClient<Plato> Api
+@inject IEntityApiClient<TipoPlato> TipoPlatoApi
+
+<PageTitle>Platos</PageTitle>
+
+<EntityTable TEntity="Plato"
+             Title="Platos"
+             Items="_platos"
+             Columns="_columns"
+             CreateUrl="/platos/nuevo"
+             EditUrlPrefix="/platos"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin"])" />
+
+@code {
+    private List<Plato>? _platos;
+    private Dictionary<long, string> _tipoNombres = [];
+
+    private List<(string Header, Func<Plato, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var tipos = await TipoPlatoApi.GetAllAsync();
+        _tipoNombres = tipos.ToDictionary(t => t.Id, t => t.Nombre);
+
+        _columns =
+        [
+            ("Id", p => p.Id),
+            ("Nombre", p => p.Nombre),
+            ("Precio", p => p.Precio.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))),
+            ("Tipo", p => _tipoNombres.GetValueOrDefault(p.IdTipoPlato, $"#{p.IdTipoPlato}")),
+            ("Activo", p => p.Activo ? "Sí" : "No"),
+        ];
+
+        _platos = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _platos = await Api.GetAllAsync();
+    }
+}

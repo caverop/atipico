@@ -1,0 +1,70 @@
+@page "/tipos-plato/nuevo"
+@page "/tipos-plato/{Id:long}"
+@attribute [Authorize(Roles = "Admin")]
+@inject IEntityApiClient<TipoPlato> Api
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo tipo de plato" : "Editar tipo de plato")</PageTitle>
+
+<h3>@(Id is null ? "Nuevo tipo de plato" : $"Editar tipo de plato #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="tipoplato-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <InputText class="form-control" @bind-Value="_entity.Nombre" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Observación</label>
+            <InputTextArea class="form-control" @bind-Value="_entity.Observacion" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/tipos-plato">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private TipoPlato _entity = new();
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/tipos-plato");
+                return;
+            }
+            _entity = existing;
+        }
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/tipos-plato");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

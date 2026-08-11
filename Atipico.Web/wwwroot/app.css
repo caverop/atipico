@@ -1,15 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Jost:wght@400;500;600&display=swap');
+
+:root {
+    --atipico-cream: #efe4c8;
+    --atipico-cream-dark: #e3d3a5;
+    --atipico-ink: #1c1712;
+    --atipico-accent: #4b5320;
+}
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: 'Jost', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--atipico-cream);
+    color: var(--atipico-ink);
+}
+
+h1, h2, h3, h4, .atipico-brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    letter-spacing: 0.02em;
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: var(--atipico-ink);
 }
 
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    color: var(--atipico-cream);
+    background-color: var(--atipico-ink);
+    border-color: var(--atipico-ink);
+    border-radius: 999px;
+}
+
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: var(--atipico-accent);
+        border-color: var(--atipico-accent);
+    }
+
+.btn-outline-secondary, .btn-danger {
+    border-radius: 999px;
+}
+
+.card, .table, .form-control, .form-select {
+    border-radius: 0.75rem;
+}
+
+.table {
+    border: 2px solid var(--atipico-ink);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background-color: #fffdf6;
+}
+
+    .table thead {
+        background-color: var(--atipico-ink);
+        color: var(--atipico-cream);
+    }
+
+.dashboard-card {
+    background-color: #fffdf6;
+    border: 2px solid var(--atipico-ink);
+    border-radius: 1.25rem;
+    color: var(--atipico-ink);
+    transition: transform 0.1s ease-in-out;
+}
+
+    .dashboard-card:hover {
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .badge {
+        background-color: var(--atipico-ink);
+        color: var(--atipico-cream);
+        border-radius: 999px;
+        font-size: 0.9rem;
+        min-width: 2.25rem;
+    }
+
+.empty-layout {
+    min-height: 100vh;
+    background-color: var(--atipico-cream);
+}
+
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 380px;
+    background-color: #fffdf6;
+    border: 2px solid var(--atipico-ink);
+    border-radius: 1.25rem;
+    padding: 2rem;
 }
 
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {

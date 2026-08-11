@@ -1,0 +1,44 @@
+@page "/pedidos"
+@attribute [Authorize]
+@inject IEntityApiClient<Pedido> Api
+@inject IEntityApiClient<Usuario> UsuarioApi
+
+<PageTitle>Pedidos</PageTitle>
+
+<EntityTable TEntity="Pedido"
+             Title="Pedidos"
+             Items="_pedidos"
+             Columns="_columns"
+             CreateUrl="/pedidos/nuevo"
+             EditUrlPrefix="/pedidos"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin", "Mesero"])" />
+
+@code {
+    private List<Pedido>? _pedidos;
+    private Dictionary<long, string> _meseroNombres = [];
+    private List<(string Header, Func<Pedido, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuarios = await UsuarioApi.GetAllAsync();
+        _meseroNombres = usuarios.ToDictionary(u => u.Id, u => u.Nombre);
+
+        _columns =
+        [
+            ("Id", p => p.Id),
+            ("Comensal", p => p.Comensal),
+            ("Estado", p => p.Estado),
+            ("Mesero", p => _meseroNombres.GetValueOrDefault(p.IdMesero, $"#{p.IdMesero}")),
+            ("Creado", p => p.CreadoEn.ToLocalTime().ToString("g")),
+        ];
+
+        _pedidos = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _pedidos = await Api.GetAllAsync();
+    }
+}

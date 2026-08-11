@@ -1,0 +1,47 @@
+@page "/pedido-mesas"
+@attribute [Authorize]
+@inject IEntityApiClient<PedidoMesa> Api
+@inject IEntityApiClient<Pedido> PedidoApi
+@inject IEntityApiClient<Mesa> MesaApi
+
+<PageTitle>Pedido &lt;-&gt; Mesa</PageTitle>
+
+<EntityTable TEntity="PedidoMesa"
+             Title="Pedido - Mesa"
+             Items="_items"
+             Columns="_columns"
+             CreateUrl="/pedido-mesas/nuevo"
+             EditUrlPrefix="/pedido-mesas"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin", "Mesero"])" />
+
+@code {
+    private List<PedidoMesa>? _items;
+    private Dictionary<long, string> _pedidoLabels = [];
+    private Dictionary<long, string> _mesaLabels = [];
+    private List<(string Header, Func<PedidoMesa, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pedidos = await PedidoApi.GetAllAsync();
+        _pedidoLabels = pedidos.ToDictionary(p => p.Id, p => $"#{p.Id} - {p.Comensal ?? "sin nombre"}");
+
+        var mesas = await MesaApi.GetAllAsync();
+        _mesaLabels = mesas.ToDictionary(m => m.Id, m => $"Mesa {m.Numero}");
+
+        _columns =
+        [
+            ("Id", pm => pm.Id),
+            ("Pedido", pm => _pedidoLabels.GetValueOrDefault(pm.IdPedido, $"#{pm.IdPedido}")),
+            ("Mesa", pm => _mesaLabels.GetValueOrDefault(pm.IdMesa, $"#{pm.IdMesa}")),
+        ];
+
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _items = await Api.GetAllAsync();
+    }
+}

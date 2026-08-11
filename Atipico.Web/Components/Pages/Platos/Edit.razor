@@ -1,0 +1,92 @@
+@page "/platos/nuevo"
+@page "/platos/{Id:long}"
+@attribute [Authorize(Roles = "Admin")]
+@inject IEntityApiClient<Plato> Api
+@inject IEntityApiClient<TipoPlato> TipoPlatoApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo plato" : "Editar plato")</PageTitle>
+
+<h3>@(Id is null ? "Nuevo plato" : $"Editar plato #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="plato-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <InputText class="form-control" @bind-Value="_entity.Nombre" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Precio (Bs)</label>
+            <InputNumber class="form-control" @bind-Value="_entity.Precio" step="0.01" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Tipo de plato</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdTipoPlato">
+                @foreach (var tipo in _tipos)
+                {
+                    <option value="@tipo.Id">@tipo.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="form-check mb-3">
+            <InputCheckbox class="form-check-input" @bind-Value="_entity.Activo" id="activo" />
+            <label class="form-check-label" for="activo">Activo</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/platos">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private Plato _entity = new();
+    private List<TipoPlato> _tipos = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tipos = await TipoPlatoApi.GetAllAsync();
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/platos");
+                return;
+            }
+            _entity = existing;
+        }
+        else if (_tipos.Count > 0)
+        {
+            _entity.IdTipoPlato = _tipos[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/platos");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

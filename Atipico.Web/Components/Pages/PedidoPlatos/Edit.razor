@@ -1,0 +1,128 @@
+@page "/pedido-platos/nuevo"
+@page "/pedido-platos/{Id:long}"
+@attribute [Authorize(Roles = "Admin,Mesero,Cocinero")]
+@inject IEntityApiClient<PedidoPlato> Api
+@inject IEntityApiClient<Pedido> PedidoApi
+@inject IEntityApiClient<Plato> PlatoApi
+@inject IEntityApiClient<Usuario> UsuarioApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo plato de pedido" : "Editar plato de pedido")</PageTitle>
+
+<h3>@(Id is null ? "Agregar plato a un pedido" : $"Editar #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="pedidoplato-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Pedido</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdPedido">
+                @foreach (var pedido in _pedidos)
+                {
+                    <option value="@pedido.Id">#@pedido.Id - @(pedido.Comensal ?? "sin nombre")</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Plato</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdPlato">
+                @foreach (var plato in _platos)
+                {
+                    <option value="@plato.Id">@plato.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <InputSelect class="form-select" @bind-Value="_entity.Estado">
+                @foreach (var estado in Enum.GetValues<EstadoPedidoPlato>())
+                {
+                    <option value="@estado">@estado</option>
+                }
+            </InputSelect>
+            <div class="form-text">"Servido" requiere la fecha de servido. "Anulado" requiere responsable y motivo.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Servido en</label>
+            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.ServidoEn" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Anulado en</label>
+            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.AnuladoEn" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Anulado por</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdAnuladoPor">
+                <option value="">-- Sin anular --</option>
+                @foreach (var usuario in _usuarios)
+                {
+                    <option value="@usuario.Id">@usuario.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Motivo de anulación</label>
+            <InputText class="form-control" @bind-Value="_entity.MotivoAnulacion" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/pedido-platos">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private PedidoPlato _entity = new();
+    private List<Pedido> _pedidos = [];
+    private List<Plato> _platos = [];
+    private List<Usuario> _usuarios = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pedidos = await PedidoApi.GetAllAsync();
+        _platos = await PlatoApi.GetAllAsync();
+        _usuarios = await UsuarioApi.GetAllAsync();
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/pedido-platos");
+                return;
+            }
+            _entity = existing;
+        }
+        else
+        {
+            if (_pedidos.Count > 0) _entity.IdPedido = _pedidos[0].Id;
+            if (_platos.Count > 0) _entity.IdPlato = _platos[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/pedido-platos");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

@@ -1,0 +1,93 @@
+@page "/pedido-mesas/nuevo"
+@page "/pedido-mesas/{Id:long}"
+@attribute [Authorize(Roles = "Admin,Mesero")]
+@inject IEntityApiClient<PedidoMesa> Api
+@inject IEntityApiClient<Pedido> PedidoApi
+@inject IEntityApiClient<Mesa> MesaApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nueva asociación pedido-mesa" : "Editar asociación pedido-mesa")</PageTitle>
+
+<h3>@(Id is null ? "Asociar pedido a una mesa" : $"Editar asociación #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="pedidomesa-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Pedido</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdPedido">
+                @foreach (var pedido in _pedidos)
+                {
+                    <option value="@pedido.Id">#@pedido.Id - @(pedido.Comensal ?? "sin nombre")</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mesa</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdMesa">
+                @foreach (var mesa in _mesas)
+                {
+                    <option value="@mesa.Id">Mesa @mesa.Numero</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/pedido-mesas">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private PedidoMesa _entity = new();
+    private List<Pedido> _pedidos = [];
+    private List<Mesa> _mesas = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _pedidos = await PedidoApi.GetAllAsync();
+        _mesas = await MesaApi.GetAllAsync();
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/pedido-mesas");
+                return;
+            }
+            _entity = existing;
+        }
+        else
+        {
+            if (_pedidos.Count > 0) _entity.IdPedido = _pedidos[0].Id;
+            if (_mesas.Count > 0) _entity.IdMesa = _mesas[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/pedido-mesas");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

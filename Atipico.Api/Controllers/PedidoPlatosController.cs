@@ -10,5 +10,9 @@ namespace Atipico.Api.Controllers
         public PedidoPlatosController(IEntityService<PedidoPlato> service) : base(service)
         {
         }
+
+        protected override string[] CreateRoles => ["Admin", "Mesero"];
+        protected override string[] UpdateRoles => ["Admin", "Mesero", "Cocinero"];
+        protected override string[] DeleteRoles => ["Admin", "Mesero"];
     }
 }

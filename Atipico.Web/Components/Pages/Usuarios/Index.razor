@@ -1,0 +1,38 @@
+@page "/usuarios"
+@attribute [Authorize]
+@inject IEntityApiClient<Usuario> Api
+
+<PageTitle>Usuarios</PageTitle>
+
+<EntityTable TEntity="Usuario"
+             Title="Usuarios"
+             Items="_usuarios"
+             Columns="_columns"
+             CreateUrl="/usuarios/nuevo"
+             EditUrlPrefix="/usuarios"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin"])" />
+
+@code {
+    private List<Usuario>? _usuarios;
+
+    private readonly List<(string Header, Func<Usuario, object?> Value)> _columns =
+    [
+        ("Id", u => u.Id),
+        ("Nombre", u => u.Nombre),
+        ("Usuario", u => u.NombreUsuario),
+        ("Rol", u => u.Rol),
+        ("Activo", u => u.Activo ? "Sí" : "No"),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _usuarios = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _usuarios = await Api.GetAllAsync();
+    }
+}

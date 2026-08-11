@@ -1,0 +1,79 @@
+@page "/mesas/nuevo"
+@page "/mesas/{Id:long}"
+@attribute [Authorize(Roles = "Admin")]
+@inject IEntityApiClient<Mesa> Api
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nueva mesa" : "Editar mesa")</PageTitle>
+
+<h3>@(Id is null ? "Nueva mesa" : $"Editar mesa #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="mesa-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Número</label>
+            <InputNumber class="form-control" @bind-Value="_entity.Numero" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Capacidad</label>
+            <InputNumber class="form-control" @bind-Value="_entity.Capacidad" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <InputSelect class="form-select" @bind-Value="_entity.Estado">
+                @foreach (var estado in Enum.GetValues<EstadoMesa>())
+                {
+                    <option value="@estado">@estado</option>
+                }
+            </InputSelect>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/mesas">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private Mesa _entity = new();
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/mesas");
+                return;
+            }
+            _entity = existing;
+        }
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/mesas");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

@@ -10,5 +10,9 @@ namespace Atipico.Api.Controllers
         public CuentasController(IEntityService<Cuenta> service) : base(service)
         {
         }
+
+        // Mesero abre la cuenta pero no la cobra: cobrar (Update) es cosa de Cajero/Admin.
+        protected override string[] CreateRoles => ["Admin", "Mesero", "Cajero"];
+        protected override string[] UpdateRoles => ["Admin", "Cajero"];
     }
 }

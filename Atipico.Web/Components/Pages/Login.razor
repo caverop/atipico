@@ -1,0 +1,37 @@
+@page "/login"
+@layout Layout.EmptyLayout
+@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+
+<PageTitle>Iniciar sesión - Atipico</PageTitle>
+
+<div class="login-page">
+    <div class="login-card">
+        <h1 class="atipico-brand text-center mb-4">ATIPICO</h1>
+
+        @if (Error is not null)
+        {
+            <div class="alert alert-danger">Usuario o contraseña incorrectos.</div>
+        }
+
+        <form method="post" action="/auth/login">
+            <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+            <div class="mb-3">
+                <label class="form-label">Usuario</label>
+                <input class="form-control" name="nombreUsuario" required autofocus />
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <input class="form-control" type="password" name="password" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Ingresar</button>
+        </form>
+    </div>
+</div>
+
+@code {
+    [SupplyParameterFromQuery]
+    public string? Error { get; set; }
+
+    [SupplyParameterFromQuery]
+    public string? ReturnUrl { get; set; }
+}

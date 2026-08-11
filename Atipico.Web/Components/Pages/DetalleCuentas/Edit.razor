@@ -1,0 +1,103 @@
+@page "/detalle-cuentas/nuevo"
+@page "/detalle-cuentas/{Id:long}"
+@attribute [Authorize(Roles = "Admin,Cajero")]
+@inject IEntityApiClient<DetalleCuenta> Api
+@inject IEntityApiClient<Cuenta> CuentaApi
+@inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
+@inject IEntityApiClient<Plato> PlatoApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo detalle de cuenta" : "Editar detalle de cuenta")</PageTitle>
+
+<h3>@(Id is null ? "Facturar un plato en una cuenta" : $"Editar detalle #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="detallecuenta-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Cuenta</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdCuenta">
+                @foreach (var cuenta in _cuentas)
+                {
+                    <option value="@cuenta.Id">#@cuenta.Id - @(cuenta.Comensal ?? "sin nombre") (@cuenta.Estado)</option>
+                }
+            </InputSelect>
+            <div class="form-text">Solo se puede facturar en cuentas en estado "Abierta".</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Plato del pedido</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdPedidoPlato">
+                @foreach (var pp in _pedidoPlatos)
+                {
+                    <option value="@pp.Id">#@pp.Id - @(_platoNombres.GetValueOrDefault(pp.IdPlato, $"plato #{pp.IdPlato}")) (@pp.Estado)</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Precio unitario (Bs)</label>
+            <InputNumber class="form-control" @bind-Value="_entity.PrecioUnitario" step="0.01" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/detalle-cuentas">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private DetalleCuenta _entity = new();
+    private List<Cuenta> _cuentas = [];
+    private List<PedidoPlato> _pedidoPlatos = [];
+    private Dictionary<long, string> _platoNombres = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _cuentas = await CuentaApi.GetAllAsync();
+        _pedidoPlatos = await PedidoPlatoApi.GetAllAsync();
+
+        var platos = await PlatoApi.GetAllAsync();
+        _platoNombres = platos.ToDictionary(p => p.Id, p => p.Nombre);
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/detalle-cuentas");
+                return;
+            }
+            _entity = existing;
+        }
+        else
+        {
+            if (_cuentas.Count > 0) _entity.IdCuenta = _cuentas[0].Id;
+            if (_pedidoPlatos.Count > 0) _entity.IdPedidoPlato = _pedidoPlatos[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/detalle-cuentas");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

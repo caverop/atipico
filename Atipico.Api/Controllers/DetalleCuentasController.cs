@@ -10,5 +10,8 @@ namespace Atipico.Api.Controllers
         public DetalleCuentasController(IEntityService<DetalleCuenta> service) : base(service)
         {
         }
+
+        protected override string[] CreateRoles => ["Admin", "Cajero"];
+        protected override string[] UpdateRoles => ["Admin", "Cajero"];
     }
 }

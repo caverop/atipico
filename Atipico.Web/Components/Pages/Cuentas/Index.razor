@@ -1,0 +1,46 @@
+@page "/cuentas"
+@attribute [Authorize]
+@inject IEntityApiClient<Cuenta> Api
+@inject IEntityApiClient<Usuario> UsuarioApi
+
+<PageTitle>Cuentas</PageTitle>
+
+<EntityTable TEntity="Cuenta"
+             Title="Cuentas"
+             Items="_cuentas"
+             Columns="_columns"
+             CreateUrl="/cuentas/nuevo"
+             EditUrlPrefix="/cuentas"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin", "Mesero", "Cajero"])" />
+
+@code {
+    private List<Cuenta>? _cuentas;
+    private Dictionary<long, string> _usuarioNombres = [];
+    private List<(string Header, Func<Cuenta, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var usuarios = await UsuarioApi.GetAllAsync();
+        _usuarioNombres = usuarios.ToDictionary(u => u.Id, u => u.Nombre);
+
+        _columns =
+        [
+            ("Id", c => c.Id),
+            ("Comensal", c => c.Comensal),
+            ("Estado", c => c.Estado),
+            ("Monto", c => c.Monto.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))),
+            ("Método de pago", c => c.MetodoPago?.ToString() ?? "-"),
+            ("Mesero", c => _usuarioNombres.GetValueOrDefault(c.IdMesero, $"#{c.IdMesero}")),
+            ("Cajero", c => c.IdCajero is null ? "-" : _usuarioNombres.GetValueOrDefault(c.IdCajero.Value, $"#{c.IdCajero}")),
+        ];
+
+        _cuentas = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _cuentas = await Api.GetAllAsync();
+    }
+}

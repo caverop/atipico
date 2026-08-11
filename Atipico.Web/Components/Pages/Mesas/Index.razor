@@ -1,0 +1,37 @@
+@page "/mesas"
+@attribute [Authorize]
+@inject IEntityApiClient<Mesa> Api
+
+<PageTitle>Mesas</PageTitle>
+
+<EntityTable TEntity="Mesa"
+             Title="Mesas"
+             Items="_mesas"
+             Columns="_columns"
+             CreateUrl="/mesas/nuevo"
+             EditUrlPrefix="/mesas"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin"])" />
+
+@code {
+    private List<Mesa>? _mesas;
+
+    private readonly List<(string Header, Func<Mesa, object?> Value)> _columns =
+    [
+        ("Id", m => m.Id),
+        ("Número", m => m.Numero),
+        ("Capacidad", m => m.Capacidad),
+        ("Estado", m => m.Estado),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _mesas = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _mesas = await Api.GetAllAsync();
+    }
+}

@@ -1,0 +1,36 @@
+@page "/tipos-plato"
+@attribute [Authorize]
+@inject IEntityApiClient<TipoPlato> Api
+
+<PageTitle>Tipos de plato</PageTitle>
+
+<EntityTable TEntity="TipoPlato"
+             Title="Tipos de plato"
+             Items="_tipos"
+             Columns="_columns"
+             CreateUrl="/tipos-plato/nuevo"
+             EditUrlPrefix="/tipos-plato"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin"])" />
+
+@code {
+    private List<TipoPlato>? _tipos;
+
+    private readonly List<(string Header, Func<TipoPlato, object?> Value)> _columns =
+    [
+        ("Id", t => t.Id),
+        ("Nombre", t => t.Nombre),
+        ("Observación", t => t.Observacion),
+    ];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _tipos = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _tipos = await Api.GetAllAsync();
+    }
+}

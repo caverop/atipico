@@ -1,19 +1,27 @@
 using Atipico.Application.Interfaces.Services;
 using Atipico.Domain.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Atipico.Api.Controllers
 {
     [ApiController]
+    [Authorize]
     public abstract class EntityControllerBase<TEntity> : ControllerBase where TEntity : class, IEntity
     {
-        private readonly IEntityService<TEntity> _service;
+        protected readonly IEntityService<TEntity> _service;
 
         protected EntityControllerBase(IEntityService<TEntity> service)
         {
             _service = service;
         }
+
+        // Cualquier rol autenticado puede leer; solo estos roles pueden mutar.
+        // Los controladores concretos sobrescriben lo que corresponda según el flujo de trabajo.
+        protected virtual string[] CreateRoles => ["Admin"];
+        protected virtual string[] UpdateRoles => ["Admin"];
+        protected virtual string[] DeleteRoles => ["Admin"];
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TEntity>>> GetAll()
@@ -29,15 +37,21 @@ namespace Atipico.Api.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<TEntity>> Create(TEntity entity)
+        public virtual async Task<ActionResult<TEntity>> Create(TEntity entity)
         {
+            if (!HasAnyRole(CreateRoles))
+                return Forbid();
+
             var created = await _service.AddAsync(entity);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
 
         [HttpPut("{id:long}")]
-        public async Task<IActionResult> Update(long id, TEntity entity)
+        public virtual async Task<IActionResult> Update(long id, TEntity entity)
         {
+            if (!HasAnyRole(UpdateRoles))
+                return Forbid();
+
             if (id != entity.Id)
                 return BadRequest("El id de la ruta no coincide con el id del cuerpo.");
 
@@ -56,6 +70,9 @@ namespace Atipico.Api.Controllers
         [HttpDelete("{id:long}")]
         public async Task<IActionResult> Delete(long id)
         {
+            if (!HasAnyRole(DeleteRoles))
+                return Forbid();
+
             var entity = await _service.GetByIdAsync(id);
             if (entity is null)
                 return NotFound();
@@ -63,5 +80,7 @@ namespace Atipico.Api.Controllers
             await _service.RemoveAsync(entity);
             return NoContent();
         }
+
+        protected bool HasAnyRole(string[] roles) => roles.Any(User.IsInRole);
     }
 }

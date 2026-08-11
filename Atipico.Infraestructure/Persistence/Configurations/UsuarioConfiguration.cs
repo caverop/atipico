@@ -16,6 +16,12 @@ namespace Atipico.Infraestructure.Persistence.Configurations
             builder.Property(u => u.Id).HasColumnName("id").UseIdentityAlwaysColumn();
 
             builder.Property(u => u.Nombre).HasColumnName("nombre").HasMaxLength(120).IsRequired();
+
+            builder.Property(u => u.NombreUsuario).HasColumnName("nombre_usuario").HasMaxLength(60).IsRequired();
+            builder.HasIndex(u => u.NombreUsuario).IsUnique().HasDatabaseName("uk_usuario_nombre_usuario");
+
+            builder.Property(u => u.PasswordHash).HasColumnName("password_hash").HasMaxLength(200).IsRequired();
+
             builder.Property(u => u.Rol).HasColumnName("rol")
                 .HasConversion(new UpperSnakeCaseEnumConverter<RolUsuario>()).HasMaxLength(20).IsRequired();
             builder.Property(u => u.Activo).HasColumnName("activo").HasDefaultValue(true);

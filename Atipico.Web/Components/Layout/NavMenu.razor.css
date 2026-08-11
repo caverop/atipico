@@ -17,11 +17,48 @@
 
 .top-row {
     min-height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
+    background-color: rgba(0,0,0,0.25);
 }
 
 .navbar-brand {
-    font-size: 1.1rem;
+    font-size: 1.3rem;
+    color: var(--atipico-cream);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    letter-spacing: 0.08em;
+}
+
+.atipico-logo {
+    color: var(--atipico-cream);
+    flex-shrink: 0;
+}
+
+.nav-section {
+    color: rgba(239, 228, 200, 0.55);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-top: 0.75rem;
+    padding-bottom: 0.15rem;
+}
+
+.nav-user {
+    margin: 1rem 0.75rem 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(239, 228, 200, 0.2);
+    color: var(--atipico-cream);
+}
+
+.nav-user-name {
+    font-weight: 500;
+}
+
+.nav-user-role {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(239, 228, 200, 0.6);
 }
 
 .bi {

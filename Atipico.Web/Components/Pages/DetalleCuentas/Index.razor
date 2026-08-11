@@ -1,0 +1,54 @@
+@page "/detalle-cuentas"
+@attribute [Authorize]
+@inject IEntityApiClient<DetalleCuenta> Api
+@inject IEntityApiClient<Cuenta> CuentaApi
+@inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
+@inject IEntityApiClient<Plato> PlatoApi
+
+<PageTitle>Detalle de cuentas</PageTitle>
+
+<EntityTable TEntity="DetalleCuenta"
+             Title="Detalle de cuentas"
+             Items="_items"
+             Columns="_columns"
+             CreateUrl="/detalle-cuentas/nuevo"
+             EditUrlPrefix="/detalle-cuentas"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin", "Cajero"])" />
+
+@code {
+    private List<DetalleCuenta>? _items;
+    private Dictionary<long, string> _cuentaLabels = [];
+    private Dictionary<long, string> _pedidoPlatoLabels = [];
+    private List<(string Header, Func<DetalleCuenta, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var cuentas = await CuentaApi.GetAllAsync();
+        _cuentaLabels = cuentas.ToDictionary(c => c.Id, c => $"#{c.Id} - {c.Comensal ?? "sin nombre"}");
+
+        var platos = await PlatoApi.GetAllAsync();
+        var platoNombres = platos.ToDictionary(p => p.Id, p => p.Nombre);
+
+        var pedidoPlatos = await PedidoPlatoApi.GetAllAsync();
+        _pedidoPlatoLabels = pedidoPlatos.ToDictionary(
+            pp => pp.Id,
+            pp => $"#{pp.Id} - {platoNombres.GetValueOrDefault(pp.IdPlato, $"plato #{pp.IdPlato}")}");
+
+        _columns =
+        [
+            ("Id", d => d.Id),
+            ("Cuenta", d => _cuentaLabels.GetValueOrDefault(d.IdCuenta, $"#{d.IdCuenta}")),
+            ("Plato pedido", d => _pedidoPlatoLabels.GetValueOrDefault(d.IdPedidoPlato, $"#{d.IdPedidoPlato}")),
+            ("Precio unitario", d => d.PrecioUnitario.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))),
+        ];
+
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _items = await Api.GetAllAsync();
+    }
+}

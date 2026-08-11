@@ -1,0 +1,48 @@
+@page "/pedido-platos"
+@attribute [Authorize]
+@inject IEntityApiClient<PedidoPlato> Api
+@inject IEntityApiClient<Pedido> PedidoApi
+@inject IEntityApiClient<Plato> PlatoApi
+
+<PageTitle>Pedido &lt;-&gt; Plato</PageTitle>
+
+<EntityTable TEntity="PedidoPlato"
+             Title="Platos por pedido"
+             Items="_items"
+             Columns="_columns"
+             CreateUrl="/pedido-platos/nuevo"
+             EditUrlPrefix="/pedido-platos"
+             OnDelete="HandleDelete"
+             WriteRoles="@(["Admin", "Mesero", "Cocinero"])" />
+
+@code {
+    private List<PedidoPlato>? _items;
+    private Dictionary<long, string> _pedidoLabels = [];
+    private Dictionary<long, string> _platoLabels = [];
+    private List<(string Header, Func<PedidoPlato, object?> Value)> _columns = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        var pedidos = await PedidoApi.GetAllAsync();
+        _pedidoLabels = pedidos.ToDictionary(p => p.Id, p => $"#{p.Id} - {p.Comensal ?? "sin nombre"}");
+
+        var platos = await PlatoApi.GetAllAsync();
+        _platoLabels = platos.ToDictionary(p => p.Id, p => p.Nombre);
+
+        _columns =
+        [
+            ("Id", pp => pp.Id),
+            ("Pedido", pp => _pedidoLabels.GetValueOrDefault(pp.IdPedido, $"#{pp.IdPedido}")),
+            ("Plato", pp => _platoLabels.GetValueOrDefault(pp.IdPlato, $"#{pp.IdPlato}")),
+            ("Estado", pp => pp.Estado),
+        ];
+
+        _items = await Api.GetAllAsync();
+    }
+
+    private async Task HandleDelete(long id)
+    {
+        await Api.DeleteAsync(id);
+        _items = await Api.GetAllAsync();
+    }
+}

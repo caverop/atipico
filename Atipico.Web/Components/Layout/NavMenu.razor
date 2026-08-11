@@ -1,6 +1,11 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Atipico.Web</a>
+        <a class="navbar-brand atipico-brand" href="">
+            <svg width="20" height="20" viewBox="0 0 24 24" class="atipico-logo" aria-hidden="true">
+                <polygon points="12,1 22,7 22,17 12,23 2,17 2,7" fill="none" stroke="currentColor" stroke-width="1.5" />
+            </svg>
+            ATIPICO
+        </a>
     </div>
 </div>
 
@@ -10,21 +15,57 @@
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                Panel
             </NavLink>
         </div>
 
+        <div class="nav-item px-3 nav-section">Personal</div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
+            <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
         </div>
 
+        <div class="nav-item px-3 nav-section">Carta</div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
-            </NavLink>
+            <NavLink class="nav-link" href="tipos-plato">Tipos de plato</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="platos">Platos</NavLink>
+        </div>
+
+        <div class="nav-item px-3 nav-section">Salón</div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="mesas">Mesas</NavLink>
+        </div>
+
+        <div class="nav-item px-3 nav-section">Pedidos</div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="pedidos">Pedidos</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="pedido-mesas">Pedido &lt;-&gt; Mesa</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="pedido-platos">Pedido &lt;-&gt; Plato</NavLink>
+        </div>
+
+        <div class="nav-item px-3 nav-section">Caja</div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="cuentas">Cuentas</NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="detalle-cuentas">Detalle de cuentas</NavLink>
         </div>
     </nav>
-</div>
 
+    <AuthorizeView>
+        <Authorized>
+            <div class="nav-user">
+                <div class="nav-user-name">@context.User.FindFirst("nombre")?.Value</div>
+                <div class="nav-user-role">@context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                <form method="post" action="/auth/logout">
+                    <button type="submit" class="btn btn-sm btn-outline-light w-100 mt-2">Cerrar sesión</button>
+                </form>
+            </div>
+        </Authorized>
+    </AuthorizeView>
+</div>

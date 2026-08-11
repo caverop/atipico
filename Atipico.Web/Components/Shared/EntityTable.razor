@@ -1,0 +1,80 @@
+@typeparam TEntity where TEntity : class, IEntity
+@inject IJSRuntime JS
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">@Title</h3>
+    <AuthorizeView Roles="@RolesCsv">
+        <Authorized><a class="btn btn-primary" href="@CreateUrl">+ Nuevo</a></Authorized>
+    </AuthorizeView>
+</div>
+
+@if (Items is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (Items.Count == 0)
+{
+    <p class="text-muted"><em>No hay registros todavía.</em></p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    @foreach (var col in Columns)
+                    {
+                        <th>@col.Header</th>
+                    }
+                    <AuthorizeView Roles="@RolesCsv" Context="headerAuth">
+                        <Authorized><th></th></Authorized>
+                    </AuthorizeView>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Items)
+                {
+                    <tr>
+                        @foreach (var col in Columns)
+                        {
+                            <td>@col.Value(item)</td>
+                        }
+                        <AuthorizeView Roles="@RolesCsv" Context="rowAuth">
+                            <Authorized>
+                                <td class="text-end">
+                                    <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">Editar</a>
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">Eliminar</button>
+                                </td>
+                            </Authorized>
+                        </AuthorizeView>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+    [Parameter, EditorRequired] public List<TEntity>? Items { get; set; }
+    [Parameter, EditorRequired] public List<(string Header, Func<TEntity, object?> Value)> Columns { get; set; } = [];
+    [Parameter, EditorRequired] public string CreateUrl { get; set; } = "";
+    [Parameter, EditorRequired] public string EditUrlPrefix { get; set; } = "";
+    [Parameter, EditorRequired] public EventCallback<long> OnDelete { get; set; }
+
+    // Roles que pueden crear/editar/eliminar en esta pantalla. La API vuelve a
+    // validar esto por acción (Create/Update/Delete pueden diferir); esto solo
+    // decide qué botones se muestran.
+    [Parameter] public string[] WriteRoles { get; set; } = ["Admin"];
+
+    private string RolesCsv => string.Join(",", WriteRoles);
+
+    private async Task HandleDelete(long id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar el registro #{id}? Esta acción no se puede deshacer.");
+        if (confirmed)
+        {
+            await OnDelete.InvokeAsync(id);
+        }
+    }
+}

@@ -1,0 +1,98 @@
+@page "/pedidos/nuevo"
+@page "/pedidos/{Id:long}"
+@attribute [Authorize(Roles = "Admin,Mesero")]
+@inject IEntityApiClient<Pedido> Api
+@inject IEntityApiClient<Usuario> UsuarioApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo pedido" : "Editar pedido")</PageTitle>
+
+<h3>@(Id is null ? "Nuevo pedido" : $"Editar pedido #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="pedido-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Comensal</label>
+            <InputText class="form-control" @bind-Value="_entity.Comensal" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <InputSelect class="form-select" @bind-Value="_entity.Estado">
+                @foreach (var estado in Enum.GetValues<EstadoPedido>())
+                {
+                    <option value="@estado">@estado</option>
+                }
+            </InputSelect>
+            <div class="form-text">Si el estado es "Cerrado", hay que indicar también la fecha de cierre.</div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mesero</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
+                @foreach (var mesero in _meseros)
+                {
+                    <option value="@mesero.Id">@mesero.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Cerrado en</label>
+            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.CerradoEn" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/pedidos">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private Pedido _entity = new();
+    private List<Usuario> _meseros = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _meseros = await UsuarioApi.GetAllAsync();
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/pedidos");
+                return;
+            }
+            _entity = existing;
+        }
+        else if (_meseros.Count > 0)
+        {
+            _entity.IdMesero = _meseros[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/pedidos");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

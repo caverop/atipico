@@ -2,7 +2,9 @@
 using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using System.Text.Json.Serialization;
 
 namespace Atipico.Domain.Entities
 {
@@ -10,6 +12,17 @@ namespace Atipico.Domain.Entities
     {
         public long Id { get; set; }
         public string Nombre { get; set; } = null!;
+        public string NombreUsuario { get; set; } = null!;
+
+        [JsonIgnore]
+        public string PasswordHash { get; set; } = null!;
+
+        // Contraseña en texto plano solo de paso: entra por JSON al crear/editar
+        // un usuario, se hashea en el controlador y nunca se persiste ni se serializa.
+        [NotMapped]
+        [JsonPropertyName("password")]
+        public string? Password { get; set; }
+
         public RolUsuario Rol { get; set; }
         public bool Activo { get; set; } = true;
 

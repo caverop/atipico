@@ -1,0 +1,87 @@
+@page "/usuarios/nuevo"
+@page "/usuarios/{Id:long}"
+@attribute [Authorize(Roles = "Admin")]
+@inject IEntityApiClient<Usuario> Api
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nuevo usuario" : "Editar usuario")</PageTitle>
+
+<h3>@(Id is null ? "Nuevo usuario" : $"Editar usuario #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="usuario-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <InputText class="form-control" @bind-Value="_entity.Nombre" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Usuario (para iniciar sesión)</label>
+            <InputText class="form-control" @bind-Value="_entity.NombreUsuario" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Contraseña@(Id is null ? "" : " (dejar vacío para no cambiarla)")</label>
+            <InputText class="form-control" type="password" @bind-Value="_entity.Password" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Rol</label>
+            <InputSelect class="form-select" @bind-Value="_entity.Rol">
+                @foreach (var rol in Enum.GetValues<RolUsuario>())
+                {
+                    <option value="@rol">@rol</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="form-check mb-3">
+            <InputCheckbox class="form-check-input" @bind-Value="_entity.Activo" id="activo" />
+            <label class="form-check-label" for="activo">Activo</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/usuarios">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private Usuario _entity = new();
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/usuarios");
+                return;
+            }
+            _entity = existing;
+        }
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/usuarios");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}

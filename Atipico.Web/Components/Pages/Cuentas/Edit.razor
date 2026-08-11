@@ -1,0 +1,143 @@
+@page "/cuentas/nuevo"
+@page "/cuentas/{Id:long}"
+@attribute [Authorize(Roles = "Admin,Mesero,Cajero")]
+@inject IEntityApiClient<Cuenta> Api
+@inject IEntityApiClient<Usuario> UsuarioApi
+@inject NavigationManager Nav
+
+<PageTitle>@(Id is null ? "Nueva cuenta" : "Editar cuenta")</PageTitle>
+
+<h3>@(Id is null ? "Nueva cuenta" : $"Editar cuenta #{Id}")</h3>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
+@if (_loaded)
+{
+    <EditForm Model="_entity" FormName="cuenta-edit" OnValidSubmit="HandleSave">
+        <div class="mb-3">
+            <label class="form-label">Comensal</label>
+            <InputText class="form-control" @bind-Value="_entity.Comensal" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Estado</label>
+            <InputSelect class="form-select" @bind-Value="_entity.Estado">
+                @foreach (var estado in Enum.GetValues<EstadoCuenta>())
+                {
+                    <option value="@estado">@estado</option>
+                }
+            </InputSelect>
+            <div class="form-text">
+                "Pagada" requiere método de pago, fecha de pago y cajero, todos a la vez.
+                "Anulada" requiere responsable y motivo.
+            </div>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Método de pago</label>
+            <InputSelect class="form-select" @bind-Value="_entity.MetodoPago">
+                <option value="">-- Sin método --</option>
+                @foreach (var metodo in Enum.GetValues<MetodoPago>())
+                {
+                    <option value="@metodo">@metodo</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Monto (Bs)</label>
+            <InputNumber class="form-control" @bind-Value="_entity.Monto" step="0.01" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Pagado en</label>
+            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.PagadoEn" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Mesero</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
+                @foreach (var usuario in _usuarios)
+                {
+                    <option value="@usuario.Id">@usuario.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Cajero</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdCajero">
+                <option value="">-- Sin asignar --</option>
+                @foreach (var usuario in _usuarios)
+                {
+                    <option value="@usuario.Id">@usuario.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Anulado en</label>
+            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.AnuladoEn" />
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Anulado por</label>
+            <InputSelect class="form-select" @bind-Value="_entity.IdAnuladoPor">
+                <option value="">-- Sin anular --</option>
+                @foreach (var usuario in _usuarios)
+                {
+                    <option value="@usuario.Id">@usuario.Nombre</option>
+                }
+            </InputSelect>
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Motivo de anulación</label>
+            <InputText class="form-control" @bind-Value="_entity.MotivoAnulacion" />
+        </div>
+
+        <button type="submit" class="btn btn-primary">Guardar</button>
+        <a class="btn btn-outline-secondary" href="/cuentas">Cancelar</a>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private Cuenta _entity = new();
+    private List<Usuario> _usuarios = [];
+    private bool _loaded;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _usuarios = await UsuarioApi.GetAllAsync();
+
+        if (Id is not null)
+        {
+            var existing = await Api.GetByIdAsync(Id.Value);
+            if (existing is null)
+            {
+                Nav.NavigateTo("/cuentas");
+                return;
+            }
+            _entity = existing;
+        }
+        else if (_usuarios.Count > 0)
+        {
+            _entity.IdMesero = _usuarios[0].Id;
+        }
+
+        _loaded = true;
+    }
+
+    private async Task HandleSave()
+    {
+        try
+        {
+            if (Id is null)
+                await Api.CreateAsync(_entity);
+            else
+                await Api.UpdateAsync(_entity);
+
+            Nav.NavigateTo("/cuentas");
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+}
