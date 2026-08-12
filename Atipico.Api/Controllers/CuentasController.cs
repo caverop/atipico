@@ -58,6 +58,13 @@ namespace Atipico.Api.Controllers
             {
                 return NotFound();
             }
+            catch (DbUpdateException ex)
+            {
+                var respuesta = TryTranslateDbError(ex);
+                if (respuesta is not null)
+                    return respuesta;
+                throw;
+            }
 
             return NoContent();
         }

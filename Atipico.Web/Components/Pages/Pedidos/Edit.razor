@@ -204,9 +204,13 @@
                 Nav.NavigateTo("/pedidos");
             }
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al guardar: no se pudo conectar con el servidor.";
         }
     }
 
@@ -220,9 +224,13 @@
             await LoadAsociaciones();
             if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al agregar la mesa: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al agregar la mesa: no se pudo conectar con el servidor.";
         }
     }
 
@@ -233,9 +241,13 @@
             await PedidoMesaApi.DeleteAsync(pedidoMesaId);
             await LoadAsociaciones();
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al quitar la mesa: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al quitar la mesa: no se pudo conectar con el servidor.";
         }
     }
 
@@ -248,9 +260,13 @@
             await PedidoPlatoApi.CreateAsync(new PedidoPlato { IdPedido = Id.Value, IdPlato = _selectedPlatoId });
             await LoadAsociaciones();
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al agregar el plato: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al agregar el plato: no se pudo conectar con el servidor.";
         }
     }
 
@@ -261,9 +277,13 @@
             await PedidoPlatoApi.DeleteAsync(pedidoPlatoId);
             await LoadAsociaciones();
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al quitar el plato: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al quitar el plato: no se pudo conectar con el servidor.";
         }
     }
 }

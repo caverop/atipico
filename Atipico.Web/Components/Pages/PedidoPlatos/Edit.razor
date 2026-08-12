@@ -5,6 +5,7 @@
 @inject IEntityApiClient<Pedido> PedidoApi
 @inject IEntityApiClient<Plato> PlatoApi
 @inject IEntityApiClient<Usuario> UsuarioApi
+@inject IEntityApiClient<DetalleCuenta> DetalleCuentaApi
 @inject NavigationManager Nav
 
 <PageTitle>@(Id is null ? "Nuevo plato de pedido" : "Editar plato de pedido")</PageTitle>
@@ -40,12 +41,16 @@
         <div class="mb-3">
             <label class="form-label">Estado</label>
             <InputSelect class="form-select" @bind-Value="_entity.Estado">
-                @foreach (var estado in Enum.GetValues<EstadoPedidoPlato>())
+                @foreach (var estado in _estadosDisponibles)
                 {
                     <option value="@estado">@estado</option>
                 }
             </InputSelect>
             <div class="form-text">Las fechas de servido/anulado se registran solas al guardar con esos estados.</div>
+            @if (_yaFacturado)
+            {
+                <div class="form-text text-warning">Este plato ya fue facturado: no se puede anular (habría que anular la cuenta).</div>
+            }
         </div>
         @if (_entity.ServidoEn is not null)
         {
@@ -87,8 +92,14 @@
     private List<Pedido> _pedidos = [];
     private List<Plato> _platos = [];
     private List<Usuario> _usuarios = [];
+    private bool _yaFacturado;
     private bool _loaded;
     private string? _error;
+
+    // fn_pedido_plato_facturado (sql/script_inicial.sql) rechaza pasar a Anulado un plato que
+    // ya tiene un DetalleCuenta: hay que anular la cuenta, no el plato.
+    private IEnumerable<EstadoPedidoPlato> _estadosDisponibles =>
+        Enum.GetValues<EstadoPedidoPlato>().Where(e => !_yaFacturado || e != EstadoPedidoPlato.Anulado);
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,6 +116,9 @@
                 return;
             }
             _entity = existing;
+
+            var detalles = await DetalleCuentaApi.GetAllAsync();
+            _yaFacturado = detalles.Any(d => d.IdPedidoPlato == existing.Id);
         }
         else
         {
@@ -126,9 +140,13 @@
 
             Nav.NavigateTo("/pedido-platos");
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al guardar: no se pudo conectar con el servidor.";
         }
     }
 }

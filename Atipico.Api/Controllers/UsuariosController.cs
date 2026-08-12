@@ -27,8 +27,18 @@ namespace Atipico.Api.Controllers
             entity.PasswordHash = _passwordHasher.Hash(entity.Password);
             entity.Password = null;
 
-            var created = await _service.AddAsync(entity);
-            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            try
+            {
+                var created = await _service.AddAsync(entity);
+                return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+            }
+            catch (DbUpdateException ex)
+            {
+                var respuesta = TryTranslateDbError(ex);
+                if (respuesta is not null)
+                    return respuesta;
+                throw;
+            }
         }
 
         public override async Task<IActionResult> Update(long id, Usuario entity)
@@ -61,6 +71,13 @@ namespace Atipico.Api.Controllers
             catch (DbUpdateConcurrencyException)
             {
                 return NotFound();
+            }
+            catch (DbUpdateException ex)
+            {
+                var respuesta = TryTranslateDbError(ex);
+                if (respuesta is not null)
+                    return respuesta;
+                throw;
             }
 
             return NoContent();

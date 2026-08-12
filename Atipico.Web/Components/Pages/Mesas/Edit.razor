@@ -71,9 +71,13 @@
 
             Nav.NavigateTo("/mesas");
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al guardar: no se pudo conectar con el servidor.";
         }
     }
 }

@@ -20,15 +20,29 @@
 
 @if (_loaded)
 {
+    @if (Id is not null && _entity.Estado != EstadoCuenta.Abierta)
+    {
+        <div class="alert alert-info">
+            @if (_entity.Estado == EstadoCuenta.Pagada)
+            {
+                <text>Esta cuenta ya está pagada: solo se puede anular (con responsable y motivo). El resto de los campos queda fijo.</text>
+            }
+            else
+            {
+                <text>Esta cuenta está anulada: ya no admite ningún cambio.</text>
+            }
+        </div>
+    }
+
     <EditForm Model="_entity" FormName="cuenta-edit" OnValidSubmit="HandleSave">
         <div class="mb-3">
             <label class="form-label">Comensal</label>
-            <InputText class="form-control" @bind-Value="_entity.Comensal" />
+            <InputText class="form-control" @bind-Value="_entity.Comensal" disabled="@(!_puedeEditarCampos)" />
         </div>
         <div class="mb-3">
             <label class="form-label">Estado</label>
-            <InputSelect class="form-select" @bind-Value="_entity.Estado">
-                @foreach (var estado in Enum.GetValues<EstadoCuenta>())
+            <InputSelect class="form-select" @bind-Value="_entity.Estado" disabled="@(!_puedeAnular)">
+                @foreach (var estado in _estadosDisponibles)
                 {
                     <option value="@estado">@estado</option>
                 }
@@ -40,7 +54,7 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Método de pago</label>
-            <InputSelect class="form-select" @bind-Value="_entity.MetodoPago">
+            <InputSelect class="form-select" @bind-Value="_entity.MetodoPago" disabled="@(!_puedeEditarCampos)">
                 <option value="">-- Sin método --</option>
                 @foreach (var metodo in Enum.GetValues<MetodoPago>())
                 {
@@ -50,7 +64,7 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Monto (Bs)</label>
-            <InputNumber class="form-control" @bind-Value="_entity.Monto" step="0.01" />
+            <InputNumber class="form-control" @bind-Value="_entity.Monto" step="0.01" disabled="@(!_puedeEditarCampos)" />
         </div>
         @if (_entity.PagadoEn is not null)
         {
@@ -61,7 +75,7 @@
         }
         <div class="mb-3">
             <label class="form-label">Mesero</label>
-            <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
+            <InputSelect class="form-select" @bind-Value="_entity.IdMesero" disabled="@(!_puedeEditarCampos)">
                 @foreach (var usuario in _usuarios)
                 {
                     <option value="@usuario.Id">@usuario.Nombre</option>
@@ -70,7 +84,7 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Cajero</label>
-            <InputSelect class="form-select" @bind-Value="_entity.IdCajero">
+            <InputSelect class="form-select" @bind-Value="_entity.IdCajero" disabled="@(!_puedeEditarCampos)">
                 <option value="">-- Sin asignar --</option>
                 @foreach (var usuario in _usuarios)
                 {
@@ -87,7 +101,7 @@
         }
         <div class="mb-3">
             <label class="form-label">Anulado por</label>
-            <InputSelect class="form-select" @bind-Value="_entity.IdAnuladoPor">
+            <InputSelect class="form-select" @bind-Value="_entity.IdAnuladoPor" disabled="@(!_puedeAnular)">
                 <option value="">-- Sin anular --</option>
                 @foreach (var usuario in _usuarios)
                 {
@@ -97,10 +111,13 @@
         </div>
         <div class="mb-3">
             <label class="form-label">Motivo de anulación</label>
-            <InputText class="form-control" @bind-Value="_entity.MotivoAnulacion" />
+            <InputText class="form-control" @bind-Value="_entity.MotivoAnulacion" disabled="@(!_puedeAnular)" />
         </div>
 
-        <button type="submit" class="btn btn-primary">Guardar</button>
+        @if (_puedeAnular)
+        {
+            <button type="submit" class="btn btn-primary">Guardar</button>
+        }
         <a class="btn btn-outline-secondary" href="/cuentas">Cancelar</a>
     </EditForm>
 
@@ -156,7 +173,10 @@
                                     @(_platoNombres.GetValueOrDefault(_pedidoPlatoPlatoId.GetValueOrDefault(d.IdPedidoPlato), "?"))
                                     (@d.PrecioUnitario.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO")))
                                 </span>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveDetalle(d.Id)">Quitar</button>
+                                @if (_entity.Estado == EstadoCuenta.Abierta)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveDetalle(d.Id)">Quitar</button>
+                                }
                             </li>
                         }
                     </ul>
@@ -211,6 +231,19 @@
             .Where(pp => pp.Estado != EstadoPedidoPlato.Anulado)
             .Where(pp => !_todosDetalles.Any(d => d.IdPedidoPlato == pp.Id))
             .ToList();
+
+    // fn_cuenta_inmutable (sql/script_inicial.sql) solo permite editar libremente mientras la
+    // cuenta esta Abierta; desde Pagada, unicamente admite pasar a Anulada (con responsable y
+    // motivo) sin tocar nada mas; desde Anulada ya no admite ningun cambio.
+    private bool _puedeEditarCampos => _entity.Estado == EstadoCuenta.Abierta;
+    private bool _puedeAnular => _entity.Estado != EstadoCuenta.Anulada;
+
+    private IEnumerable<EstadoCuenta> _estadosDisponibles => _entity.Estado switch
+    {
+        EstadoCuenta.Abierta => Enum.GetValues<EstadoCuenta>(),
+        EstadoCuenta.Pagada => [EstadoCuenta.Pagada, EstadoCuenta.Anulada],
+        _ => [EstadoCuenta.Anulada],
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -289,9 +322,13 @@
                 Nav.NavigateTo("/cuentas");
             }
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al guardar: no se pudo conectar con el servidor.";
         }
     }
 
@@ -312,9 +349,13 @@
             await ReloadDetallesYMonto();
             if (_pedidoPlatosDisponibles.Count > 0) _selectedPedidoPlatoId = _pedidoPlatosDisponibles[0].Id;
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al agregar el plato: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al agregar el plato: no se pudo conectar con el servidor.";
         }
     }
 
@@ -325,9 +366,13 @@
             await DetalleCuentaApi.DeleteAsync(detalleId);
             await ReloadDetallesYMonto();
         }
-        catch (HttpRequestException ex)
+        catch (ApiException ex)
         {
             _error = $"Error al quitar el plato: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al quitar el plato: no se pudo conectar con el servidor.";
         }
     }
 
