@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(tasklist //FI \"IMAGENAME eq dotnet.exe\" //FI \"PID eq 6076\")",
+      "Bash(tasklist //FI \"IMAGENAME eq Atipico.Web.exe\")",
+      "Bash(tasklist //FI \"IMAGENAME eq Atipico.Api.exe\")"
+    ]
+  }
+}

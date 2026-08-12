@@ -3,6 +3,10 @@
 @attribute [Authorize(Roles = "Admin,Mesero")]
 @inject IEntityApiClient<Pedido> Api
 @inject IEntityApiClient<Usuario> UsuarioApi
+@inject IEntityApiClient<Mesa> MesaApi
+@inject IEntityApiClient<Plato> PlatoApi
+@inject IEntityApiClient<PedidoMesa> PedidoMesaApi
+@inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
 @inject NavigationManager Nav
 
 <PageTitle>@(Id is null ? "Nuevo pedido" : "Editar pedido")</PageTitle>
@@ -48,18 +52,107 @@
         <button type="submit" class="btn btn-primary">Guardar</button>
         <a class="btn btn-outline-secondary" href="/pedidos">Cancelar</a>
     </EditForm>
+
+    <hr class="my-4" />
+
+    @if (Id is null)
+    {
+        <p class="text-muted"><em>Guarda el pedido primero para poder asociar mesas y agregar platos.</em></p>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Mesas del pedido</h4>
+                @if (_pedidoMesas.Count == 0)
+                {
+                    <p class="text-muted"><em>Sin mesas asociadas todavía.</em></p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var pm in _pedidoMesas)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                Mesa @(_mesas.FirstOrDefault(m => m.Id == pm.IdMesa)?.Numero.ToString() ?? $"#{pm.IdMesa}")
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveMesa(pm.Id)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (_mesasDisponibles.Count > 0)
+                {
+                    <div class="input-group mb-4">
+                        <select class="form-select" @bind="_selectedMesaId">
+                            @foreach (var mesa in _mesasDisponibles)
+                            {
+                                <option value="@mesa.Id">Mesa @mesa.Numero</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
+                    </div>
+                }
+            </div>
+
+            <div class="col-md-6">
+                <h4>Platos del pedido</h4>
+                @if (_pedidoPlatos.Count == 0)
+                {
+                    <p class="text-muted"><em>Sin platos agregados todavía.</em></p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var pp in _pedidoPlatos)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    @(_platos.FirstOrDefault(p => p.Id == pp.IdPlato)?.Nombre ?? $"#{pp.IdPlato}")
+                                    <span class="badge bg-secondary ms-1">@pp.Estado</span>
+                                </span>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemovePlato(pp.Id)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (_platos.Count > 0)
+                {
+                    <div class="input-group mb-4">
+                        <select class="form-select" @bind="_selectedPlatoId">
+                            @foreach (var plato in _platos)
+                            {
+                                <option value="@plato.Id">@plato.Nombre</option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" @onclick="HandleAddPlato">Agregar plato</button>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 }
 
 @code {
     [Parameter] public long? Id { get; set; }
     private Pedido _entity = new();
     private List<Usuario> _meseros = [];
+    private List<Mesa> _mesas = [];
+    private List<Plato> _platos = [];
+    private List<PedidoMesa> _pedidoMesas = [];
+    private List<PedidoPlato> _pedidoPlatos = [];
+    private long _selectedMesaId;
+    private long _selectedPlatoId;
     private bool _loaded;
     private string? _error;
+
+    private List<Mesa> _mesasDisponibles =>
+        _mesas.Where(m => !_pedidoMesas.Any(pm => pm.IdMesa == m.Id)).ToList();
 
     protected override async Task OnInitializedAsync()
     {
         _meseros = await UsuarioApi.GetAllAsync();
+        _mesas = await MesaApi.GetAllAsync();
+        _platos = await PlatoApi.GetAllAsync();
 
         if (Id is not null)
         {
@@ -70,13 +163,27 @@
                 return;
             }
             _entity = existing;
+
+            await LoadAsociaciones();
         }
         else if (_meseros.Count > 0)
         {
             _entity.IdMesero = _meseros[0].Id;
         }
 
+        if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
+        if (_platos.Count > 0) _selectedPlatoId = _platos[0].Id;
+
         _loaded = true;
+    }
+
+    private async Task LoadAsociaciones()
+    {
+        var todasMesas = await PedidoMesaApi.GetAllAsync();
+        _pedidoMesas = todasMesas.Where(pm => pm.IdPedido == Id).ToList();
+
+        var todosPlatos = await PedidoPlatoApi.GetAllAsync();
+        _pedidoPlatos = todosPlatos.Where(pp => pp.IdPedido == Id).ToList();
     }
 
     private async Task HandleSave()
@@ -84,15 +191,76 @@
         try
         {
             if (Id is null)
-                await Api.CreateAsync(_entity);
+            {
+                var created = await Api.CreateAsync(_entity);
+                Nav.NavigateTo($"/pedidos/{created!.Id}");
+            }
             else
+            {
                 await Api.UpdateAsync(_entity);
-
-            Nav.NavigateTo("/pedidos");
+                Nav.NavigateTo("/pedidos");
+            }
         }
         catch (HttpRequestException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
+        }
+    }
+
+    private async Task HandleAddMesa()
+    {
+        if (Id is null || _selectedMesaId == 0) return;
+
+        try
+        {
+            await PedidoMesaApi.CreateAsync(new PedidoMesa { IdPedido = Id.Value, IdMesa = _selectedMesaId });
+            await LoadAsociaciones();
+            if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al agregar la mesa: {ex.Message}";
+        }
+    }
+
+    private async Task HandleRemoveMesa(long pedidoMesaId)
+    {
+        try
+        {
+            await PedidoMesaApi.DeleteAsync(pedidoMesaId);
+            await LoadAsociaciones();
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al quitar la mesa: {ex.Message}";
+        }
+    }
+
+    private async Task HandleAddPlato()
+    {
+        if (Id is null || _selectedPlatoId == 0) return;
+
+        try
+        {
+            await PedidoPlatoApi.CreateAsync(new PedidoPlato { IdPedido = Id.Value, IdPlato = _selectedPlatoId });
+            await LoadAsociaciones();
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al agregar el plato: {ex.Message}";
+        }
+    }
+
+    private async Task HandleRemovePlato(long pedidoPlatoId)
+    {
+        try
+        {
+            await PedidoPlatoApi.DeleteAsync(pedidoPlatoId);
+            await LoadAsociaciones();
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al quitar el plato: {ex.Message}";
         }
     }
 }

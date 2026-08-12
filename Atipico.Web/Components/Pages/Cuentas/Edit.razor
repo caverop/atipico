@@ -3,6 +3,10 @@
 @attribute [Authorize(Roles = "Admin,Mesero,Cajero")]
 @inject IEntityApiClient<Cuenta> Api
 @inject IEntityApiClient<Usuario> UsuarioApi
+@inject IEntityApiClient<DetalleCuenta> DetalleCuentaApi
+@inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
+@inject IEntityApiClient<Pedido> PedidoApi
+@inject IEntityApiClient<Plato> PlatoApi
 @inject NavigationManager Nav
 
 <PageTitle>@(Id is null ? "Nueva cuenta" : "Editar cuenta")</PageTitle>
@@ -93,18 +97,131 @@
         <button type="submit" class="btn btn-primary">Guardar</button>
         <a class="btn btn-outline-secondary" href="/cuentas">Cancelar</a>
     </EditForm>
+
+    <hr class="my-4" />
+
+    <AuthorizeView Roles="Admin,Cajero">
+        <Authorized>
+            @if (Id is null)
+            {
+                <h4>Platos a facturar</h4>
+                @if (_pedidoPlatosDisponibles.Count == 0)
+                {
+                    <p class="text-muted"><em>No hay platos pendientes de facturar.</em></p>
+                }
+                else
+                {
+                    <p class="text-muted">Selecciona los platos servidos que se incluirán en el detalle de esta cuenta. El monto se calcula automáticamente y puede ajustarse arriba.</p>
+                    <ul class="list-group mb-3">
+                        @foreach (var pp in _pedidoPlatosDisponibles)
+                        {
+                            <li class="list-group-item">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox"
+                                           checked="@_seleccionados.Contains(pp.Id)"
+                                           @onchange="@(e => ToggleSeleccion(pp.Id, (bool)e.Value!))" />
+                                    <label class="form-check-label">
+                                        @(_pedidoLabels.GetValueOrDefault(pp.IdPedido, $"Pedido #{pp.IdPedido}")) —
+                                        @(_platoNombres.GetValueOrDefault(pp.IdPlato, $"plato #{pp.IdPlato}"))
+                                        (@_platoPrecios.GetValueOrDefault(pp.IdPlato).ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO")))
+                                    </label>
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                    <p><strong>Total seleccionado:</strong> @_entity.Monto.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))</p>
+                }
+            }
+            else
+            {
+                <h4>Detalle de la cuenta</h4>
+                @if (_detalles.Count == 0)
+                {
+                    <p class="text-muted"><em>Sin platos facturados todavía.</em></p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var d in _detalles)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    @(_pedidoLabels.GetValueOrDefault(_pedidoPlatoPedidoId.GetValueOrDefault(d.IdPedidoPlato), $"pedido plato #{d.IdPedidoPlato}")) —
+                                    @(_platoNombres.GetValueOrDefault(_pedidoPlatoPlatoId.GetValueOrDefault(d.IdPedidoPlato), "?"))
+                                    (@d.PrecioUnitario.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO")))
+                                </span>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveDetalle(d.Id)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                @if (_entity.Estado == EstadoCuenta.Abierta)
+                {
+                    @if (_pedidoPlatosDisponibles.Count > 0)
+                    {
+                        <div class="input-group mb-4">
+                            <select class="form-select" @bind="_selectedPedidoPlatoId">
+                                @foreach (var pp in _pedidoPlatosDisponibles)
+                                {
+                                    <option value="@pp.Id">
+                                        @(_pedidoLabels.GetValueOrDefault(pp.IdPedido, $"Pedido #{pp.IdPedido}")) —
+                                        @(_platoNombres.GetValueOrDefault(pp.IdPlato, $"plato #{pp.IdPlato}"))
+                                    </option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" @onclick="HandleAddDetalle">Agregar plato</button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted"><em>La cuenta no está abierta; no se pueden agregar más platos.</em></p>
+                }
+            }
+        </Authorized>
+    </AuthorizeView>
 }
 
 @code {
     [Parameter] public long? Id { get; set; }
     private Cuenta _entity = new();
     private List<Usuario> _usuarios = [];
+    private List<PedidoPlato> _todosPedidoPlatos = [];
+    private List<DetalleCuenta> _todosDetalles = [];
+    private List<DetalleCuenta> _detalles = [];
+    private Dictionary<long, string> _pedidoLabels = [];
+    private Dictionary<long, string> _platoNombres = [];
+    private Dictionary<long, decimal> _platoPrecios = [];
+    private Dictionary<long, long> _pedidoPlatoPedidoId = [];
+    private Dictionary<long, long> _pedidoPlatoPlatoId = [];
+    private HashSet<long> _seleccionados = [];
+    private long _selectedPedidoPlatoId;
     private bool _loaded;
     private string? _error;
+
+    private List<PedidoPlato> _pedidoPlatosDisponibles =>
+        _todosPedidoPlatos
+            .Where(pp => pp.Estado != EstadoPedidoPlato.Anulado)
+            .Where(pp => !_todosDetalles.Any(d => d.IdPedidoPlato == pp.Id))
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
         _usuarios = await UsuarioApi.GetAllAsync();
+
+        var pedidos = await PedidoApi.GetAllAsync();
+        _pedidoLabels = pedidos.ToDictionary(p => p.Id, p => $"#{p.Id} - {p.Comensal ?? "sin nombre"}");
+
+        var platos = await PlatoApi.GetAllAsync();
+        _platoNombres = platos.ToDictionary(p => p.Id, p => p.Nombre);
+        _platoPrecios = platos.ToDictionary(p => p.Id, p => p.Precio);
+
+        _todosPedidoPlatos = await PedidoPlatoApi.GetAllAsync();
+        _pedidoPlatoPedidoId = _todosPedidoPlatos.ToDictionary(pp => pp.Id, pp => pp.IdPedido);
+        _pedidoPlatoPlatoId = _todosPedidoPlatos.ToDictionary(pp => pp.Id, pp => pp.IdPlato);
+
+        _todosDetalles = await DetalleCuentaApi.GetAllAsync();
 
         if (Id is not null)
         {
@@ -115,13 +232,28 @@
                 return;
             }
             _entity = existing;
+            _detalles = _todosDetalles.Where(d => d.IdCuenta == Id).ToList();
         }
         else if (_usuarios.Count > 0)
         {
             _entity.IdMesero = _usuarios[0].Id;
         }
 
+        if (_pedidoPlatosDisponibles.Count > 0) _selectedPedidoPlatoId = _pedidoPlatosDisponibles[0].Id;
+
         _loaded = true;
+    }
+
+    private void ToggleSeleccion(long pedidoPlatoId, bool marcado)
+    {
+        if (marcado)
+            _seleccionados.Add(pedidoPlatoId);
+        else
+            _seleccionados.Remove(pedidoPlatoId);
+
+        _entity.Monto = _pedidoPlatosDisponibles
+            .Where(pp => _seleccionados.Contains(pp.Id))
+            .Sum(pp => _platoPrecios.GetValueOrDefault(pp.IdPlato));
     }
 
     private async Task HandleSave()
@@ -129,15 +261,76 @@
         try
         {
             if (Id is null)
-                await Api.CreateAsync(_entity);
-            else
-                await Api.UpdateAsync(_entity);
+            {
+                var created = await Api.CreateAsync(_entity);
 
-            Nav.NavigateTo("/cuentas");
+                foreach (var pedidoPlatoId in _seleccionados)
+                {
+                    var pp = _todosPedidoPlatos.First(x => x.Id == pedidoPlatoId);
+                    await DetalleCuentaApi.CreateAsync(new DetalleCuenta
+                    {
+                        IdCuenta = created!.Id,
+                        IdPedidoPlato = pp.Id,
+                        PrecioUnitario = _platoPrecios.GetValueOrDefault(pp.IdPlato),
+                    });
+                }
+
+                Nav.NavigateTo($"/cuentas/{created!.Id}");
+            }
+            else
+            {
+                await Api.UpdateAsync(_entity);
+                Nav.NavigateTo("/cuentas");
+            }
         }
         catch (HttpRequestException ex)
         {
             _error = $"Error al guardar: {ex.Message}";
         }
+    }
+
+    private async Task HandleAddDetalle()
+    {
+        if (Id is null || _selectedPedidoPlatoId == 0) return;
+
+        try
+        {
+            var pp = _todosPedidoPlatos.First(x => x.Id == _selectedPedidoPlatoId);
+            await DetalleCuentaApi.CreateAsync(new DetalleCuenta
+            {
+                IdCuenta = Id.Value,
+                IdPedidoPlato = pp.Id,
+                PrecioUnitario = _platoPrecios.GetValueOrDefault(pp.IdPlato),
+            });
+
+            await ReloadDetallesYMonto();
+            if (_pedidoPlatosDisponibles.Count > 0) _selectedPedidoPlatoId = _pedidoPlatosDisponibles[0].Id;
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al agregar el plato: {ex.Message}";
+        }
+    }
+
+    private async Task HandleRemoveDetalle(long detalleId)
+    {
+        try
+        {
+            await DetalleCuentaApi.DeleteAsync(detalleId);
+            await ReloadDetallesYMonto();
+        }
+        catch (HttpRequestException ex)
+        {
+            _error = $"Error al quitar el plato: {ex.Message}";
+        }
+    }
+
+    private async Task ReloadDetallesYMonto()
+    {
+        _todosDetalles = await DetalleCuentaApi.GetAllAsync();
+        _detalles = _todosDetalles.Where(d => d.IdCuenta == Id).ToList();
+
+        _entity.Monto = _detalles.Sum(d => d.PrecioUnitario);
+        await Api.UpdateAsync(_entity);
     }
 }
