@@ -33,7 +33,7 @@
                     <option value="@estado">@estado</option>
                 }
             </InputSelect>
-            <div class="form-text">Si el estado es "Cerrado", hay que indicar también la fecha de cierre.</div>
+            <div class="form-text">La fecha de cierre se registra sola al guardar con este estado.</div>
         </div>
         <div class="mb-3">
             <label class="form-label">Mesero</label>
@@ -44,10 +44,13 @@
                 }
             </InputSelect>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Cerrado en</label>
-            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.CerradoEn" />
-        </div>
+        @if (_entity.CerradoEn is not null)
+        {
+            <div class="mb-3">
+                <label class="form-label">Cerrado en</label>
+                <p class="form-control-plaintext">@_entity.CerradoEn.Value.ToLocalTime().ToString("g")</p>
+            </div>
+        }
 
         <button type="submit" class="btn btn-primary">Guardar</button>
         <a class="btn btn-outline-secondary" href="/pedidos">Cancelar</a>

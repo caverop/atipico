@@ -45,16 +45,22 @@
                     <option value="@estado">@estado</option>
                 }
             </InputSelect>
-            <div class="form-text">"Servido" requiere la fecha de servido. "Anulado" requiere responsable y motivo.</div>
+            <div class="form-text">Las fechas de servido/anulado se registran solas al guardar con esos estados.</div>
         </div>
-        <div class="mb-3">
-            <label class="form-label">Servido en</label>
-            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.ServidoEn" />
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Anulado en</label>
-            <InputDate class="form-control" Type="InputDateType.DateTimeLocal" @bind-Value="_entity.AnuladoEn" />
-        </div>
+        @if (_entity.ServidoEn is not null)
+        {
+            <div class="mb-3">
+                <label class="form-label">Servido en</label>
+                <p class="form-control-plaintext">@_entity.ServidoEn.Value.ToLocalTime().ToString("g")</p>
+            </div>
+        }
+        @if (_entity.AnuladoEn is not null)
+        {
+            <div class="mb-3">
+                <label class="form-label">Anulado en</label>
+                <p class="form-control-plaintext">@_entity.AnuladoEn.Value.ToLocalTime().ToString("g")</p>
+            </div>
+        }
         <div class="mb-3">
             <label class="form-label">Anulado por</label>
             <InputSelect class="form-select" @bind-Value="_entity.IdAnuladoPor">
