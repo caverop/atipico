@@ -36,5 +36,10 @@ namespace Atipico.Infraestructure.Persistence
         public DbSet<PedidoPlato> PedidoPlatos => Set<PedidoPlato>();
         public DbSet<Cuenta> Cuentas => Set<Cuenta>();
         public DbSet<DetalleCuenta> DetalleCuentas => Set<DetalleCuenta>();
+
+        // Vistas de solo lectura (ver sql/script_inicial.sql): sin PK real, nunca se
+        // crean/actualizan/borran filas de estos DbSet, solo se consultan.
+        public DbSet<PedidoPlatoSinCobrar> PedidoPlatosSinCobrar => Set<PedidoPlatoSinCobrar>();
+        public DbSet<CuentaDescuadrada> CuentasDescuadradas => Set<CuentaDescuadrada>();
     }
 }

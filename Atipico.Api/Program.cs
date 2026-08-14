@@ -16,7 +16,16 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+        // Controladores que cargan una entidad relacionada ya trackeada en el mismo DbContext
+        // (p. ej. PedidoMesasController actualizando Mesa tras crear un PedidoMesa) hacen que EF
+        // rellene navegaciones bidireccionales (Mesa.PedidoMesas <-> PedidoMesa.Mesa), lo que
+        // produce un ciclo al serializar. En vez de exigir [JsonIgnore] en cada navegacion
+        // inversa, se cortan los ciclos con null en vez de tirar una JsonException sin capturar.
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+    });
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 

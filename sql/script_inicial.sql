@@ -15,7 +15,27 @@
 --
 -- El archivo tiene DOS transacciones independientes:
 --   BLOQUE 1 (esquema) — lo ejecuta el dueño del esquema.
---   BLOQUE 2 (roles)   — requiere superusuario o CREATEROLE. Opcional.
+--   BLOQUE 2 (roles)   — requiere superusuario o CREATEROLE. Opcional pero
+--                         usado en la práctica: Atipico.Api se conecta como
+--                         app_restaurante, no como el superusuario. Si el rol
+--                         se borra o se crea una base nueva, hay que volver a
+--                         correr este bloque y fijar la contraseña aparte con
+--                         ALTER ROLE app_restaurante WITH PASSWORD '<clave>'.
+--
+-- MANTENIMIENTO — enums de C# vs. CHECK constraints:
+-- Cada CHECK (col IN (...)) de abajo duplica, a mano, un enum de
+-- Atipico.Domain/Enums/*.cs (mapeado a UPPER_SNAKE_CASE por
+-- Atipico.Infraestructure/Persistence/Converters/UpperSnakeCaseEnumConverter).
+-- No hay una única fuente de verdad: agregar un valor al enum de C# sin
+-- actualizar el CHECK correspondiente (con una migración nueva en sql/,
+-- nunca editando este archivo ya aplicado) rompe en producción recién
+-- cuando se use ese valor nuevo, no al desplegar. Correspondencia actual:
+--   ck_usuario_rol         <-> RolUsuario
+--   ck_mesa_estado         <-> EstadoMesa
+--   ck_pedido_estado       <-> EstadoPedido
+--   ck_pedido_plato_estado <-> EstadoPedidoPlato
+--   ck_cuenta_estado       <-> EstadoCuenta
+--   ck_cuenta_metodo       <-> MetodoPago
 -- =====================================================================
 
 

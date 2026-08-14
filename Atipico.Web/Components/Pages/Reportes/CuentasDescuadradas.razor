@@ -1,0 +1,79 @@
+@page "/reportes/cuentas-descuadradas"
+@attribute [Authorize(Roles = "Admin,Cajero")]
+@inject IEntityApiClient<CuentaDescuadrada> Api
+
+<PageTitle>Conciliación de cuentas</PageTitle>
+
+<h3>Conciliación de cuentas</h3>
+<p class="text-muted">
+    Cuentas cuyo monto declarado no coincide con la suma de su detalle de facturación
+    (respaldado por la vista <code>v_cuenta_descuadrada</code>). En una base sana esta lista
+    debería estar siempre vacía.
+</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_items is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-success">No hay cuentas descuadradas. Todo cuadra.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Cuenta</th>
+                    <th>Estado</th>
+                    <th>Monto declarado</th>
+                    <th>Suma del detalle</th>
+                    <th>Diferencia</th>
+                    <th>Pagado en</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _items)
+                {
+                    <tr class="table-danger">
+                        <td>#@c.Id</td>
+                        <td>@c.Estado</td>
+                        <td>@c.Monto.ToString("C", _culture)</td>
+                        <td>@c.SumaDetalle.ToString("C", _culture)</td>
+                        <td>@((c.Monto - c.SumaDetalle).ToString("C", _culture))</td>
+                        <td>@(c.PagadoEn?.ToLocalTime().ToString("g") ?? "-")</td>
+                        <td><a class="btn btn-sm btn-outline-secondary" href="@($"/cuentas/{c.Id}")">Ver cuenta</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private readonly System.Globalization.CultureInfo _culture = System.Globalization.CultureInfo.GetCultureInfo("es-BO");
+    private List<CuentaDescuadrada>? _items;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Api.GetAllAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
+    }
+}

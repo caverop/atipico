@@ -15,6 +15,8 @@ namespace Atipico.Web.Services
             [typeof(PedidoPlato)] = "pedido-platos",
             [typeof(Cuenta)] = "cuentas",
             [typeof(DetalleCuenta)] = "detalle-cuentas",
+            [typeof(PedidoPlatoSinCobrar)] = "reportes/pedido-platos-sin-cobrar",
+            [typeof(CuentaDescuadrada)] = "reportes/cuentas-descuadradas",
         };
 
         public static string For<TEntity>()

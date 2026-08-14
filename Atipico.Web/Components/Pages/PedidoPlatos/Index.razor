@@ -6,6 +6,11 @@
 
 <PageTitle>Pedido &lt;-&gt; Plato</PageTitle>
 
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
 <EntityTable TEntity="PedidoPlato"
              Title="Platos por pedido"
              Items="_items"
@@ -16,6 +21,7 @@
              WriteRoles="@(["Admin", "Mesero", "Cocinero"])" />
 
 @code {
+    private string? _error;
     private List<PedidoPlato>? _items;
     private Dictionary<long, string> _pedidoLabels = [];
     private Dictionary<long, string> _platoLabels = [];
@@ -42,7 +48,18 @@
 
     private async Task HandleDelete(long id)
     {
-        await Api.DeleteAsync(id);
-        _items = await Api.GetAllAsync();
+        try
+        {
+            await Api.DeleteAsync(id);
+            _items = await Api.GetAllAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
     }
 }

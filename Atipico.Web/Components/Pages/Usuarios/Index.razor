@@ -4,6 +4,11 @@
 
 <PageTitle>Usuarios</PageTitle>
 
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+
 <EntityTable TEntity="Usuario"
              Title="Usuarios"
              Items="_usuarios"
@@ -14,6 +19,7 @@
              WriteRoles="@(["Admin"])" />
 
 @code {
+    private string? _error;
     private List<Usuario>? _usuarios;
 
     private readonly List<(string Header, Func<Usuario, object?> Value)> _columns =
@@ -32,7 +38,18 @@
 
     private async Task HandleDelete(long id)
     {
-        await Api.DeleteAsync(id);
-        _usuarios = await Api.GetAllAsync();
+        try
+        {
+            await Api.DeleteAsync(id);
+            _usuarios = await Api.GetAllAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
     }
 }

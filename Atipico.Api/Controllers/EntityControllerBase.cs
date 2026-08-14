@@ -86,7 +86,7 @@ namespace Atipico.Api.Controllers
         }
 
         [HttpDelete("{id:long}")]
-        public async Task<IActionResult> Delete(long id)
+        public virtual async Task<IActionResult> Delete(long id)
         {
             if (!HasAnyRole(DeleteRoles))
                 return Forbid();
@@ -131,6 +131,10 @@ namespace Atipico.Api.Controllers
                     BadRequest(new { message = DescribirRestriccion(pg.ConstraintName) ?? "El valor enviado no cumple una regla de negocio." }),
                 PostgresErrorCodes.ForeignKeyViolation =>
                     Conflict(new { message = "No se puede completar la operación: hay registros relacionados que dependen de este." }),
+                PostgresErrorCodes.InsufficientPrivilege =>
+                    // La app se conecta como el rol app_restaurante (sql/script_inicial.sql), que
+                    // no tiene GRANT DELETE a propósito: los registros se anulan, no se eliminan.
+                    Conflict(new { message = "Esta operación no está permitida: los registros no se eliminan, se anulan." }),
                 "P0001" =>
                     // Excepcion levantada a mano por un trigger (fn_cuenta_inmutable, fn_detalle_inmutable,
                     // fn_pedido_plato_facturado): el mensaje ya viene redactado en español para el usuario final.
