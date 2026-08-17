@@ -19,45 +19,65 @@
             </NavLink>
         </div>
 
-        <div class="nav-item px-3 nav-section">Personal</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
-        </div>
+        <AuthorizeView Roles="Admin">
+            <Authorized>
+                <div class="nav-item px-3 nav-section">Personal</div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
+                </div>
 
-        <div class="nav-item px-3 nav-section">Carta</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="tipos-plato">Tipos de plato</NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="platos">Platos</NavLink>
-        </div>
+                <div class="nav-item px-3 nav-section">Carta</div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="tipos-plato">Tipos de plato</NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="platos">Platos</NavLink>
+                </div>
 
-        <div class="nav-item px-3 nav-section">Salón</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="mesas">Mesas</NavLink>
-        </div>
+                <div class="nav-item px-3 nav-section">Salón</div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="mesas">Mesas</NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <div class="nav-item px-3 nav-section">Pedidos</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pedidos">Pedidos</NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pedido-mesas">Pedido &lt;-&gt; Mesa</NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="pedido-platos">Pedido &lt;-&gt; Plato</NavLink>
-        </div>
+        <AuthorizeView Roles="Admin,Mesero,Cocinero">
+            <Authorized>
+                <div class="nav-item px-3 nav-section">Pedidos</div>
+                <AuthorizeView Roles="Admin,Mesero" Context="pedidosContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="pedidos">Pedidos</NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="pedido-mesas">Pedido &lt;-&gt; Mesa</NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="pedido-platos">Pedido &lt;-&gt; Plato</NavLink>
+                </div>
+            </Authorized>
+        </AuthorizeView>
 
-        <div class="nav-item px-3 nav-section">Caja</div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="cuentas">Cuentas</NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="detalle-cuentas">Detalle de cuentas</NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="reportes/cuentas-descuadradas">Conciliación de cuentas</NavLink>
-        </div>
+        <AuthorizeView Roles="Admin,Mesero,Cajero">
+            <Authorized>
+                <div class="nav-item px-3 nav-section">Caja</div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="cuentas">Cuentas</NavLink>
+                </div>
+                <AuthorizeView Roles="Admin,Cajero" Context="cajaContext">
+                    <Authorized>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="detalle-cuentas">Detalle de cuentas</NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="reportes/cuentas-descuadradas">Conciliación de cuentas</NavLink>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            </Authorized>
+        </AuthorizeView>
     </nav>
 
     <AuthorizeView>
