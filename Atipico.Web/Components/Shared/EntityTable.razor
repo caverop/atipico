@@ -43,7 +43,10 @@ else
                             <Authorized>
                                 <td class="text-end">
                                     <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">Editar</a>
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">Eliminar</button>
+                                    @if (ShowDelete)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
+                                    }
                                 </td>
                             </Authorized>
                         </AuthorizeView>
@@ -60,7 +63,16 @@ else
     [Parameter, EditorRequired] public List<(string Header, Func<TEntity, object?> Value)> Columns { get; set; } = [];
     [Parameter, EditorRequired] public string CreateUrl { get; set; } = "";
     [Parameter, EditorRequired] public string EditUrlPrefix { get; set; } = "";
-    [Parameter, EditorRequired] public EventCallback<long> OnDelete { get; set; }
+    // No existe un borrado real (app_restaurante no tiene GRANT DELETE, ver CLAUDE.md): este
+    // boton siempre dispara un cambio de estado ("Anular", "Desactivar", etc.), definido por
+    // cada pantalla via OnDelete. El texto lo decide el llamador porque el verbo correcto
+    // depende de la entidad (Activo=false, Estado=Inactiva/Anulado/Anulada, ...).
+    [Parameter] public EventCallback<long> OnDelete { get; set; }
+    [Parameter] public string DeleteLabel { get; set; } = "Eliminar";
+
+    // Algunas pantallas (p.ej. Pedidos) sacan esta accion de la grilla a proposito: solo se
+    // puede anular entrando a editar el registro, no desde la lista.
+    [Parameter] public bool ShowDelete { get; set; } = true;
 
     // Roles que pueden crear/editar/eliminar en esta pantalla. La API vuelve a
     // validar esto por acción (Create/Update/Delete pueden diferir); esto solo
@@ -71,7 +83,7 @@ else
 
     private async Task HandleDelete(long id)
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar el registro #{id}? Esta acción no se puede deshacer.");
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"¿{DeleteLabel} el registro #{id}?");
         if (confirmed)
         {
             await OnDelete.InvokeAsync(id);

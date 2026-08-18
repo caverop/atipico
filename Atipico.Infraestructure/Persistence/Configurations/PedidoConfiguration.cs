@@ -17,6 +17,13 @@ namespace Atipico.Infraestructure.Persistence.Configurations
 
             builder.Property(p => p.Comensal).HasColumnName("comensal").HasMaxLength(120);
 
+            // uk_pedido_comensal_activo (sql/003_pedido_comensal_unico.sql): dos pedidos
+            // Abierto/EnPreparacion no pueden compartir comensal.
+            builder.HasIndex(p => p.Comensal)
+                .IsUnique()
+                .HasDatabaseName("uk_pedido_comensal_activo")
+                .HasFilter("estado IN ('ABIERTO', 'EN_PREPARACION')");
+
             builder.Property(p => p.Estado).HasColumnName("estado")
                 .HasConversion(new UpperSnakeCaseEnumConverter<EstadoPedido>()).HasMaxLength(20).IsRequired();
 

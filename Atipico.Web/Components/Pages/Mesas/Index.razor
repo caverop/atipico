@@ -16,6 +16,7 @@
              CreateUrl="/mesas/nuevo"
              EditUrlPrefix="/mesas"
              OnDelete="HandleDelete"
+             DeleteLabel="Inactivar"
              WriteRoles="@(["Admin"])" />
 
 @code {
@@ -35,11 +36,17 @@
         _mesas = await Api.GetAllAsync();
     }
 
+    // No hay borrado real (app_restaurante no tiene GRANT DELETE): "Inactivar"
+    // pone Estado=Inactiva, el mismo valor que ya ofrece el selector del formulario de edición.
     private async Task HandleDelete(long id)
     {
+        var mesa = _mesas?.FirstOrDefault(m => m.Id == id);
+        if (mesa is null) return;
+
         try
         {
-            await Api.DeleteAsync(id);
+            mesa.Estado = EstadoMesa.Inactiva;
+            await Api.UpdateAsync(mesa);
             _mesas = await Api.GetAllAsync();
         }
         catch (ApiException ex)

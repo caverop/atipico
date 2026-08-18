@@ -149,6 +149,7 @@ namespace Atipico.Api.Controllers
             "uk_mesa_numero" => "Ya existe una mesa con ese número.",
             "uk_usuario_nombre_usuario" => "Ya existe un usuario con ese nombre de usuario.",
             "uk_pedido_mesa" => "Esa mesa ya está asociada a este pedido.",
+            "uk_pedido_comensal_activo" => "Ya hay un pedido abierto o en preparación para ese comensal.",
             "uk_detalle_pedido_plato" => "Ese plato del pedido ya fue facturado; no se puede facturar dos veces.",
             "ck_pedido_plato_servido" => "No se puede marcar como Servido sin la fecha de servido.",
             "ck_pedido_cierre" => "No se puede cerrar el pedido sin la fecha de cierre.",

@@ -5,22 +5,16 @@
 
 <PageTitle>Pedidos</PageTitle>
 
-@if (_error is not null)
-{
-    <div class="alert alert-danger">@_error</div>
-}
-
 <EntityTable TEntity="Pedido"
              Title="Pedidos"
              Items="_pedidos"
              Columns="_columns"
              CreateUrl="/pedidos/nuevo"
              EditUrlPrefix="/pedidos"
-             OnDelete="HandleDelete"
+             ShowDelete="false"
              WriteRoles="@(["Admin", "Mesero"])" />
 
 @code {
-    private string? _error;
     private List<Pedido>? _pedidos;
     private Dictionary<long, string> _meseroNombres = [];
     private List<(string Header, Func<Pedido, object?> Value)> _columns = [];
@@ -40,22 +34,5 @@
         ];
 
         _pedidos = await Api.GetAllAsync();
-    }
-
-    private async Task HandleDelete(long id)
-    {
-        try
-        {
-            await Api.DeleteAsync(id);
-            _pedidos = await Api.GetAllAsync();
-        }
-        catch (ApiException ex)
-        {
-            _error = ex.Message;
-        }
-        catch (HttpRequestException)
-        {
-            _error = "No se pudo conectar con el servidor.";
-        }
     }
 }

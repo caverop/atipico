@@ -3,13 +3,14 @@
 @attribute [Authorize(Roles = "Admin,Mesero")]
 @inject IEntityApiClient<Pedido> Api
 @inject IEntityApiClient<Usuario> UsuarioApi
-@inject IEntityApiClient<Mesa> MesaApi
 @inject IEntityApiClient<Plato> PlatoApi
-@inject IEntityApiClient<PedidoMesa> PedidoMesaApi
 @inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 
 <PageTitle>@(Id is null ? "Nuevo pedido" : "Editar pedido")</PageTitle>
+
+<a href="/pedidos" class="btn btn-link ps-0 mb-2">&larr; Volver a pedidos</a>
 
 <h3>@(Id is null ? "Nuevo pedido" : $"Editar pedido #{Id}")</h3>
 
@@ -25,28 +26,6 @@
             <label class="form-label">Comensal</label>
             <InputText class="form-control" @bind-Value="_entity.Comensal" />
         </div>
-        @if (Id is not null)
-        {
-            <div class="mb-3">
-                <label class="form-label">Estado</label>
-                <InputSelect class="form-select" @bind-Value="_entity.Estado">
-                    @foreach (var estado in Enum.GetValues<EstadoPedido>())
-                    {
-                        <option value="@estado">@estado</option>
-                    }
-                </InputSelect>
-                <div class="form-text">La fecha de cierre se registra sola al guardar con este estado.</div>
-            </div>
-            <div class="mb-3">
-                <label class="form-label">Mesero</label>
-                <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
-                    @foreach (var mesero in _meseros)
-                    {
-                        <option value="@mesero.Id">@mesero.Nombre</option>
-                    }
-                </InputSelect>
-            </div>
-        }
         @if (_entity.CerradoEn is not null)
         {
             <div class="mb-3">
@@ -55,54 +34,32 @@
             </div>
         }
 
-        <button type="submit" class="btn btn-primary">Guardar</button>
-        <a class="btn btn-outline-secondary" href="/pedidos">Cancelar</a>
+        @if (Id is null)
+        {
+            <button type="submit" class="btn btn-primary">Continuar</button>
+        }
+        @if (_pedidoActivo)
+        {
+            <button type="button" class="btn btn-primary" @onclick="HandleCerrarPedido">En Preparación</button>
+        }
+        @if (_puedeAnular)
+        {
+            <button type="button" class="btn btn-outline-secondary" @onclick="HandleAnularPedido">Anular</button>
+        }
     </EditForm>
 
     <hr class="my-4" />
 
     @if (Id is null)
     {
-        <p class="text-muted"><em>Guarda el pedido primero para poder asociar mesas y agregar platos.</em></p>
+        <p class="text-muted"><em>Guarda el pedido primero para poder agregar platos.</em></p>
     }
     else
     {
         <div class="row">
             <div class="col-md-6">
-                <h4>Mesas del pedido</h4>
-                @if (_pedidoMesas.Count == 0)
-                {
-                    <p class="text-muted"><em>Sin mesas asociadas todavía.</em></p>
-                }
-                else
-                {
-                    <ul class="list-group mb-3">
-                        @foreach (var pm in _pedidoMesas)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                Mesa @(_mesas.FirstOrDefault(m => m.Id == pm.IdMesa)?.Numero.ToString() ?? $"#{pm.IdMesa}")
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveMesa(pm.Id)">Quitar</button>
-                            </li>
-                        }
-                    </ul>
-                }
-                @if (_mesasDisponibles.Count > 0)
-                {
-                    <div class="input-group mb-4">
-                        <select class="form-select" @bind="_selectedMesaId">
-                            @foreach (var mesa in _mesasDisponibles)
-                            {
-                                <option value="@mesa.Id">Mesa @mesa.Numero</option>
-                            }
-                        </select>
-                        <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
-                    </div>
-                }
-            </div>
-
-            <div class="col-md-6">
                 <h4>Platos del pedido</h4>
-                @if (_pedidoPlatos.Count == 0)
+                @if (_pedidoPlatos.Count == 0 && _platosPendientes.Count == 0)
                 {
                     <p class="text-muted"><em>Sin platos agregados todavía.</em></p>
                 }
@@ -116,22 +73,47 @@
                                     @(_platos.FirstOrDefault(p => p.Id == pp.IdPlato)?.Nombre ?? $"#{pp.IdPlato}")
                                     <span class="badge bg-secondary ms-1">@pp.Estado</span>
                                 </span>
-                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemovePlato(pp.Id)">Quitar</button>
+                                @if (_pedidoActivo && pp.Estado != EstadoPedidoPlato.Anulado)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemovePlato(pp.Id)">Quitar</button>
+                                }
+                            </li>
+                        }
+                        @for (var i = 0; i < _platosPendientes.Count; i++)
+                        {
+                            var index = i;
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    @(_platos.FirstOrDefault(p => p.Id == _platosPendientes[index])?.Nombre ?? $"#{_platosPendientes[index]}")
+                                    <span class="badge bg-warning text-dark ms-1">Sin guardar</span>
+                                </span>
+                                @if (_pedidoActivo)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleQuitarPendiente(index)">Quitar</button>
+                                }
                             </li>
                         }
                     </ul>
                 }
-                @if (_platos.Count > 0)
+                @if (_pedidoActivo)
                 {
-                    <div class="input-group mb-4">
-                        <select class="form-select" @bind="_selectedPlatoId">
-                            @foreach (var plato in _platos)
-                            {
-                                <option value="@plato.Id">@plato.Nombre</option>
-                            }
-                        </select>
-                        <button type="button" class="btn btn-outline-primary" @onclick="HandleAddPlato">Agregar plato</button>
-                    </div>
+                    @if (_platos.Count > 0)
+                    {
+                        <div class="input-group mb-4">
+                            <select class="form-select" @bind="_selectedPlatoId">
+                                @foreach (var plato in _platos)
+                                {
+                                    <option value="@plato.Id">@plato.Nombre</option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" @onclick="HandleAddPlato">Agregar plato</button>
+                        </div>
+                        <p class="text-muted"><em>Los platos agregados se guardan recién al presionar "En Preparación".</em></p>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted"><em>El pedido ya no está abierto; no se pueden agregar más platos.</em></p>
                 }
             </div>
         </div>
@@ -144,22 +126,27 @@
     [Parameter] public long? Id { get; set; }
     private Pedido _entity = new();
     private List<Usuario> _meseros = [];
-    private List<Mesa> _mesas = [];
     private List<Plato> _platos = [];
-    private List<PedidoMesa> _pedidoMesas = [];
     private List<PedidoPlato> _pedidoPlatos = [];
-    private long _selectedMesaId;
+    private List<long> _platosPendientes = [];
     private long _selectedPlatoId;
     private bool _loaded;
     private string? _error;
 
-    private List<Mesa> _mesasDisponibles =>
-        _mesas.Where(m => !_pedidoMesas.Any(pm => pm.IdMesa == m.Id)).ToList();
+    // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
+    // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
+    private bool _pedidoActivo =>
+        Id is not null && _entity.Estado == EstadoPedido.Abierto;
+
+    // A diferencia de "En Preparación" (solo desde Abierto), un pedido se puede anular en
+    // cualquier momento antes de Cerrado/Anulado; por eso "Anular" se saco de la grilla de
+    // Pedidos/Index.razor y solo se ofrece entrando a editar el pedido.
+    private bool _puedeAnular =>
+        Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
 
     protected override async Task OnInitializedAsync()
     {
         _meseros = await UsuarioApi.GetAllAsync();
-        _mesas = await MesaApi.GetAllAsync();
         _platos = await PlatoApi.GetAllAsync();
 
         if (Id is not null)
@@ -179,7 +166,6 @@
             _entity.IdMesero = await CurrentUsuarioIdAsync() ?? (_meseros.Count > 0 ? _meseros[0].Id : 0);
         }
 
-        if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
         if (_platos.Count > 0) _selectedPlatoId = _platos[0].Id;
 
         _loaded = true;
@@ -196,9 +182,6 @@
 
     private async Task LoadAsociaciones()
     {
-        var todasMesas = await PedidoMesaApi.GetAllAsync();
-        _pedidoMesas = todasMesas.Where(pm => pm.IdPedido == Id).ToList();
-
         var todosPlatos = await PedidoPlatoApi.GetAllAsync();
         _pedidoPlatos = todosPlatos.Where(pp => pp.IdPedido == Id).ToList();
     }
@@ -210,7 +193,13 @@
             if (Id is null)
             {
                 var created = await Api.CreateAsync(_entity);
-                Nav.NavigateTo($"/pedidos/{created!.Id}");
+                // Blazor reutiliza esta misma instancia de componente al navegar entre
+                // "/pedidos/nuevo" y "/pedidos/{Id}" (mismo tipo de componente), asi que
+                // OnInitializedAsync no se vuelve a ejecutar: sin esto, _entity.Id se queda
+                // en 0 y el siguiente UpdateAsync (p.ej. "En Preparación") apunta a un pedido
+                // inexistente.
+                _entity = created!;
+                Nav.NavigateTo($"/pedidos/{_entity.Id}");
             }
             else
             {
@@ -228,67 +217,139 @@
         }
     }
 
-    private async Task HandleAddMesa()
+    // "Cerrar pedido" no cierra el pedido (Estado Cerrado): guarda el detalle pendiente y
+    // manda el pedido a cocina, pasandolo de Abierto a EnPreparacion. El cierre real del
+    // pedido (facturacion via Cuenta) queda para otra pantalla/flujo.
+    private async Task HandleCerrarPedido()
     {
-        if (Id is null || _selectedMesaId == 0) return;
+        if (Id is null) return;
+
+        if (!await GuardarPlatosPendientesAsync())
+            return;
+
+        var actualizado = new Pedido
+        {
+            Id = _entity.Id,
+            Comensal = _entity.Comensal,
+            Estado = EstadoPedido.EnPreparacion,
+            IdMesero = _entity.IdMesero,
+        };
 
         try
         {
-            await PedidoMesaApi.CreateAsync(new PedidoMesa { IdPedido = Id.Value, IdMesa = _selectedMesaId });
-            await LoadAsociaciones();
-            if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
+            await Api.UpdateAsync(actualizado);
+            Nav.NavigateTo("/pedidos");
         }
         catch (ApiException ex)
         {
-            _error = $"Error al agregar la mesa: {ex.Message}";
+            _error = $"No se pudo guardar el pedido: {ex.Message}";
         }
         catch (HttpRequestException)
         {
-            _error = "Error al agregar la mesa: no se pudo conectar con el servidor.";
+            _error = "No se pudo guardar el pedido: no se pudo conectar con el servidor.";
         }
     }
 
-    private async Task HandleRemoveMesa(long pedidoMesaId)
+    // No hay borrado real (app_restaurante no tiene GRANT DELETE): "Anular" pone
+    // Estado=Anulado. PedidosController.Update ya libera la mesa asociada en esa transición.
+    // Los platos pendientes (sin guardar) se descartan: nunca llegaron a la base.
+    private async Task HandleAnularPedido()
     {
+        if (Id is null) return;
+
+        var confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Anular el pedido #{Id}?");
+        if (!confirmado) return;
+
+        var actualizado = new Pedido
+        {
+            Id = _entity.Id,
+            Comensal = _entity.Comensal,
+            Estado = EstadoPedido.Anulado,
+            IdMesero = _entity.IdMesero,
+        };
+
         try
         {
-            await PedidoMesaApi.DeleteAsync(pedidoMesaId);
-            await LoadAsociaciones();
+            await Api.UpdateAsync(actualizado);
+            Nav.NavigateTo("/pedidos");
         }
         catch (ApiException ex)
         {
-            _error = $"Error al quitar la mesa: {ex.Message}";
+            _error = $"No se pudo anular el pedido: {ex.Message}";
         }
         catch (HttpRequestException)
         {
-            _error = "Error al quitar la mesa: no se pudo conectar con el servidor.";
+            _error = "No se pudo anular el pedido: no se pudo conectar con el servidor.";
         }
     }
 
-    private async Task HandleAddPlato()
+    // Los platos agregados quedan solo en memoria hasta que se presiona "Cerrar pedido":
+    // recien ahi se crean en la base, uno por uno, antes de mandar el pedido a cocina.
+    private async Task<bool> GuardarPlatosPendientesAsync()
+    {
+        if (Id is null) return true;
+
+        foreach (var idPlato in _platosPendientes.ToList())
+        {
+            try
+            {
+                await PedidoPlatoApi.CreateAsync(new PedidoPlato { IdPedido = Id.Value, IdPlato = idPlato });
+                _platosPendientes.Remove(idPlato);
+            }
+            catch (ApiException ex)
+            {
+                _error = $"No se pudo guardar un plato: {ex.Message}";
+                return false;
+            }
+            catch (HttpRequestException)
+            {
+                _error = "No se pudo guardar un plato: no se pudo conectar con el servidor.";
+                return false;
+            }
+        }
+
+        await LoadAsociaciones();
+        return true;
+    }
+
+    private void HandleAddPlato()
     {
         if (Id is null || _selectedPlatoId == 0) return;
 
-        try
-        {
-            await PedidoPlatoApi.CreateAsync(new PedidoPlato { IdPedido = Id.Value, IdPlato = _selectedPlatoId });
-            await LoadAsociaciones();
-        }
-        catch (ApiException ex)
-        {
-            _error = $"Error al agregar el plato: {ex.Message}";
-        }
-        catch (HttpRequestException)
-        {
-            _error = "Error al agregar el plato: no se pudo conectar con el servidor.";
-        }
+        _platosPendientes.Add(_selectedPlatoId);
     }
 
+    private void HandleQuitarPendiente(int index)
+    {
+        if (index < 0 || index >= _platosPendientes.Count) return;
+
+        _platosPendientes.RemoveAt(index);
+    }
+
+    // app_restaurante no tiene GRANT DELETE (sql/script_inicial.sql): los pedido_plato se
+    // anulan, no se borran. fn_pedido_plato_facturado (trigger) rechaza anular un plato que ya
+    // tiene un DetalleCuenta, y ck_pedido_plato_anulacion exige responsable y motivo.
     private async Task HandleRemovePlato(long pedidoPlatoId)
     {
+        var pp = _pedidoPlatos.FirstOrDefault(x => x.Id == pedidoPlatoId);
+        if (pp is null) return;
+
+        var motivo = await JS.InvokeAsync<string?>("prompt", "Motivo para quitar el plato:");
+        if (string.IsNullOrWhiteSpace(motivo)) return;
+
         try
         {
-            await PedidoPlatoApi.DeleteAsync(pedidoPlatoId);
+            var anulado = new PedidoPlato
+            {
+                Id = pp.Id,
+                IdPedido = pp.IdPedido,
+                IdPlato = pp.IdPlato,
+                Estado = EstadoPedidoPlato.Anulado,
+                IdAnuladoPor = await CurrentUsuarioIdAsync(),
+                MotivoAnulacion = motivo,
+            };
+
+            await PedidoPlatoApi.UpdateAsync(anulado);
             await LoadAsociaciones();
         }
         catch (ApiException ex)

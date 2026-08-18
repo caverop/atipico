@@ -3,6 +3,7 @@
 @inject IEntityApiClient<PedidoPlato> Api
 @inject IEntityApiClient<Pedido> PedidoApi
 @inject IEntityApiClient<Plato> PlatoApi
+@inject IJSRuntime JS
 
 <PageTitle>Pedido &lt;-&gt; Plato</PageTitle>
 
@@ -18,9 +19,12 @@
              CreateUrl="/pedido-platos/nuevo"
              EditUrlPrefix="/pedido-platos"
              OnDelete="HandleDelete"
+             DeleteLabel="Anular"
              WriteRoles="@(["Admin", "Mesero", "Cocinero"])" />
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     private string? _error;
     private List<PedidoPlato>? _items;
     private Dictionary<long, string> _pedidoLabels = [];
@@ -46,11 +50,24 @@
         _items = await Api.GetAllAsync();
     }
 
+    // No hay borrado real (app_restaurante no tiene GRANT DELETE): "Anular" pone
+    // Estado=Anulado. fn_pedido_plato_facturado (trigger) rechaza anular un plato que ya
+    // tiene un DetalleCuenta, y ck_pedido_plato_anulacion exige responsable y motivo.
     private async Task HandleDelete(long id)
     {
+        var pp = _items?.FirstOrDefault(x => x.Id == id);
+        if (pp is null) return;
+
+        var motivo = await JS.InvokeAsync<string?>("prompt", "Motivo para anular el plato:");
+        if (string.IsNullOrWhiteSpace(motivo)) return;
+
         try
         {
-            await Api.DeleteAsync(id);
+            pp.Estado = EstadoPedidoPlato.Anulado;
+            pp.IdAnuladoPor = await CurrentUsuarioIdAsync();
+            pp.MotivoAnulacion = motivo;
+
+            await Api.UpdateAsync(pp);
             _items = await Api.GetAllAsync();
         }
         catch (ApiException ex)
@@ -61,5 +78,14 @@
         {
             _error = "No se pudo conectar con el servidor.";
         }
+    }
+
+    private async Task<long?> CurrentUsuarioIdAsync()
+    {
+        if (AuthStateTask is null) return null;
+
+        var authState = await AuthStateTask;
+        var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return long.TryParse(claim, out var id) ? id : null;
     }
 }

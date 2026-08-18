@@ -16,6 +16,7 @@
              CreateUrl="/usuarios/nuevo"
              EditUrlPrefix="/usuarios"
              OnDelete="HandleDelete"
+             DeleteLabel="Desactivar"
              WriteRoles="@(["Admin"])" />
 
 @code {
@@ -36,11 +37,17 @@
         _usuarios = await Api.GetAllAsync();
     }
 
+    // No hay borrado real (app_restaurante no tiene GRANT DELETE): "Desactivar"
+    // pone Activo=false, lo mismo que ya permite el checkbox del formulario de edición.
     private async Task HandleDelete(long id)
     {
+        var usuario = _usuarios?.FirstOrDefault(u => u.Id == id);
+        if (usuario is null) return;
+
         try
         {
-            await Api.DeleteAsync(id);
+            usuario.Activo = false;
+            await Api.UpdateAsync(usuario);
             _usuarios = await Api.GetAllAsync();
         }
         catch (ApiException ex)
