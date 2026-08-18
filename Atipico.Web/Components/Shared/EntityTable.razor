@@ -1,7 +1,7 @@
 @typeparam TEntity where TEntity : class, IEntity
 @inject IJSRuntime JS
 
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">@Title</h3>
     <AuthorizeView Roles="@RolesCsv">
         <Authorized><a class="btn btn-primary" href="@CreateUrl">+ Nuevo</a></Authorized>
@@ -42,11 +42,13 @@ else
                         <AuthorizeView Roles="@RolesCsv" Context="rowAuth">
                             <Authorized>
                                 <td class="text-end">
-                                    <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">Editar</a>
-                                    @if (ShowDelete)
-                                    {
-                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
-                                    }
+                                    <div class="d-flex flex-wrap justify-content-end gap-1">
+                                        <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">Editar</a>
+                                        @if (ShowDelete)
+                                        {
+                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
+                                        }
+                                    </div>
                                 </td>
                             </Authorized>
                         </AuthorizeView>
