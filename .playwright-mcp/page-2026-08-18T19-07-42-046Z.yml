@@ -1,0 +1,41 @@
+- generic [ref=f5e2]:
+  - generic [ref=f5e3]:
+    - link "ATIPICO" [ref=f5e6] [cursor=pointer]:
+      - /url: ""
+    - generic [ref=f5e9]:
+      - navigation [ref=f5e10]:
+        - link "Panel" [ref=f5e12] [cursor=pointer]:
+          - /url: ""
+        - generic [ref=f5e13]: Personal
+        - link "Usuarios" [ref=f5e15] [cursor=pointer]:
+          - /url: usuarios
+        - generic [ref=f5e16]: Carta
+        - link "Tipos de plato" [ref=f5e18] [cursor=pointer]:
+          - /url: tipos-plato
+        - link "Platos" [ref=f5e20] [cursor=pointer]:
+          - /url: platos
+        - generic [ref=f5e21]: Salón
+        - link "Mesas" [ref=f5e23] [cursor=pointer]:
+          - /url: mesas
+        - generic [ref=f5e24]: Pedidos
+        - link "Pedidos" [ref=f5e26] [cursor=pointer]:
+          - /url: pedidos
+        - link "Pedido <-> Mesa" [ref=f5e28] [cursor=pointer]:
+          - /url: pedido-mesas
+        - link "Pedido <-> Plato" [ref=f5e30] [cursor=pointer]:
+          - /url: pedido-platos
+        - generic [ref=f5e31]: Caja
+        - link "Cuentas" [ref=f5e33] [cursor=pointer]:
+          - /url: cuentas
+        - link "Detalle de cuentas" [ref=f5e35] [cursor=pointer]:
+          - /url: detalle-cuentas
+        - link "Conciliación de cuentas" [ref=f5e37] [cursor=pointer]:
+          - /url: reportes/cuentas-descuadradas
+      - generic [ref=f5e38]:
+        - generic [ref=f5e39]: Test Admin
+        - generic [ref=f5e40]: Admin
+        - button "Cerrar sesión" [ref=f5e42] [cursor=pointer]
+  - main [ref=f5e43]:
+    - generic [ref=f5e44]: Panel administrativo
+    - article [ref=f5e46]:
+      - 'heading "Editar plato #1" [level=3] [ref=f5e47]'

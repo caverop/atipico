@@ -1,0 +1,82 @@
+- generic [ref=f4e2]:
+  - generic [ref=f4e3]:
+    - link "ATIPICO" [ref=f4e6] [cursor=pointer]:
+      - /url: ""
+    - generic [ref=f4e9]:
+      - navigation [ref=f4e10]:
+        - link "Panel" [ref=f4e12] [cursor=pointer]:
+          - /url: ""
+        - generic [ref=f4e13]: Personal
+        - link "Usuarios" [ref=f4e15] [cursor=pointer]:
+          - /url: usuarios
+        - generic [ref=f4e16]: Carta
+        - link "Tipos de plato" [ref=f4e18] [cursor=pointer]:
+          - /url: tipos-plato
+        - link "Platos" [ref=f4e20] [cursor=pointer]:
+          - /url: platos
+        - generic [ref=f4e21]: Salón
+        - link "Mesas" [ref=f4e23] [cursor=pointer]:
+          - /url: mesas
+        - generic [ref=f4e24]: Pedidos
+        - link "Pedidos" [ref=f4e26] [cursor=pointer]:
+          - /url: pedidos
+        - link "Pedido <-> Mesa" [ref=f4e28] [cursor=pointer]:
+          - /url: pedido-mesas
+        - link "Pedido <-> Plato" [ref=f4e30] [cursor=pointer]:
+          - /url: pedido-platos
+        - generic [ref=f4e31]: Caja
+        - link "Cuentas" [ref=f4e33] [cursor=pointer]:
+          - /url: cuentas
+        - link "Detalle de cuentas" [ref=f4e35] [cursor=pointer]:
+          - /url: detalle-cuentas
+        - link "Conciliación de cuentas" [ref=f4e37] [cursor=pointer]:
+          - /url: reportes/cuentas-descuadradas
+      - generic [ref=f4e38]:
+        - generic [ref=f4e39]: Test Admin
+        - generic [ref=f4e40]: Admin
+        - button "Cerrar sesión" [ref=f4e42] [cursor=pointer]
+  - main [ref=f4e43]:
+    - generic [ref=f4e44]: Panel administrativo
+    - article [ref=f4e46]:
+      - 'heading "Editar plato #1" [level=3] [ref=f4e47]'
+      - generic [ref=f4e48]:
+        - generic [ref=f4e49]:
+          - generic [ref=f4e50]: Nombre
+          - textbox [active] [ref=f4e51]: TEST EDIT CHECK
+        - generic [ref=f4e52]:
+          - generic [ref=f4e53]: Precio (Bs)
+          - spinbutton [ref=f4e54]: "22.00"
+        - generic [ref=f4e55]:
+          - generic [ref=f4e56]: Tipo de plato
+          - combobox [ref=f4e57]:
+            - option "Entradas" [selected]
+            - option "Fondos"
+            - option "Postres"
+            - option "Bebidas"
+            - option "Entradas de Prueba"
+            - option "Entradas de Prueba 2"
+            - option "Entradas QA Final"
+            - option "Segundo"
+            - option "Postre"
+            - option "TEST Piqueos"
+            - option "TEST Piqueos 161458"
+            - option "TEST DupCheck 181842"
+        - generic [ref=f4e58]:
+          - generic [ref=f4e59]: Estado
+          - combobox [ref=f4e60]:
+            - option "Disponible" [selected]
+            - option "Agotado"
+            - option "Descontinuado"
+        - generic [ref=f4e61]:
+          - generic [ref=f4e62]: Habilitado desde
+          - textbox [ref=f4e63]: 2026-08-06
+        - generic [ref=f4e64]:
+          - generic [ref=f4e65]: Habilitado hasta
+          - textbox [ref=f4e66]
+          - generic [ref=f4e67]: Dejar vacío si el plato no tiene fecha de fin.
+        - generic [ref=f4e68]:
+          - checkbox "Activo" [ref=f4e69]
+          - generic [ref=f4e70]: Activo
+        - button "Guardar" [ref=f4e71] [cursor=pointer]
+        - link "Cancelar" [ref=f4e72] [cursor=pointer]:
+          - /url: /platos

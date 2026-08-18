@@ -38,6 +38,9 @@
             ("Nombre", p => p.Nombre),
             ("Precio", p => p.Precio.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))),
             ("Tipo", p => _tipoNombres.GetValueOrDefault(p.IdTipoPlato, $"#{p.IdTipoPlato}")),
+            ("Estado", p => p.Estado),
+            ("Habilitado desde", p => p.HabilitadoDesde.ToString("d", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))),
+            ("Habilitado hasta", p => p.HabilitadoHasta?.ToString("d", System.Globalization.CultureInfo.GetCultureInfo("es-BO")) ?? "-"),
             ("Activo", p => p.Activo ? "Sí" : "No"),
         ];
 

@@ -113,11 +113,11 @@
                 }
                 @if (_pedidoActivo)
                 {
-                    @if (_platos.Count > 0)
+                    @if (_platosHabilitadosHoy.Count > 0)
                     {
                         <div class="input-group mb-4">
                             <select class="form-select" @bind="_selectedPlatoId">
-                                @foreach (var plato in _platos)
+                                @foreach (var plato in _platosHabilitadosHoy)
                                 {
                                     <option value="@plato.Id">@plato.Nombre</option>
                                 }
@@ -125,6 +125,10 @@
                             <button type="button" class="btn btn-outline-primary" @onclick="HandleAddPlato">Agregar plato</button>
                         </div>
                         <p class="text-muted"><em>Los platos agregados se guardan recién al presionar "En Preparación".</em></p>
+                    }
+                    else
+                    {
+                        <p class="text-muted"><em>No hay platos habilitados para agregar hoy.</em></p>
                     }
                 }
                 else
@@ -219,6 +223,18 @@
         _mesas.Where(m => m.Estado != EstadoMesa.Reservada && m.Estado != EstadoMesa.Inactiva
                            && _pedidoMesas.All(pm => pm.IdMesa != m.Id)).ToList();
 
+    // _platos completo se sigue usando para resolver el nombre de platos ya agregados al
+    // pedido (aunque hoy ya no esten activos/vigentes); solo el selector de "Agregar plato" se
+    // limita a los Activos con HabilitadoDesde/HabilitadoHasta vigente para la fecha de hoy.
+    private List<Plato> _platosHabilitadosHoy
+    {
+        get
+        {
+            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            return _platos.Where(p => p.Activo && p.HabilitadoDesde <= hoy && (p.HabilitadoHasta is null || p.HabilitadoHasta >= hoy)).ToList();
+        }
+    }
+
     // Se preselecciona una mesa Libre para evitar elegir por accidente una que ya esta
     // compartida; si no queda ninguna Libre, se cae a la primera disponible (Ocupada) en vez
     // de dejar el selector vacio.
@@ -269,7 +285,7 @@
             _entity.IdMesero = await CurrentUsuarioIdAsync() ?? (_meseros.Count > 0 ? _meseros[0].Id : 0);
         }
 
-        if (_platos.Count > 0) _selectedPlatoId = _platos[0].Id;
+        if (_platosHabilitadosHoy.Count > 0) _selectedPlatoId = _platosHabilitadosHoy[0].Id;
         _selectedMesaId = _mesaPorDefecto;
 
         _loaded = true;

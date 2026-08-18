@@ -35,6 +35,9 @@ namespace Atipico.Domain.Tests
             var plato = new Plato();
 
             Assert.True(plato.Activo);
+            Assert.Equal(EstadoPlato.Disponible, plato.Estado);
+            Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), plato.HabilitadoDesde);
+            Assert.Null(plato.HabilitadoHasta);
             Assert.NotNull(plato.PedidoPlatos);
             Assert.Empty(plato.PedidoPlatos);
         }

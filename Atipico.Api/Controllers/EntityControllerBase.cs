@@ -158,6 +158,8 @@ namespace Atipico.Api.Controllers
             "ck_cuenta_anulacion" => "Para anular la cuenta se debe indicar responsable y motivo.",
             "ck_mesa_cap" => "La capacidad de la mesa debe ser mayor a cero.",
             "ck_plato_precio" => "El precio del plato no puede ser negativo.",
+            "ck_plato_estado" => "El estado del plato no es válido.",
+            "ck_plato_habilitado_rango" => "La fecha 'habilitado hasta' no puede ser anterior a 'habilitado desde'.",
             "ck_cuenta_monto" => "El monto de la cuenta no puede ser negativo.",
             "ck_detalle_precio" => "El precio unitario no puede ser negativo.",
             _ => null

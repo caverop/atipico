@@ -1,4 +1,5 @@
-﻿using Atipico.Domain.Interfaces;
+﻿using Atipico.Domain.Enums;
+using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -11,6 +12,9 @@ namespace Atipico.Domain.Entities
         public string Nombre { get; set; } = null!;
         public decimal Precio { get; set; }
         public bool Activo { get; set; } = true;
+        public EstadoPlato Estado { get; set; } = EstadoPlato.Disponible;
+        public DateOnly HabilitadoDesde { get; set; } = DateOnly.FromDateTime(DateTime.UtcNow);
+        public DateOnly? HabilitadoHasta { get; set; }
 
         public DateTimeOffset CreadoEn { get; set; }
         public DateTimeOffset ActualizadoEn { get; set; }
