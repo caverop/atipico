@@ -5,6 +5,8 @@
 @inject IEntityApiClient<Usuario> UsuarioApi
 @inject IEntityApiClient<Plato> PlatoApi
 @inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
+@inject IEntityApiClient<Mesa> MesaApi
+@inject IEntityApiClient<PedidoMesa> PedidoMesaApi
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -50,15 +52,15 @@
 
     <hr class="my-4" />
 
-    @if (Id is null)
-    {
-        <p class="text-muted"><em>Guarda el pedido primero para poder agregar platos.</em></p>
-    }
-    else
-    {
-        <div class="row">
-            <div class="col-md-6">
-                <h4>Platos del pedido</h4>
+    <div class="row">
+        <div class="col-md-6">
+            <h4>Platos del pedido</h4>
+            @if (Id is null)
+            {
+                <p class="text-muted"><em>Guarda el pedido primero para poder agregar platos.</em></p>
+            }
+            else
+            {
                 @if (_pedidoPlatos.Count == 0 && _platosPendientes.Count == 0)
                 {
                     <p class="text-muted"><em>Sin platos agregados todavía.</em></p>
@@ -115,9 +117,101 @@
                 {
                     <p class="text-muted"><em>El pedido ya no está abierto; no se pueden agregar más platos.</em></p>
                 }
-            </div>
+            }
         </div>
-    }
+        <div class="col-md-6">
+            <h4>Mesas del pedido</h4>
+            @if (Id is null)
+            {
+                @if (_mesasPendientes.Count == 0)
+                {
+                    <p class="text-muted"><em>Sin mesas seleccionadas todavía.</em></p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @for (var i = 0; i < _mesasPendientes.Count; i++)
+                        {
+                            var index = i;
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    Mesa @(_mesas.FirstOrDefault(m => m.Id == _mesasPendientes[index])?.Numero.ToString() ?? $"#{_mesasPendientes[index]}")
+                                    <span class="badge bg-warning text-dark ms-1">Sin guardar</span>
+                                </span>
+                                <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleQuitarMesaPendiente(index)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (_mesasDisponibles.Count > 0)
+                {
+                    <div class="input-group mb-4">
+                        <select class="form-select" @bind="_selectedMesaId">
+                            @foreach (var mesa in _mesasDisponibles)
+                            {
+                                <option value="@mesa.Id">
+                                    Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ya ocupada por otro pedido" : "")
+                                </option>
+                            }
+                        </select>
+                        <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesaPendiente">Agregar mesa</button>
+                    </div>
+                    <p class="text-muted"><em>Las mesas seleccionadas se asocian recién al presionar "Continuar".</em></p>
+                }
+                else
+                {
+                    <p class="text-muted"><em>No hay mesas disponibles para asociar.</em></p>
+                }
+            }
+            else
+            {
+                @if (_pedidoMesas.Count == 0)
+                {
+                    <p class="text-muted"><em>Sin mesas asociadas todavía.</em></p>
+                }
+                else
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var pm in _pedidoMesas)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>Mesa @(_mesas.FirstOrDefault(m => m.Id == pm.IdMesa)?.Numero.ToString() ?? $"#{pm.IdMesa}")</span>
+                                @if (_pedidoActivo)
+                                {
+                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveMesa(pm.Id)">Quitar</button>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+                @if (_pedidoActivo)
+                {
+                    @if (_mesasDisponibles.Count > 0)
+                    {
+                        <div class="input-group mb-4">
+                            <select class="form-select" @bind="_selectedMesaId">
+                                @foreach (var mesa in _mesasDisponibles)
+                                {
+                                    <option value="@mesa.Id">
+                                        Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ya ocupada por otro pedido" : "")
+                                    </option>
+                                }
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted"><em>No hay mesas disponibles para asociar.</em></p>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted"><em>El pedido ya no está abierto; no se pueden asociar más mesas.</em></p>
+                }
+            }
+        </div>
+    </div>
 }
 
 @code {
@@ -130,8 +224,21 @@
     private List<PedidoPlato> _pedidoPlatos = [];
     private List<long> _platosPendientes = [];
     private long _selectedPlatoId;
+    private List<Mesa> _mesas = [];
+    private List<PedidoMesa> _pedidoMesas = [];
+    private List<long> _mesasPendientes = [];
+    private long _selectedMesaId;
     private bool _loaded;
     private string? _error;
+
+    // Dos o mas pedidos pueden compartir una mesa (p.ej. grupos distintos en una mesa grande),
+    // por eso no se excluyen las mesas Ocupadas: solo se descartan Reservada/Inactiva (estados
+    // manuales del personal, ver PedidoMesasController), las que ya estan en este pedido y las
+    // que ya se seleccionaron pero todavia no se guardaron (pedido nuevo, ver _mesasPendientes).
+    private List<Mesa> _mesasDisponibles =>
+        _mesas.Where(m => m.Estado != EstadoMesa.Reservada && m.Estado != EstadoMesa.Inactiva
+                           && _pedidoMesas.All(pm => pm.IdMesa != m.Id)
+                           && !_mesasPendientes.Contains(m.Id)).ToList();
 
     // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
     // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
@@ -164,9 +271,14 @@
         else
         {
             _entity.IdMesero = await CurrentUsuarioIdAsync() ?? (_meseros.Count > 0 ? _meseros[0].Id : 0);
+            // Se permite elegir mesa desde "Nuevo pedido" (a diferencia de los platos): la
+            // asociacion queda pendiente en memoria hasta HandleSave, que recien ahi crea el
+            // pedido y las filas PedidoMesa correspondientes.
+            _mesas = await MesaApi.GetAllAsync();
         }
 
         if (_platos.Count > 0) _selectedPlatoId = _platos[0].Id;
+        if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
 
         _loaded = true;
     }
@@ -184,6 +296,13 @@
     {
         var todosPlatos = await PedidoPlatoApi.GetAllAsync();
         _pedidoPlatos = todosPlatos.Where(pp => pp.IdPedido == Id).ToList();
+
+        // Se recarga _mesas junto con la asociacion porque PedidoMesasController cambia
+        // Mesa.Estado (Libre/Ocupada) al asociar/desasociar, y el dropdown de mesas
+        // disponibles depende de ese estado estando al dia.
+        _mesas = await MesaApi.GetAllAsync();
+        var todasMesas = await PedidoMesaApi.GetAllAsync();
+        _pedidoMesas = todasMesas.Where(pm => pm.IdPedido == Id).ToList();
     }
 
     private async Task HandleSave()
@@ -199,6 +318,9 @@
                 // en 0 y el siguiente UpdateAsync (p.ej. "En Preparación") apunta a un pedido
                 // inexistente.
                 _entity = created!;
+
+                await GuardarMesasPendientesAsync(_entity.Id);
+
                 Nav.NavigateTo($"/pedidos/{_entity.Id}");
             }
             else
@@ -360,5 +482,99 @@
         {
             _error = "Error al quitar el plato: no se pudo conectar con el servidor.";
         }
+    }
+
+    // A diferencia de los platos, asociar una mesa a un pedido ya existente es inmediato (no
+    // se agenda para "En Preparación"): PedidoMesasController.Create ya marca la mesa como
+    // Ocupada al crear la fila, y ocupar una mesa esta ligado a sentar a los comensales, no al
+    // timing de cocina. Para un pedido nuevo (todavia sin Id) se usa en cambio
+    // HandleAddMesaPendiente, ya que no existe un IdPedido real hasta guardar.
+    private async Task HandleAddMesa()
+    {
+        if (Id is null || _selectedMesaId == 0) return;
+
+        try
+        {
+            await PedidoMesaApi.CreateAsync(new PedidoMesa { IdPedido = Id.Value, IdMesa = _selectedMesaId });
+            await LoadAsociaciones();
+            if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
+        }
+        catch (ApiException ex)
+        {
+            _error = $"No se pudo asociar la mesa: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo asociar la mesa: no se pudo conectar con el servidor.";
+        }
+    }
+
+    // app_restaurante no tiene GRANT DELETE (sql/script_inicial.sql) y pedido_mesa no tiene
+    // Estado para anular en su lugar: esto siempre va a devolver 409 "no se eliminan, se
+    // anulan". Se deja el boton por simetria con platos, mostrando el error en vez de romper
+    // la pantalla.
+    private async Task HandleRemoveMesa(long pedidoMesaId)
+    {
+        try
+        {
+            await PedidoMesaApi.DeleteAsync(pedidoMesaId);
+            await LoadAsociaciones();
+        }
+        catch (ApiException ex)
+        {
+            _error = $"Error al quitar la mesa: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Error al quitar la mesa: no se pudo conectar con el servidor.";
+        }
+    }
+
+    private void HandleAddMesaPendiente()
+    {
+        if (_selectedMesaId == 0) return;
+
+        _mesasPendientes.Add(_selectedMesaId);
+        if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
+    }
+
+    private void HandleQuitarMesaPendiente(int index)
+    {
+        if (index < 0 || index >= _mesasPendientes.Count) return;
+
+        _mesasPendientes.RemoveAt(index);
+    }
+
+    // Recien aca, con el pedido ya creado, se materializan las mesas elegidas en "Nuevo
+    // pedido". Es "best effort": si una falla (p.ej. otro mesero se adelanto y ya no cumple
+    // una regla), se avisa via _error pero no se bloquea la navegacion al pedido recien
+    // creado, que de todas formas ya existe en la base.
+    private async Task GuardarMesasPendientesAsync(long idPedido)
+    {
+        if (_mesasPendientes.Count == 0) return;
+
+        foreach (var idMesa in _mesasPendientes.ToList())
+        {
+            try
+            {
+                await PedidoMesaApi.CreateAsync(new PedidoMesa { IdPedido = idPedido, IdMesa = idMesa });
+                _mesasPendientes.Remove(idMesa);
+            }
+            catch (ApiException ex)
+            {
+                _error = $"El pedido se creó, pero no se pudo asociar una mesa: {ex.Message}";
+            }
+            catch (HttpRequestException)
+            {
+                _error = "El pedido se creó, pero no se pudo asociar una mesa: no se pudo conectar con el servidor.";
+            }
+        }
+
+        // No se usa LoadAsociaciones() aca: el parametro Id todavia no se actualizo (la
+        // navegacion a "/pedidos/{id}" recien se dispara despues de este llamado), asi que su
+        // filtro por Id daria una lista vacia. Se recarga a mano con el id real.
+        _mesas = await MesaApi.GetAllAsync();
+        var todasMesas = await PedidoMesaApi.GetAllAsync();
+        _pedidoMesas = todasMesas.Where(pm => pm.IdPedido == idPedido).ToList();
     }
 }
