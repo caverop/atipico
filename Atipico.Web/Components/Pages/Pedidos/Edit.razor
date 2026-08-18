@@ -25,25 +25,28 @@
             <label class="form-label">Comensal</label>
             <InputText class="form-control" @bind-Value="_entity.Comensal" />
         </div>
-        <div class="mb-3">
-            <label class="form-label">Estado</label>
-            <InputSelect class="form-select" @bind-Value="_entity.Estado">
-                @foreach (var estado in Enum.GetValues<EstadoPedido>())
-                {
-                    <option value="@estado">@estado</option>
-                }
-            </InputSelect>
-            <div class="form-text">La fecha de cierre se registra sola al guardar con este estado.</div>
-        </div>
-        <div class="mb-3">
-            <label class="form-label">Mesero</label>
-            <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
-                @foreach (var mesero in _meseros)
-                {
-                    <option value="@mesero.Id">@mesero.Nombre</option>
-                }
-            </InputSelect>
-        </div>
+        @if (Id is not null)
+        {
+            <div class="mb-3">
+                <label class="form-label">Estado</label>
+                <InputSelect class="form-select" @bind-Value="_entity.Estado">
+                    @foreach (var estado in Enum.GetValues<EstadoPedido>())
+                    {
+                        <option value="@estado">@estado</option>
+                    }
+                </InputSelect>
+                <div class="form-text">La fecha de cierre se registra sola al guardar con este estado.</div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Mesero</label>
+                <InputSelect class="form-select" @bind-Value="_entity.IdMesero">
+                    @foreach (var mesero in _meseros)
+                    {
+                        <option value="@mesero.Id">@mesero.Nombre</option>
+                    }
+                </InputSelect>
+            </div>
+        }
         @if (_entity.CerradoEn is not null)
         {
             <div class="mb-3">
@@ -136,6 +139,8 @@
 }
 
 @code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
+
     [Parameter] public long? Id { get; set; }
     private Pedido _entity = new();
     private List<Usuario> _meseros = [];
@@ -169,15 +174,24 @@
 
             await LoadAsociaciones();
         }
-        else if (_meseros.Count > 0)
+        else
         {
-            _entity.IdMesero = _meseros[0].Id;
+            _entity.IdMesero = await CurrentUsuarioIdAsync() ?? (_meseros.Count > 0 ? _meseros[0].Id : 0);
         }
 
         if (_mesasDisponibles.Count > 0) _selectedMesaId = _mesasDisponibles[0].Id;
         if (_platos.Count > 0) _selectedPlatoId = _platos[0].Id;
 
         _loaded = true;
+    }
+
+    private async Task<long?> CurrentUsuarioIdAsync()
+    {
+        if (AuthStateTask is null) return null;
+
+        var authState = await AuthStateTask;
+        var claim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        return long.TryParse(claim, out var id) ? id : null;
     }
 
     private async Task LoadAsociaciones()
