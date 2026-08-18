@@ -26,23 +26,31 @@ else
     <div class="row g-3">
         @foreach (var card in _cards)
         {
-            <div class="col-12 col-sm-6 col-lg-4">
-                <a href="@card.Url" class="text-decoration-none">
-                    <div class="p-3 h-100 dashboard-card">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <h4 class="mb-0">@card.Title</h4>
-                            <span class="badge">@card.Count</span>
-                        </div>
-                        <p class="text-muted mb-0 mt-2">@card.Description</p>
+            <AuthorizeView Roles="@string.Join(",", card.Roles)" Context="cardAuth">
+                <Authorized>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <a href="@card.Url" class="text-decoration-none">
+                            <div class="p-3 h-100 dashboard-card">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <h4 class="mb-0">@card.Title</h4>
+                                    <span class="badge">@card.Count</span>
+                                </div>
+                                <p class="text-muted mb-0 mt-2">@card.Description</p>
+                            </div>
+                        </a>
                     </div>
-                </a>
-            </div>
+                </Authorized>
+            </AuthorizeView>
         }
     </div>
 }
 
 @code {
-    private record Card(string Title, string Description, string Url, int Count);
+    private record Card(string Title, string Description, string Url, int Count, string[] Roles);
+
+    private static readonly string[] AdminOnly = ["Admin"];
+    private static readonly string[] AdminMesero = ["Admin", "Mesero"];
+    private static readonly string[] AdminCajero = ["Admin", "Cajero"];
 
     private List<Card> _cards = [];
     private string? _error;
@@ -63,15 +71,15 @@ else
 
             _cards =
             [
-                new("Usuarios", "Meseros, cajeros, cocineros y administradores.", "/usuarios", usuarios.Count),
-                new("Tipos de plato", "Categorías de la carta.", "/tipos-plato", tipos.Count),
-                new("Platos", "Platos disponibles y sus precios.", "/platos", platos.Count),
-                new("Mesas", "Mesas del salón.", "/mesas", mesas.Count),
-                new("Pedidos", "Pedidos abiertos, servidos o cerrados.", "/pedidos", pedidos.Count),
-                new("Pedido - Mesa", "Qué mesa ocupa cada pedido.", "/pedido-mesas", pedidoMesas.Count),
-                new("Pedido - Plato", "Platos servidos en cada pedido.", "/pedido-platos", pedidoPlatos.Count),
-                new("Cuentas", "Cuentas abiertas, pagadas o anuladas.", "/cuentas", cuentas.Count),
-                new("Detalle de cuentas", "Líneas facturadas por cuenta.", "/detalle-cuentas", detalles.Count),
+                new("Usuarios", "Meseros, cajeros, cocineros y administradores.", "/usuarios", usuarios.Count, AdminOnly),
+                new("Tipos de plato", "Categorías de la carta.", "/tipos-plato", tipos.Count, AdminOnly),
+                new("Platos", "Platos disponibles y sus precios.", "/platos", platos.Count, AdminOnly),
+                new("Mesas", "Mesas del salón.", "/mesas", mesas.Count, AdminOnly),
+                new("Pedidos", "Pedidos abiertos, servidos o cerrados.", "/pedidos", pedidos.Count, AdminMesero),
+                new("Pedido - Mesa", "Qué mesa ocupa cada pedido.", "/pedido-mesas", pedidoMesas.Count, AdminOnly),
+                new("Pedido - Plato", "Platos servidos en cada pedido.", "/pedido-platos", pedidoPlatos.Count, AdminOnly),
+                new("Cuentas", "Cuentas abiertas, pagadas o anuladas.", "/cuentas", cuentas.Count, AdminCajero),
+                new("Detalle de cuentas", "Líneas facturadas por cuenta.", "/detalle-cuentas", detalles.Count, AdminCajero),
             ];
         }
         catch (HttpRequestException ex)
