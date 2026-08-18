@@ -49,18 +49,22 @@
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="pedidos">Pedidos</NavLink>
                         </div>
+                    </Authorized>
+                </AuthorizeView>
+                <AuthorizeView Roles="Admin" Context="pedidosContext">
+                    <Authorized>
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="pedido-mesas">Pedido &lt;-&gt; Mesa</NavLink>
                         </div>
-                    </Authorized>
-                </AuthorizeView>
-                <div class="nav-item px-3">
+                        <div class="nav-item px-3">
                     <NavLink class="nav-link" href="pedido-platos">Pedido &lt;-&gt; Plato</NavLink>
                 </div>
+                    </Authorized>
+                </AuthorizeView>                
             </Authorized>
         </AuthorizeView>
 
-        <AuthorizeView Roles="Admin,Mesero,Cajero">
+        <AuthorizeView Roles="Admin,Cajero">
             <Authorized>
                 <div class="nav-item px-3 nav-section">Caja</div>
                 <div class="nav-item px-3">
