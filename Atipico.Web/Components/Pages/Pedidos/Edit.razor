@@ -1,12 +1,16 @@
 @page "/pedidos/nuevo"
 @page "/pedidos/{Id:long}"
 @attribute [Authorize(Roles = "Admin,Mesero")]
+@using System.Net
+@using System.Text.Json
+@using System.Text.Json.Serialization
 @inject IEntityApiClient<Pedido> Api
 @inject IEntityApiClient<Usuario> UsuarioApi
 @inject IEntityApiClient<Plato> PlatoApi
 @inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
 @inject IEntityApiClient<Mesa> MesaApi
 @inject IEntityApiClient<PedidoMesa> PedidoMesaApi
+@inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -42,7 +46,17 @@
         }
         @if (_pedidoActivo)
         {
-            <button type="button" class="btn btn-primary" @onclick="HandleCerrarPedido">En Preparación</button>
+            <div class="mb-3">
+                <label class="form-label">Método de pago</label>
+                <select class="form-select" @bind="_metodoPagoSeleccionado">
+                    <option value="">-- Selecciona un método --</option>
+                    @foreach (var metodo in Enum.GetValues<MetodoPago>())
+                    {
+                        <option value="@metodo">@metodo</option>
+                    }
+                </select>
+            </div>
+            <button type="button" class="btn btn-primary" disabled="@(_metodoPagoSeleccionado is null)" @onclick="HandleCerrarPedido">En Preparación</button>
         }
         @if (_puedeAnular)
         {
@@ -189,8 +203,14 @@
     private List<Mesa> _mesas = [];
     private List<PedidoMesa> _pedidoMesas = [];
     private long _selectedMesaId;
+    private MetodoPago? _metodoPagoSeleccionado;
     private bool _loaded;
     private string? _error;
+
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    {
+        Converters = { new JsonStringEnumConverter() }
+    };
 
     // Dos o mas pedidos pueden compartir una mesa (p.ej. grupos distintos en una mesa grande),
     // por eso no se excluyen las mesas Ocupadas: solo se descartan Reservada/Inactiva (estados
@@ -325,6 +345,12 @@
     {
         if (Id is null) return;
 
+        if (_metodoPagoSeleccionado is null)
+        {
+            _error = "Selecciona un método de pago antes de pasar el pedido a En Preparación.";
+            return;
+        }
+
         if (!await GuardarPlatosPendientesAsync())
             return;
 
@@ -338,7 +364,7 @@
 
         try
         {
-            await Api.UpdateAsync(actualizado);
+            await ActualizarPedidoConMetodoPagoAsync(actualizado, _metodoPagoSeleccionado.Value);
             Nav.NavigateTo("/pedidos");
         }
         catch (ApiException ex)
@@ -349,6 +375,48 @@
         {
             _error = "No se pudo guardar el pedido: no se pudo conectar con el servidor.";
         }
+    }
+
+    // Unico PUT de esta pagina que necesita mandar el metodo de pago (PedidosController.Update
+    // factura automaticamente al pasar a EnPreparacion). IEntityApiClient<T> es generico y no
+    // soporta query params (lo usan 8+ paginas mas sin tocar); en vez de estirarlo, se arma un
+    // HttpClient crudo, igual que /auth/login en Program.cs.
+    private async Task ActualizarPedidoConMetodoPagoAsync(Pedido pedido, MetodoPago metodoPago)
+    {
+        var http = HttpClientFactory.CreateClient("AtipicoApi");
+        var url = $"{ApiRoutes.For<Pedido>()}/{pedido.Id}?metodoPago={Uri.EscapeDataString(metodoPago.ToString())}";
+
+        var response = await http.PutAsJsonAsync(url, pedido, JsonOptions);
+        if (!response.IsSuccessStatusCode)
+            throw new ApiException(await LeerMensajeErrorAsync(response));
+    }
+
+    // Copiado de EntityApiClient<TEntity> (es privado ahi): mismo contrato { "message": "..." }
+    // que arma EntityControllerBase.TryTranslateDbError.
+    private static async Task<string> LeerMensajeErrorAsync(HttpResponseMessage response)
+    {
+        try
+        {
+            var texto = await response.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                using var doc = JsonDocument.Parse(texto);
+                if (doc.RootElement.TryGetProperty("message", out var mensaje) && mensaje.ValueKind == JsonValueKind.String)
+                    return mensaje.GetString()!;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+
+        return response.StatusCode switch
+        {
+            HttpStatusCode.Forbidden => "No tenés permisos para realizar esta acción.",
+            HttpStatusCode.NotFound => "El registro no existe o ya fue eliminado.",
+            HttpStatusCode.BadRequest => "Los datos enviados no son válidos.",
+            HttpStatusCode.Conflict => "La operación no se puede completar por un conflicto con datos existentes.",
+            _ => $"Error inesperado del servidor ({(int)response.StatusCode}).",
+        };
     }
 
     // No hay borrado real (app_restaurante no tiene GRANT DELETE): "Anular" pone
