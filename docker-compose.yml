@@ -1,0 +1,28 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Atipico.Api/Dockerfile
+    ports:
+      - "15000:10000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: ${DB_CONNECTION_STRING}
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: ${JWT_ISSUER:-Atipico.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-Atipico.Clients}
+      Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-480}
+
+  web:
+    build:
+      context: .
+      dockerfile: Atipico.Web/Dockerfile
+    ports:
+      - "15001:10000"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      # "api" resuelve al contenedor de arriba por el nombre del servicio, via la red
+      # que crea compose automaticamente — no hace falta host.docker.internal aca.
+      ApiBaseUrl: http://api:10000
+    depends_on:
+      - api

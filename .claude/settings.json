@@ -31,7 +31,25 @@
       "Bash(taskkill //PID 29344 //F)",
       "Bash(echo \"exit=$?\")",
       "Bash(taskkill //PID 25532 //F)",
-      "Bash(taskkill //PID 22280 //F)"
+      "Bash(taskkill //PID 22280 //F)",
+      "Bash(docker compose *)",
+      "Bash(curl -s -i http://localhost:15000/api/platos)",
+      "Bash(curl -s -i http://localhost:15000/)",
+      "Bash(docker port *)",
+      "Bash(curl -s -o /dev/null -w \"15000 -> %{http_code}\\\\n\" http://127.0.0.1:15000/api/platos)",
+      "Bash(curl -s -o /dev/null -w \"15001 -> %{http_code}\\\\n\" http://127.0.0.1:15001/login)",
+      "Bash(MSYS_NO_PATHCONV=1 docker exec atipico-api-1 sh -c \"ls /app/*.dll\")",
+      "Bash(curl -s http://127.0.0.1:15000/api/platos)",
+      "Bash(curl -s http://127.0.0.1:15000/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://127.0.0.1:15000/openapi/v1.json)",
+      "Bash(tasklist //FI \"PID eq 20996\")",
+      "Bash(tasklist //FI \"PID eq 9412\")",
+      "Bash(tasklist //FI \"PID eq 29540\")",
+      "Bash(taskkill //PID 20996 //F)",
+      "Bash(curl -s -o /dev/null -w \"api /api/platos -> %{http_code}\\\\n\" http://127.0.0.1:15000/api/platos)",
+      "Bash(curl -s -X POST http://127.0.0.1:15000/api/auth/login -H \"Content-Type: application/json\" -d '{\"nombreUsuario\":\"test.admin\",\"password\":\"Test1234!\"}' -w \"\\\\nlogin http=%{http_code}\\\\n\")",
+      "Bash(curl -s -o /dev/null -w \"web /login -> %{http_code}\\\\n\" http://127.0.0.1:15001/login)",
+      "Bash(curl -s -o /dev/null -w \"web /_framework/blazor.web.js -> %{http_code}\\\\n\" http://127.0.0.1:15001/_framework/blazor.web.js)"
     ]
   }
 }

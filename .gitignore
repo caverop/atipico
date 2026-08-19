@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# docker compose local secrets (connection strings, JWT key) — ver .env.example
+.env
