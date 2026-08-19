@@ -4,14 +4,15 @@ using System.Text;
 
 namespace Atipico.Domain.Enums
 {
-    // Yape/Plin quedaron fuera de alcance: la restriccion ck_cuenta_metodo desplegada en la
-    // base solo permite EFECTIVO/TARJETA/TRANSFERENCIA/QR (sql/script_inicial.sql no se edita
-    // una vez aplicado, ver el comentario de mantenimiento al inicio del archivo), y QR no
-    // tiene equivalente en este enum.
+    // Unicos metodos en alcance: Efectivo y Qr. Tarjeta/Transferencia (y antes, Yape/Plin)
+    // quedaron fuera. La restriccion ck_cuenta_metodo desplegada en la base sigue permitiendo
+    // EFECTIVO/TARJETA/TRANSFERENCIA/QR (sql/script_inicial.sql no se edita una vez aplicado,
+    // ver el comentario de mantenimiento al inicio del archivo) — es un superconjunto inofensivo,
+    // TARJETA/TRANSFERENCIA simplemente no son alcanzables desde este enum. "Qr" se mapea a
+    // 'QR' via UpperSnakeCaseEnumConverter, que ya coincide con el valor real de la base.
     public enum MetodoPago
     {
         Efectivo,
-        Tarjeta,
-        Transferencia
+        Qr
     }
 }

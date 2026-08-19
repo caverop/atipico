@@ -5,9 +5,47 @@
 
 <PageTitle>Pedidos</PageTitle>
 
+<div class="row g-2 mb-3">
+    <div class="col-md-2">
+        <label class="form-label">Id</label>
+        <input class="form-control" @bind="_filtroId" @bind:event="oninput" placeholder="Id" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Comensal</label>
+        <input class="form-control" @bind="_filtroComensal" @bind:event="oninput" placeholder="Comensal" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Estado</label>
+        <select class="form-select" @bind="_filtroEstado">
+            <option value="">Todos</option>
+            @foreach (var estado in Enum.GetValues<EstadoPedido>())
+            {
+                <option value="@estado">@estado</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Mesero</label>
+        <select class="form-select" @bind="_filtroMesero">
+            <option value="">Todos</option>
+            @foreach (var mesero in _meserosDisponibles)
+            {
+                <option value="@mesero.Id">@mesero.Nombre</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Creado</label>
+        <input type="date" class="form-control" @bind="_filtroCreado" />
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button type="button" class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">Limpiar</button>
+    </div>
+</div>
+
 <EntityTable TEntity="Pedido"
              Title="Pedidos"
-             Items="_pedidos"
+             Items="_pedidosFiltrados"
              Columns="_columns"
              CreateUrl="/pedidos/nuevo"
              EditUrlPrefix="/pedidos"
@@ -18,6 +56,35 @@
     private List<Pedido>? _pedidos;
     private Dictionary<long, string> _meseroNombres = [];
     private List<(string Header, Func<Pedido, object?> Value)> _columns = [];
+
+    private string? _filtroId;
+    private string? _filtroComensal;
+    private EstadoPedido? _filtroEstado;
+    private long? _filtroMesero;
+    private DateOnly? _filtroCreado;
+
+    // Un filtro por columna visible de la grilla (Id, Comensal, Estado, Mesero, Creado). Se
+    // filtra en memoria sobre _pedidos ya cargado: IEntityApiClient<T> es generico y no soporta
+    // query params (mismo motivo que el metodoPago de Pedidos/Edit.razor), y el volumen de
+    // pedidos no justifica estirarlo para esto.
+    private List<Pedido>? _pedidosFiltrados =>
+        _pedidos?.Where(p =>
+            (string.IsNullOrWhiteSpace(_filtroId) || p.Id.ToString().Contains(_filtroId.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+            (string.IsNullOrWhiteSpace(_filtroComensal) || (p.Comensal ?? "").Contains(_filtroComensal.Trim(), StringComparison.OrdinalIgnoreCase)) &&
+            (_filtroEstado is null || p.Estado == _filtroEstado) &&
+            (_filtroMesero is null || p.IdMesero == _filtroMesero) &&
+            (_filtroCreado is null || DateOnly.FromDateTime(p.CreadoEn.ToLocalTime().DateTime) == _filtroCreado))
+        .ToList();
+
+    // Solo los meseros que efectivamente tienen pedidos, no todos los usuarios: evita opciones
+    // muertas en el filtro.
+    private List<(long Id, string Nombre)> _meserosDisponibles =>
+        (_pedidos ?? [])
+            .Select(p => p.IdMesero)
+            .Distinct()
+            .Select(id => (Id: id, Nombre: _meseroNombres.GetValueOrDefault(id, $"#{id}")))
+            .OrderBy(m => m.Nombre)
+            .ToList();
 
     protected override async Task OnInitializedAsync()
     {
@@ -34,5 +101,14 @@
         ];
 
         _pedidos = await Api.GetAllAsync();
+    }
+
+    private void LimpiarFiltros()
+    {
+        _filtroId = null;
+        _filtroComensal = null;
+        _filtroEstado = null;
+        _filtroMesero = null;
+        _filtroCreado = null;
     }
 }

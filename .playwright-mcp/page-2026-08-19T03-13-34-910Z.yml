@@ -1,0 +1,657 @@
+- generic [ref=f3e2]:
+  - generic [ref=f3e3]:
+    - link "ATIPICO" [ref=f3e6] [cursor=pointer]:
+      - /url: ""
+    - generic [ref=f3e9]:
+      - navigation [ref=f3e10]:
+        - link "Panel" [ref=f3e12] [cursor=pointer]:
+          - /url: ""
+        - generic [ref=f3e13]: Personal
+        - link "Usuarios" [ref=f3e15] [cursor=pointer]:
+          - /url: usuarios
+        - generic [ref=f3e16]: Carta
+        - link "Tipos de plato" [ref=f3e18] [cursor=pointer]:
+          - /url: tipos-plato
+        - link "Platos" [ref=f3e20] [cursor=pointer]:
+          - /url: platos
+        - generic [ref=f3e21]: Salón
+        - link "Mesas" [ref=f3e23] [cursor=pointer]:
+          - /url: mesas
+        - generic [ref=f3e24]: Pedidos
+        - link "Pedidos" [ref=f3e26] [cursor=pointer]:
+          - /url: pedidos
+        - link "Pedido <-> Mesa" [ref=f3e28] [cursor=pointer]:
+          - /url: pedido-mesas
+        - link "Pedido <-> Plato" [ref=f3e30] [cursor=pointer]:
+          - /url: pedido-platos
+        - generic [ref=f3e31]: Caja
+        - link "Cuentas" [ref=f3e33] [cursor=pointer]:
+          - /url: cuentas
+        - link "Detalle de cuentas" [ref=f3e35] [cursor=pointer]:
+          - /url: detalle-cuentas
+        - link "Conciliación de cuentas" [ref=f3e37] [cursor=pointer]:
+          - /url: reportes/cuentas-descuadradas
+      - generic [ref=f3e38]:
+        - generic [ref=f3e39]: Test Admin
+        - generic [ref=f3e40]: Admin
+        - button "Cerrar sesión" [ref=f3e42] [cursor=pointer]
+  - main [ref=f3e43]:
+    - generic [ref=f3e44]: Panel administrativo
+    - article [ref=f3e46]:
+      - generic [ref=f3e72]:
+        - heading "Pedidos" [level=3] [ref=f3e73]
+        - link "+ Nuevo" [ref=f3e74] [cursor=pointer]:
+          - /url: /pedidos/nuevo
+      - table [ref=f3e76]:
+        - rowgroup [ref=f3e77]:
+          - row [ref=f3e78]:
+            - columnheader "Id" [ref=f3e79]
+            - columnheader "Comensal" [ref=f3e80]
+            - columnheader "Estado" [ref=f3e81]
+            - columnheader "Mesero" [ref=f3e82]
+            - columnheader "Creado" [ref=f3e83]
+            - columnheader [ref=f3e84]
+        - rowgroup [ref=f3e85]:
+          - row [ref=f3e86]:
+            - cell "3" [ref=f3e87]
+            - cell "Cliente QA Final" [ref=f3e88]
+            - cell "Abierto" [ref=f3e89]
+            - cell "Mesero QA Final" [ref=f3e90]
+            - cell "8/8/2026 18:47" [ref=f3e91]
+            - cell [ref=f3e92]:
+              - link "Editar" [ref=f3e94] [cursor=pointer]:
+                - /url: /pedidos/3
+          - row [ref=f3e95]:
+            - cell "4" [ref=f3e96]
+            - cell "Cliente Auth Test" [ref=f3e97]
+            - cell "Abierto" [ref=f3e98]
+            - cell "Ana Quispe" [ref=f3e99]
+            - cell "11/8/2026 10:40" [ref=f3e100]
+            - cell [ref=f3e101]:
+              - link "Editar" [ref=f3e103] [cursor=pointer]:
+                - /url: /pedidos/4
+          - row [ref=f3e104]:
+            - cell "5" [ref=f3e105]
+            - cell "Paul" [ref=f3e106]
+            - cell "Servido" [ref=f3e107]
+            - cell "Ana Quispe" [ref=f3e108]
+            - cell "11/8/2026 14:32" [ref=f3e109]
+            - cell [ref=f3e110]:
+              - link "Editar" [ref=f3e112] [cursor=pointer]:
+                - /url: /pedidos/5
+          - row [ref=f3e113]:
+            - cell "6" [ref=f3e114]
+            - cell "TEST-Grupo Norte" [ref=f3e115]
+            - cell "Abierto" [ref=f3e116]
+            - cell "Test Mesero" [ref=f3e117]
+            - cell "12/8/2026 15:59" [ref=f3e118]
+            - cell [ref=f3e119]:
+              - link "Editar" [ref=f3e121] [cursor=pointer]:
+                - /url: /pedidos/6
+          - row [ref=f3e122]:
+            - cell "7" [ref=f3e123]
+            - cell "TEST-Grupo Norte" [ref=f3e124]
+            - cell "Cerrado" [ref=f3e125]
+            - cell "Test Mesero" [ref=f3e126]
+            - cell "1/1/0001 00:00" [ref=f3e127]
+            - cell [ref=f3e128]:
+              - link "Editar" [ref=f3e130] [cursor=pointer]:
+                - /url: /pedidos/7
+          - row [ref=f3e131]:
+            - cell "8" [ref=f3e132]
+            - cell "TEST-Grupo Norte" [ref=f3e133]
+            - cell "Cerrado" [ref=f3e134]
+            - cell "Test Mesero" [ref=f3e135]
+            - cell "1/1/0001 00:00" [ref=f3e136]
+            - cell [ref=f3e137]:
+              - link "Editar" [ref=f3e139] [cursor=pointer]:
+                - /url: /pedidos/8
+          - row [ref=f3e140]:
+            - cell "9" [ref=f3e141]
+            - cell "TEST-Verif Fix1" [ref=f3e142]
+            - cell "Cerrado" [ref=f3e143]
+            - cell "Test Mesero" [ref=f3e144]
+            - cell "12/8/2026 18:00" [ref=f3e145]
+            - cell [ref=f3e146]:
+              - link "Editar" [ref=f3e148] [cursor=pointer]:
+                - /url: /pedidos/9
+          - row [ref=f3e149]:
+            - cell "10" [ref=f3e150]
+            - cell "TEST-Verif Fix2" [ref=f3e151]
+            - cell "Abierto" [ref=f3e152]
+            - cell "Test Mesero" [ref=f3e153]
+            - cell "12/8/2026 18:18" [ref=f3e154]
+            - cell [ref=f3e155]:
+              - link "Editar" [ref=f3e157] [cursor=pointer]:
+                - /url: /pedidos/10
+          - row [ref=f3e158]:
+            - cell "11" [ref=f3e159]
+            - cell "TEST-Mesa8" [ref=f3e160]
+            - cell "Cerrado" [ref=f3e161]
+            - cell "Test Mesero" [ref=f3e162]
+            - cell "14/8/2026 15:57" [ref=f3e163]
+            - cell [ref=f3e164]:
+              - link "Editar" [ref=f3e166] [cursor=pointer]:
+                - /url: /pedidos/11
+          - row [ref=f3e167]:
+            - cell "12" [ref=f3e168]
+            - cell "TEST-Mesa8" [ref=f3e169]
+            - cell "Cerrado" [ref=f3e170]
+            - cell "Test Mesero" [ref=f3e171]
+            - cell "14/8/2026 16:04" [ref=f3e172]
+            - cell [ref=f3e173]:
+              - link "Editar" [ref=f3e175] [cursor=pointer]:
+                - /url: /pedidos/12
+          - row [ref=f3e176]:
+            - cell "13" [ref=f3e177]
+            - cell "TEST-Mesa8b" [ref=f3e178]
+            - cell "Abierto" [ref=f3e179]
+            - cell "Test Mesero" [ref=f3e180]
+            - cell "14/8/2026 18:47" [ref=f3e181]
+            - cell [ref=f3e182]:
+              - link "Editar" [ref=f3e184] [cursor=pointer]:
+                - /url: /pedidos/13
+          - row [ref=f3e185]:
+            - cell "14" [ref=f3e186]
+            - cell "Diego" [ref=f3e187]
+            - cell "Abierto" [ref=f3e188]
+            - cell "Ana Quispe" [ref=f3e189]
+            - cell "14/8/2026 22:57" [ref=f3e190]
+            - cell [ref=f3e191]:
+              - link "Editar" [ref=f3e193] [cursor=pointer]:
+                - /url: /pedidos/14
+          - row [ref=f3e194]:
+            - cell "15" [ref=f3e195]
+            - cell "Vilma" [ref=f3e196]
+            - cell "EnPreparacion" [ref=f3e197]
+            - cell "Ana Quispe" [ref=f3e198]
+            - cell "17/8/2026 10:00" [ref=f3e199]
+            - cell [ref=f3e200]:
+              - link "Editar" [ref=f3e202] [cursor=pointer]:
+                - /url: /pedidos/15
+          - row [ref=f3e203]:
+            - cell "63" [ref=f3e204]
+            - cell "TEST-C-Plin1plato" [ref=f3e205]
+            - cell "EnPreparacion" [ref=f3e206]
+            - cell "Bruno Salas Editado" [ref=f3e207]
+            - cell "18/8/2026 11:54" [ref=f3e208]
+            - cell [ref=f3e209]:
+              - link "Editar" [ref=f3e211] [cursor=pointer]:
+                - /url: /pedidos/63
+          - row [ref=f3e212]:
+            - cell "16" [ref=f3e213]
+            - cell "Paul1" [ref=f3e214]
+            - cell "Servido" [ref=f3e215]
+            - cell "Ana Quispe" [ref=f3e216]
+            - cell "17/8/2026 15:04" [ref=f3e217]
+            - cell [ref=f3e218]:
+              - link "Editar" [ref=f3e220] [cursor=pointer]:
+                - /url: /pedidos/16
+          - row [ref=f3e221]:
+            - cell "17" [ref=f3e222]
+            - cell "Paul2" [ref=f3e223]
+            - cell "Abierto" [ref=f3e224]
+            - cell "Paul" [ref=f3e225]
+            - cell "17/8/2026 15:50" [ref=f3e226]
+            - cell [ref=f3e227]:
+              - link "Editar" [ref=f3e229] [cursor=pointer]:
+                - /url: /pedidos/17
+          - row [ref=f3e230]:
+            - cell "18" [ref=f3e231]
+            - cell "Paul3" [ref=f3e232]
+            - cell "Abierto" [ref=f3e233]
+            - cell "Ana Quispe" [ref=f3e234]
+            - cell "17/8/2026 15:52" [ref=f3e235]
+            - cell [ref=f3e236]:
+              - link "Editar" [ref=f3e238] [cursor=pointer]:
+                - /url: /pedidos/18
+          - row [ref=f3e239]:
+            - cell "19" [ref=f3e240]
+            - cell [ref=f3e241]
+            - cell "EnPreparacion" [ref=f3e242]
+            - cell "Ana Quispe" [ref=f3e243]
+            - cell "17/8/2026 20:11" [ref=f3e244]
+            - cell [ref=f3e245]:
+              - link "Editar" [ref=f3e247] [cursor=pointer]:
+                - /url: /pedidos/19
+          - row [ref=f3e248]:
+            - cell "20" [ref=f3e249]
+            - cell "test" [ref=f3e250]
+            - cell "Abierto" [ref=f3e251]
+            - cell "Ana Quispe" [ref=f3e252]
+            - cell "17/8/2026 20:12" [ref=f3e253]
+            - cell [ref=f3e254]:
+              - link "Editar" [ref=f3e256] [cursor=pointer]:
+                - /url: /pedidos/20
+          - row [ref=f3e257]:
+            - cell "22" [ref=f3e258]
+            - cell "Sergio" [ref=f3e259]
+            - cell "Abierto" [ref=f3e260]
+            - cell "Paul" [ref=f3e261]
+            - cell "17/8/2026 22:01" [ref=f3e262]
+            - cell [ref=f3e263]:
+              - link "Editar" [ref=f3e265] [cursor=pointer]:
+                - /url: /pedidos/22
+          - row [ref=f3e266]:
+            - cell "23" [ref=f3e267]
+            - cell "Pedro" [ref=f3e268]
+            - cell "Abierto" [ref=f3e269]
+            - cell "Paul" [ref=f3e270]
+            - cell "17/8/2026 22:10" [ref=f3e271]
+            - cell [ref=f3e272]:
+              - link "Editar" [ref=f3e274] [cursor=pointer]:
+                - /url: /pedidos/23
+          - row [ref=f3e275]:
+            - cell "24" [ref=f3e276]
+            - cell "Pedri" [ref=f3e277]
+            - cell "Abierto" [ref=f3e278]
+            - cell "Paul" [ref=f3e279]
+            - cell "17/8/2026 22:19" [ref=f3e280]
+            - cell [ref=f3e281]:
+              - link "Editar" [ref=f3e283] [cursor=pointer]:
+                - /url: /pedidos/24
+          - row [ref=f3e284]:
+            - cell "25" [ref=f3e285]
+            - cell "Pedris" [ref=f3e286]
+            - cell "Abierto" [ref=f3e287]
+            - cell "Paul" [ref=f3e288]
+            - cell "17/8/2026 22:25" [ref=f3e289]
+            - cell [ref=f3e290]:
+              - link "Editar" [ref=f3e292] [cursor=pointer]:
+                - /url: /pedidos/25
+          - row [ref=f3e293]:
+            - cell "26" [ref=f3e294]
+            - cell "Pedriss" [ref=f3e295]
+            - cell "Abierto" [ref=f3e296]
+            - cell "Paul" [ref=f3e297]
+            - cell "17/8/2026 22:31" [ref=f3e298]
+            - cell [ref=f3e299]:
+              - link "Editar" [ref=f3e301] [cursor=pointer]:
+                - /url: /pedidos/26
+          - row [ref=f3e302]:
+            - cell "27" [ref=f3e303]
+            - cell "Pedrisss" [ref=f3e304]
+            - cell "EnPreparacion" [ref=f3e305]
+            - cell "Paul" [ref=f3e306]
+            - cell "17/8/2026 22:34" [ref=f3e307]
+            - cell [ref=f3e308]:
+              - link "Editar" [ref=f3e310] [cursor=pointer]:
+                - /url: /pedidos/27
+          - row [ref=f3e311]:
+            - cell "28" [ref=f3e312]
+            - cell "pedris" [ref=f3e313]
+            - cell "EnPreparacion" [ref=f3e314]
+            - cell "Paul" [ref=f3e315]
+            - cell "17/8/2026 22:46" [ref=f3e316]
+            - cell [ref=f3e317]:
+              - link "Editar" [ref=f3e319] [cursor=pointer]:
+                - /url: /pedidos/28
+          - row [ref=f3e320]:
+            - cell "21" [ref=f3e321]
+            - cell "Diego" [ref=f3e322]
+            - cell "Anulado" [ref=f3e323]
+            - cell "Ana Quispe" [ref=f3e324]
+            - cell "17/8/2026 20:13" [ref=f3e325]
+            - cell [ref=f3e326]:
+              - link "Editar" [ref=f3e328] [cursor=pointer]:
+                - /url: /pedidos/21
+          - row [ref=f3e329]:
+            - cell "29" [ref=f3e330]
+            - cell "pedris" [ref=f3e331]
+            - cell "Anulado" [ref=f3e332]
+            - cell "Paul" [ref=f3e333]
+            - cell "17/8/2026 22:47" [ref=f3e334]
+            - cell [ref=f3e335]:
+              - link "Editar" [ref=f3e337] [cursor=pointer]:
+                - /url: /pedidos/29
+          - row [ref=f3e338]:
+            - cell "32" [ref=f3e339]
+            - cell "__test_verificacion__" [ref=f3e340]
+            - cell "Anulado" [ref=f3e341]
+            - cell "Ana Quispe" [ref=f3e342]
+            - cell "17/8/2026 22:56" [ref=f3e343]
+            - cell [ref=f3e344]:
+              - link "Editar" [ref=f3e346] [cursor=pointer]:
+                - /url: /pedidos/32
+          - row [ref=f3e347]:
+            - cell "33" [ref=f3e348]
+            - cell "__test_verificacion__" [ref=f3e349]
+            - cell "Anulado" [ref=f3e350]
+            - cell "Ana Quispe" [ref=f3e351]
+            - cell "17/8/2026 23:05" [ref=f3e352]
+            - cell [ref=f3e353]:
+              - link "Editar" [ref=f3e355] [cursor=pointer]:
+                - /url: /pedidos/33
+          - row [ref=f3e356]:
+            - cell "35" [ref=f3e357]
+            - cell "pedris2" [ref=f3e358]
+            - cell "Abierto" [ref=f3e359]
+            - cell "Paul" [ref=f3e360]
+            - cell "17/8/2026 23:13" [ref=f3e361]
+            - cell [ref=f3e362]:
+              - link "Editar" [ref=f3e364] [cursor=pointer]:
+                - /url: /pedidos/35
+          - row [ref=f3e365]:
+            - cell "37" [ref=f3e366]
+            - cell "pedris21" [ref=f3e367]
+            - cell "Abierto" [ref=f3e368]
+            - cell "Paul" [ref=f3e369]
+            - cell "17/8/2026 23:18" [ref=f3e370]
+            - cell [ref=f3e371]:
+              - link "Editar" [ref=f3e373] [cursor=pointer]:
+                - /url: /pedidos/37
+          - row [ref=f3e374]:
+            - cell "38" [ref=f3e375]
+            - cell "pedris5" [ref=f3e376]
+            - cell "Abierto" [ref=f3e377]
+            - cell "Paul" [ref=f3e378]
+            - cell "17/8/2026 23:22" [ref=f3e379]
+            - cell [ref=f3e380]:
+              - link "Editar" [ref=f3e382] [cursor=pointer]:
+                - /url: /pedidos/38
+          - row [ref=f3e383]:
+            - cell "39" [ref=f3e384]
+            - cell "pedris7" [ref=f3e385]
+            - cell "EnPreparacion" [ref=f3e386]
+            - cell "Paul" [ref=f3e387]
+            - cell "17/8/2026 23:26" [ref=f3e388]
+            - cell [ref=f3e389]:
+              - link "Editar" [ref=f3e391] [cursor=pointer]:
+                - /url: /pedidos/39
+          - row [ref=f3e392]:
+            - cell "40" [ref=f3e393]
+            - cell "pedri8" [ref=f3e394]
+            - cell "EnPreparacion" [ref=f3e395]
+            - cell "Paul" [ref=f3e396]
+            - cell "17/8/2026 23:38" [ref=f3e397]
+            - cell [ref=f3e398]:
+              - link "Editar" [ref=f3e400] [cursor=pointer]:
+                - /url: /pedidos/40
+          - row [ref=f3e401]:
+            - cell "41" [ref=f3e402]
+            - cell "paul" [ref=f3e403]
+            - cell "EnPreparacion" [ref=f3e404]
+            - cell "Paul" [ref=f3e405]
+            - cell "18/8/2026 00:26" [ref=f3e406]
+            - cell [ref=f3e407]:
+              - link "Editar" [ref=f3e409] [cursor=pointer]:
+                - /url: /pedidos/41
+          - row [ref=f3e410]:
+            - cell "42" [ref=f3e411]
+            - cell "Paul1" [ref=f3e412]
+            - cell "Abierto" [ref=f3e413]
+            - cell "Paul" [ref=f3e414]
+            - cell "18/8/2026 00:29" [ref=f3e415]
+            - cell [ref=f3e416]:
+              - link "Editar" [ref=f3e418] [cursor=pointer]:
+                - /url: /pedidos/42
+          - row [ref=f3e419]:
+            - cell "44" [ref=f3e420]
+            - cell "Diego2" [ref=f3e421]
+            - cell "Abierto" [ref=f3e422]
+            - cell "Elena Vargas" [ref=f3e423]
+            - cell "18/8/2026 00:39" [ref=f3e424]
+            - cell [ref=f3e425]:
+              - link "Editar" [ref=f3e427] [cursor=pointer]:
+                - /url: /pedidos/44
+          - row [ref=f3e428]:
+            - cell "45" [ref=f3e429]
+            - cell "Vilma2" [ref=f3e430]
+            - cell "Abierto" [ref=f3e431]
+            - cell "Elena Vargas" [ref=f3e432]
+            - cell "18/8/2026 00:41" [ref=f3e433]
+            - cell [ref=f3e434]:
+              - link "Editar" [ref=f3e436] [cursor=pointer]:
+                - /url: /pedidos/45
+          - row [ref=f3e437]:
+            - cell "46" [ref=f3e438]
+            - cell "pdiego" [ref=f3e439]
+            - cell "Abierto" [ref=f3e440]
+            - cell "Paul" [ref=f3e441]
+            - cell "18/8/2026 09:38" [ref=f3e442]
+            - cell [ref=f3e443]:
+              - link "Editar" [ref=f3e445] [cursor=pointer]:
+                - /url: /pedidos/46
+          - row [ref=f3e446]:
+            - cell "47" [ref=f3e447]
+            - cell "pedrio" [ref=f3e448]
+            - cell "Abierto" [ref=f3e449]
+            - cell "Paul" [ref=f3e450]
+            - cell "18/8/2026 10:03" [ref=f3e451]
+            - cell [ref=f3e452]:
+              - link "Editar" [ref=f3e454] [cursor=pointer]:
+                - /url: /pedidos/47
+          - row [ref=f3e455]:
+            - cell "49" [ref=f3e456]
+            - cell "test1" [ref=f3e457]
+            - cell "Abierto" [ref=f3e458]
+            - cell "Paul" [ref=f3e459]
+            - cell "18/8/2026 10:18" [ref=f3e460]
+            - cell [ref=f3e461]:
+              - link "Editar" [ref=f3e463] [cursor=pointer]:
+                - /url: /pedidos/49
+          - row [ref=f3e464]:
+            - cell "50" [ref=f3e465]
+            - cell "test3" [ref=f3e466]
+            - cell "Abierto" [ref=f3e467]
+            - cell "Paul" [ref=f3e468]
+            - cell "18/8/2026 10:30" [ref=f3e469]
+            - cell [ref=f3e470]:
+              - link "Editar" [ref=f3e472] [cursor=pointer]:
+                - /url: /pedidos/50
+          - row [ref=f3e473]:
+            - cell "51" [ref=f3e474]
+            - cell "test6" [ref=f3e475]
+            - cell "EnPreparacion" [ref=f3e476]
+            - cell "Paul" [ref=f3e477]
+            - cell "18/8/2026 10:43" [ref=f3e478]
+            - cell [ref=f3e479]:
+              - link "Editar" [ref=f3e481] [cursor=pointer]:
+                - /url: /pedidos/51
+          - row [ref=f3e482]:
+            - cell "52" [ref=f3e483]
+            - cell "test8" [ref=f3e484]
+            - cell "Abierto" [ref=f3e485]
+            - cell "Paul" [ref=f3e486]
+            - cell "18/8/2026 10:52" [ref=f3e487]
+            - cell [ref=f3e488]:
+              - link "Editar" [ref=f3e490] [cursor=pointer]:
+                - /url: /pedidos/52
+          - row [ref=f3e491]:
+            - cell "53" [ref=f3e492]
+            - cell "TEST-DefaultMesa" [ref=f3e493]
+            - cell "Abierto" [ref=f3e494]
+            - cell "Test Mesero" [ref=f3e495]
+            - cell "18/8/2026 11:07" [ref=f3e496]
+            - cell [ref=f3e497]:
+              - link "Editar" [ref=f3e499] [cursor=pointer]:
+                - /url: /pedidos/53
+          - row [ref=f3e500]:
+            - cell "55" [ref=f3e501]
+            - cell "test9" [ref=f3e502]
+            - cell "EnPreparacion" [ref=f3e503]
+            - cell "Paul" [ref=f3e504]
+            - cell "18/8/2026 11:09" [ref=f3e505]
+            - cell [ref=f3e506]:
+              - link "Editar" [ref=f3e508] [cursor=pointer]:
+                - /url: /pedidos/55
+          - row [ref=f3e509]:
+            - cell "56" [ref=f3e510]
+            - cell "TEST-AutoFacturacion" [ref=f3e511]
+            - cell "Abierto" [ref=f3e512]
+            - cell "Bruno Salas Editado" [ref=f3e513]
+            - cell "18/8/2026 11:44" [ref=f3e514]
+            - cell [ref=f3e515]:
+              - link "Editar" [ref=f3e517] [cursor=pointer]:
+                - /url: /pedidos/56
+          - row [ref=f3e518]:
+            - cell "57" [ref=f3e519]
+            - cell "TEST-AutoFacturacion2" [ref=f3e520]
+            - cell "EnPreparacion" [ref=f3e521]
+            - cell "Bruno Salas Editado" [ref=f3e522]
+            - cell "18/8/2026 11:47" [ref=f3e523]
+            - cell [ref=f3e524]:
+              - link "Editar" [ref=f3e526] [cursor=pointer]:
+                - /url: /pedidos/57
+          - row [ref=f3e527]:
+            - cell "58" [ref=f3e528]
+            - cell "TEST-SinPlatos" [ref=f3e529]
+            - cell "EnPreparacion" [ref=f3e530]
+            - cell "Bruno Salas Editado" [ref=f3e531]
+            - cell "18/8/2026 11:48" [ref=f3e532]
+            - cell [ref=f3e533]:
+              - link "Editar" [ref=f3e535] [cursor=pointer]:
+                - /url: /pedidos/58
+          - row [ref=f3e536]:
+            - cell "59" [ref=f3e537]
+            - cell "TEST-UIFacturacion" [ref=f3e538]
+            - cell "EnPreparacion" [ref=f3e539]
+            - cell "Test Mesero" [ref=f3e540]
+            - cell "18/8/2026 11:50" [ref=f3e541]
+            - cell [ref=f3e542]:
+              - link "Editar" [ref=f3e544] [cursor=pointer]:
+                - /url: /pedidos/59
+          - row [ref=f3e545]:
+            - cell "60" [ref=f3e546]
+            - cell "TEST-YapeIsolado" [ref=f3e547]
+            - cell "EnPreparacion" [ref=f3e548]
+            - cell "Bruno Salas Editado" [ref=f3e549]
+            - cell "18/8/2026 11:54" [ref=f3e550]
+            - cell [ref=f3e551]:
+              - link "Editar" [ref=f3e553] [cursor=pointer]:
+                - /url: /pedidos/60
+          - row [ref=f3e554]:
+            - cell "61" [ref=f3e555]
+            - cell "TEST-A-Yape2platos" [ref=f3e556]
+            - cell "EnPreparacion" [ref=f3e557]
+            - cell "Bruno Salas Editado" [ref=f3e558]
+            - cell "18/8/2026 11:54" [ref=f3e559]
+            - cell [ref=f3e560]:
+              - link "Editar" [ref=f3e562] [cursor=pointer]:
+                - /url: /pedidos/61
+          - row [ref=f3e563]:
+            - cell "62" [ref=f3e564]
+            - cell "TEST-B-Tarjeta1plato" [ref=f3e565]
+            - cell "EnPreparacion" [ref=f3e566]
+            - cell "Bruno Salas Editado" [ref=f3e567]
+            - cell "18/8/2026 11:54" [ref=f3e568]
+            - cell [ref=f3e569]:
+              - link "Editar" [ref=f3e571] [cursor=pointer]:
+                - /url: /pedidos/62
+          - row [ref=f3e572]:
+            - cell "64" [ref=f3e573]
+            - cell "TEST-D-Efectivo1plato" [ref=f3e574]
+            - cell "EnPreparacion" [ref=f3e575]
+            - cell "Bruno Salas Editado" [ref=f3e576]
+            - cell "18/8/2026 11:54" [ref=f3e577]
+            - cell [ref=f3e578]:
+              - link "Editar" [ref=f3e580] [cursor=pointer]:
+                - /url: /pedidos/64
+          - row [ref=f3e581]:
+            - cell "65" [ref=f3e582]
+            - cell "TEST-FinalCheck" [ref=f3e583]
+            - cell "EnPreparacion" [ref=f3e584]
+            - cell "Bruno Salas Editado" [ref=f3e585]
+            - cell "18/8/2026 12:06" [ref=f3e586]
+            - cell [ref=f3e587]:
+              - link "Editar" [ref=f3e589] [cursor=pointer]:
+                - /url: /pedidos/65
+          - row [ref=f3e590]:
+            - cell "67" [ref=f3e591]
+            - cell "test10" [ref=f3e592]
+            - cell "EnPreparacion" [ref=f3e593]
+            - cell "Paul" [ref=f3e594]
+            - cell "18/8/2026 12:08" [ref=f3e595]
+            - cell [ref=f3e596]:
+              - link "Editar" [ref=f3e598] [cursor=pointer]:
+                - /url: /pedidos/67
+          - row [ref=f3e599]:
+            - cell "68" [ref=f3e600]
+            - cell "test11" [ref=f3e601]
+            - cell "Abierto" [ref=f3e602]
+            - cell "Elena Vargas" [ref=f3e603]
+            - cell "18/8/2026 14:55" [ref=f3e604]
+            - cell [ref=f3e605]:
+              - link "Editar" [ref=f3e607] [cursor=pointer]:
+                - /url: /pedidos/68
+          - row [ref=f3e608]:
+            - cell "69" [ref=f3e609]
+            - cell "TEST DIAGNOSTICO CLAUDE" [ref=f3e610]
+            - cell "Anulado" [ref=f3e611]
+            - cell "Test Admin" [ref=f3e612]
+            - cell "18/8/2026 15:08" [ref=f3e613]
+            - cell [ref=f3e614]:
+              - link "Editar" [ref=f3e616] [cursor=pointer]:
+                - /url: /pedidos/69
+          - row [ref=f3e617]:
+            - cell "70" [ref=f3e618]
+            - cell [ref=f3e619]
+            - cell "Abierto" [ref=f3e620]
+            - cell "Elena Vargas" [ref=f3e621]
+            - cell "18/8/2026 15:11" [ref=f3e622]
+            - cell [ref=f3e623]:
+              - link "Editar" [ref=f3e625] [cursor=pointer]:
+                - /url: /pedidos/70
+          - row [ref=f3e626]:
+            - cell "71" [ref=f3e627]
+            - cell "test13" [ref=f3e628]
+            - cell "EnPreparacion" [ref=f3e629]
+            - cell "Paul" [ref=f3e630]
+            - cell "18/8/2026 15:17" [ref=f3e631]
+            - cell [ref=f3e632]:
+              - link "Editar" [ref=f3e634] [cursor=pointer]:
+                - /url: /pedidos/71
+          - row [ref=f3e635]:
+            - cell "72" [ref=f3e636]
+            - cell "test14" [ref=f3e637]
+            - cell "Abierto" [ref=f3e638]
+            - cell "Elena Vargas" [ref=f3e639]
+            - cell "18/8/2026 15:19" [ref=f3e640]
+            - cell [ref=f3e641]:
+              - link "Editar" [ref=f3e643] [cursor=pointer]:
+                - /url: /pedidos/72
+          - row [ref=f3e644]:
+            - cell "73" [ref=f3e645]
+            - cell "Pamela" [ref=f3e646]
+            - cell "EnPreparacion" [ref=f3e647]
+            - cell "Paul" [ref=f3e648]
+            - cell "18/8/2026 20:08" [ref=f3e649]
+            - cell [ref=f3e650]:
+              - link "Editar" [ref=f3e652] [cursor=pointer]:
+                - /url: /pedidos/73
+          - row [ref=f3e653]:
+            - cell "74" [ref=f3e654]
+            - cell "Sarita" [ref=f3e655]
+            - cell "Abierto" [ref=f3e656]
+            - cell "Paul" [ref=f3e657]
+            - cell "18/8/2026 20:38" [ref=f3e658]
+            - cell [ref=f3e659]:
+              - link "Editar" [ref=f3e661] [cursor=pointer]:
+                - /url: /pedidos/74
+          - row [ref=f3e662]:
+            - cell "75" [ref=f3e663]
+            - cell "test21" [ref=f3e664]
+            - cell "Abierto" [ref=f3e665]
+            - cell "Elena Vargas" [ref=f3e666]
+            - cell "18/8/2026 20:40" [ref=f3e667]
+            - cell [ref=f3e668]:
+              - link "Editar" [ref=f3e670] [cursor=pointer]:
+                - /url: /pedidos/75
+          - row [ref=f3e671]:
+            - cell "76" [ref=f3e672]
+            - cell "Pamela1" [ref=f3e673]
+            - cell "EnPreparacion" [ref=f3e674]
+            - cell "Paul" [ref=f3e675]
+            - cell "18/8/2026 20:41" [ref=f3e676]
+            - cell [ref=f3e677]:
+              - link "Editar" [ref=f3e679] [cursor=pointer]:
+                - /url: /pedidos/76
+          - row [ref=f3e680]:
+            - cell "77" [ref=f3e681]
+            - cell "TEST SERVIDO CLAUDE" [ref=f3e682]
+            - cell "Servido" [ref=f3e683]
+            - cell "Test Admin" [ref=f3e684]
+            - cell "18/8/2026 23:13" [ref=f3e685]
+            - cell [ref=f3e686]:
+              - link "Editar" [ref=f3e688] [cursor=pointer]:
+                - /url: /pedidos/77

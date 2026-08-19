@@ -58,6 +58,10 @@
             </div>
             <button type="button" class="btn btn-primary" disabled="@(_metodoPagoSeleccionado is null)" @onclick="HandleCerrarPedido">En Preparación</button>
         }
+        @if (_puedeMarcarServido)
+        {
+            <button type="button" class="btn btn-success" @onclick="HandleMarcarServido">Servido</button>
+        }
         @if (_puedeAnular)
         {
             <button type="button" class="btn btn-outline-secondary" @onclick="HandleAnularPedido">Anular</button>
@@ -246,6 +250,12 @@
     private bool _pedidoActivo =>
         Id is not null && _entity.Estado == EstadoPedido.Abierto;
 
+    // "Servido" solo es valido una vez que cocina ya factura el pedido (EnPreparacion); no hay
+    // un campo ServidoEn en Pedido (a diferencia de PedidoPlato), asi que la transicion es un
+    // simple cambio de Estado.
+    private bool _puedeMarcarServido =>
+        Id is not null && _entity.Estado == EstadoPedido.EnPreparacion;
+
     // A diferencia de "En Preparación" (solo desde Abierto), un pedido se puede anular en
     // cualquier momento antes de Cerrado/Anulado; por eso "Anular" se saco de la grilla de
     // Pedidos/Index.razor y solo se ofrece entrando a editar el pedido.
@@ -390,6 +400,35 @@
         catch (HttpRequestException)
         {
             _error = "No se pudo guardar el pedido: no se pudo conectar con el servidor.";
+        }
+    }
+
+    // A diferencia de "En Preparación", pasar a Servido no factura nada ni pide datos
+    // adicionales: es un PUT comun via IEntityApiClient<T>, sin query params.
+    private async Task HandleMarcarServido()
+    {
+        if (Id is null) return;
+
+        var actualizado = new Pedido
+        {
+            Id = _entity.Id,
+            Comensal = _entity.Comensal,
+            Estado = EstadoPedido.Servido,
+            IdMesero = _entity.IdMesero,
+        };
+
+        try
+        {
+            await Api.UpdateAsync(actualizado);
+            Nav.NavigateTo("/pedidos");
+        }
+        catch (ApiException ex)
+        {
+            _error = $"No se pudo marcar el pedido como servido: {ex.Message}";
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo marcar el pedido como servido: no se pudo conectar con el servidor.";
         }
     }
 
