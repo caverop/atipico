@@ -6,10 +6,14 @@
 <PageTitle>Pedidos</PageTitle>
 
 <div class="row g-2 mb-3">
-    <div class="col-md-2">
-        <label class="form-label">Id</label>
-        <input class="form-control" @bind="_filtroId" @bind:event="oninput" placeholder="Id" />
-    </div>
+    <AuthorizeView Roles="Mesero">
+        <NotAuthorized>
+            <div class="col-md-2">
+                <label class="form-label">Id</label>
+                <input class="form-control" @bind="_filtroId" @bind:event="oninput" placeholder="Id" />
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
     <div class="col-md-3">
         <label class="form-label">Comensal</label>
         <input class="form-control" @bind="_filtroComensal" @bind:event="oninput" placeholder="Comensal" />
@@ -24,20 +28,24 @@
             }
         </select>
     </div>
-    <div class="col-md-2">
-        <label class="form-label">Mesero</label>
-        <select class="form-select" @bind="_filtroMesero">
-            <option value="">Todos</option>
-            @foreach (var mesero in _meserosDisponibles)
-            {
-                <option value="@mesero.Id">@mesero.Nombre</option>
-            }
-        </select>
-    </div>
-    <div class="col-md-2">
-        <label class="form-label">Creado</label>
-        <input type="date" class="form-control" @bind="_filtroCreado" />
-    </div>
+    <AuthorizeView Roles="Mesero">
+        <NotAuthorized>
+            <div class="col-md-2">
+                <label class="form-label">Mesero</label>
+                <select class="form-select" @bind="_filtroMesero">
+                    <option value="">Todos</option>
+                    @foreach (var mesero in _meserosDisponibles)
+                    {
+                        <option value="@mesero.Id">@mesero.Nombre</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Creado</label>
+                <input type="date" class="form-control" @bind="_filtroCreado" />
+            </div>
+        </NotAuthorized>
+    </AuthorizeView>
     <div class="col-md-1 d-flex align-items-end">
         <button type="button" class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">Limpiar</button>
     </div>

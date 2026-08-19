@@ -29,7 +29,9 @@
       "Bash(taskkill //PID 26292 //F)",
       "Bash(dotnet user-secrets *)",
       "Bash(taskkill //PID 29344 //F)",
-      "Bash(echo \"exit=$?\")"
+      "Bash(echo \"exit=$?\")",
+      "Bash(taskkill //PID 25532 //F)",
+      "Bash(taskkill //PID 22280 //F)"
     ]
   }
 }

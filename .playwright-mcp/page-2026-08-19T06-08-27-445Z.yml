@@ -1,0 +1,42 @@
+- generic [ref=f4e2]:
+  - generic [ref=f4e3]:
+    - link "ATIPICO" [ref=f4e6] [cursor=pointer]:
+      - /url: ""
+    - generic [ref=f4e9]:
+      - navigation [ref=f4e10]:
+        - link "Panel" [ref=f4e12] [cursor=pointer]:
+          - /url: ""
+        - generic [ref=f4e13]: Personal
+        - link "Usuarios" [ref=f4e15] [cursor=pointer]:
+          - /url: usuarios
+        - generic [ref=f4e16]: Carta
+        - link "Tipos de plato" [ref=f4e18] [cursor=pointer]:
+          - /url: tipos-plato
+        - link "Platos" [ref=f4e20] [cursor=pointer]:
+          - /url: platos
+        - generic [ref=f4e21]: Salón
+        - link "Mesas" [ref=f4e23] [cursor=pointer]:
+          - /url: mesas
+        - generic [ref=f4e24]: Pedidos
+        - link "Pedidos" [ref=f4e26] [cursor=pointer]:
+          - /url: pedidos
+        - link "Pedido <-> Mesa" [ref=f4e28] [cursor=pointer]:
+          - /url: pedido-mesas
+        - link "Pedido <-> Plato" [ref=f4e30] [cursor=pointer]:
+          - /url: pedido-platos
+        - generic [ref=f4e31]: Caja
+        - link "Cuentas" [ref=f4e33] [cursor=pointer]:
+          - /url: cuentas
+        - link "Detalle de cuentas" [ref=f4e35] [cursor=pointer]:
+          - /url: detalle-cuentas
+        - link "Conciliación de cuentas" [ref=f4e37] [cursor=pointer]:
+          - /url: reportes/cuentas-descuadradas
+      - generic [ref=f4e38]:
+        - generic [ref=f4e39]: Test Admin
+        - generic [ref=f4e40]: Admin
+        - button "Cerrar sesión" [ref=f4e42] [cursor=pointer]
+  - main [ref=f4e43]:
+    - generic [ref=f4e44]: Panel administrativo
+    - article [ref=f4e46]:
+      - heading "ATIPICO" [active] [level=1] [ref=f4e47]
+      - paragraph [ref=f4e48]: Panel administrativo. Los datos se leen y se guardan en vivo contra Atipico.Api.
