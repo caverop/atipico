@@ -32,7 +32,7 @@ dotnet test --filter "FullyQualifiedName~AuthServiceTests.LoginAsync_ValidCreden
 
 Test projects mirror the `src` projects 1:1: `Atipico.Domain.Tests`, `Atipico.Application.Tests`, `Atipico.Infraestructure.Tests`, `Atipico.Api.Tests`. They use xUnit + Moq (`Moq.EntityFrameworkCore` for mocking `DbSet<T>`/`DbContext` in repository tests).
 
-The API requires `ConnectionStrings:DefaultConnection` and a `Jwt` section (`Key`, `Issuer`, `Audience`, `ExpiryMinutes`) — set in `Atipico.Api/appsettings.Development.json` for local dev. `AppDbContext` also falls back to the `DB_CONNECTION_STRING` env var when no options are configured externally (e.g. for `dotnet ef` tooling).
+The API requires `ConnectionStrings:DefaultConnection` and a `Jwt` section (`Key`, `Issuer`, `Audience`, `ExpiryMinutes`). The `Jwt` section is set directly in `Atipico.Api/appsettings.Development.json`. `ConnectionStrings:DefaultConnection` is deliberately left empty there — set it via .NET User Secrets instead (`dotnet user-secrets set "ConnectionStrings:DefaultConnection" "..." --project Atipico.Api`), so a real DB credential is never committed. `AppDbContext` also falls back to the `DB_CONNECTION_STRING` env var when no options are configured externally (e.g. for `dotnet ef` tooling).
 
 Database schema/migration SQL lives in `sql/` as hand-written, numbered scripts (not EF Core migrations) — see `sql/002_auth_usuario.sql` for the pattern (wrapped in a transaction, includes backfill logic and comments explaining intent).
 

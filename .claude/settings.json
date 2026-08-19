@@ -6,7 +6,30 @@
       "Bash(tasklist //FI \"IMAGENAME eq Atipico.Web.exe\")",
       "Bash(tasklist //FI \"IMAGENAME eq Atipico.Api.exe\")",
       "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" http://localhost:15004/api/platos)",
-      "Bash(docker rmi *)"
+      "Bash(docker rmi *)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://app_restaurante@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"SELECT 1;\")",
+      "Bash(taskkill //IM psql.exe //F)",
+      "Bash(export PGPASSWORD=npg_9fzHUgQb2Gqu)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"SELECT current_user, current_database\\(\\), version\\(\\);\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"\\\\dt\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"SELECT rolname, rolcreaterole, rolcanlogin FROM pg_roles ORDER BY rolname;\")",
+      "Bash('/c/Program Files/PostgreSQL/18/bin/pg_dump.exe' 'postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require' --schema-only --no-owner --no-privileges -f 'C:\\\\Users\\\\pdieg\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pdieg-Atipico\\\\ae13a7e4-544a-4d8a-a4c2-dac9fa671e68\\\\scratchpad\\\\neon_schema.sql')",
+      "Bash('/c/Program Files/PostgreSQL/18/bin/psql.exe' 'postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require' -c ' *)",
+      "Bash(export PGPASSWORD=HXzFhs7dJ3ULRY10VU4XqBLP)",
+      "Bash('/c/Program Files/PostgreSQL/18/bin/psql.exe' 'postgresql://app_restaurante@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require' -c ' *)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"DELETE FROM tipo_plato WHERE nombre = '__conn_test__';\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"SELECT count\\(*\\) FROM tipo_plato;\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -v ON_ERROR_STOP=1 -f \"C:\\\\Users\\\\pdieg\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pdieg-Atipico\\\\ae13a7e4-544a-4d8a-a4c2-dac9fa671e68\\\\scratchpad\\\\seed_neon_test_data.sql\")",
+      "Bash(curl -s -X POST http://localhost:5197/api/auth/login -H \"Content-Type: application/json\" -d '{\"nombreUsuario\":\"test.admin\",\"password\":\"Test1234!\"}')",
+      "Bash(taskkill //PID 26492 //F)",
+      "Bash(nohup dotnet run --project Atipico.Api)",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"postgresql://neondb_owner@ep-mute-tree-axvz79rd-pooler.c-4.us-east-2.aws.neon.tech/atipico-db?sslmode=require&channel_binding=require\" -c \"SELECT id, nombre, rol, activo, nombre_usuario, password_hash, length\\(password_hash\\) FROM usuario WHERE nombre_usuario = 'test.admin';\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" \"Host=localhost;Port=5432;Database=restaurante_db;Username=postgres;Password=postgres\" -c \"SELECT nombre_usuario, password_hash FROM usuario WHERE nombre_usuario LIKE 'test.%';\")",
+      "Bash(\"/c/Program Files/PostgreSQL/18/bin/psql.exe\" -h localhost -p 5432 -U postgres -d restaurante_db -c \"SELECT nombre_usuario, password_hash FROM usuario WHERE nombre_usuario LIKE 'test.%';\")",
+      "Bash(taskkill //PID 26292 //F)",
+      "Bash(dotnet user-secrets *)",
+      "Bash(taskkill //PID 29344 //F)",
+      "Bash(echo \"exit=$?\")"
     ]
   }
 }
