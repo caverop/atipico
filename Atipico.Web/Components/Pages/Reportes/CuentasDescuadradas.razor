@@ -47,7 +47,7 @@ else
                         <td>@c.Monto.ToString("C", _culture)</td>
                         <td>@c.SumaDetalle.ToString("C", _culture)</td>
                         <td>@((c.Monto - c.SumaDetalle).ToString("C", _culture))</td>
-                        <td>@(c.PagadoEn?.ToLocalTime().ToString("g") ?? "-")</td>
+                        <td>@(c.PagadoEn?.ToBoliviaTime().ToString("g") ?? "-")</td>
                         <td><a class="btn btn-sm btn-outline-secondary" href="@($"/cuentas/{c.Id}")">Ver cuenta</a></td>
                     </tr>
                 }

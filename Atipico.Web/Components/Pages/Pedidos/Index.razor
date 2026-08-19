@@ -86,7 +86,7 @@
             (string.IsNullOrWhiteSpace(_filtroComensal) || (p.Comensal ?? "").Contains(_filtroComensal.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (_filtroEstado is null || p.Estado == _filtroEstado) &&
             (_filtroMesero is null || p.IdMesero == _filtroMesero) &&
-            (_filtroCreado is null || DateOnly.FromDateTime(p.CreadoEn.ToLocalTime().DateTime) == _filtroCreado))
+            (_filtroCreado is null || DateOnly.FromDateTime(p.CreadoEn.ToBoliviaTime().DateTime) == _filtroCreado))
         .ToList();
 
     // Solo los meseros que efectivamente tienen pedidos, no todos los usuarios: evita opciones
@@ -108,7 +108,7 @@
         [
             ("Comensal", p => p.Comensal),
             ("Estado", p => p.Estado),
-            ("Creado", p => p.CreadoEn.ToLocalTime().ToString("g")),
+            ("Creado", p => p.CreadoEn.ToBoliviaTime().ToString("g")),
         ];
 
         _pedidos = await Api.GetAllAsync();

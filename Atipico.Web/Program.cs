@@ -21,7 +21,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/login";
         options.AccessDeniedPath = "/login";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        // SlidingExpiration=true hace que esto sea un timeout de inactividad: la cookie se
+        // renueva en cada request, y solo expira tras 30 min sin actividad.
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
     });
 // Nota: NO se usa AddAuthorization(options => options.FallbackPolicy = ...RequireAuthenticatedUser())

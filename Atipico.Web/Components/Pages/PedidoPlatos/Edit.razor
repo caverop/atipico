@@ -56,14 +56,14 @@
         {
             <div class="mb-3">
                 <label class="form-label">Servido en</label>
-                <p class="form-control-plaintext">@_entity.ServidoEn.Value.ToLocalTime().ToString("g")</p>
+                <p class="form-control-plaintext">@_entity.ServidoEn.Value.ToBoliviaTime().ToString("g")</p>
             </div>
         }
         @if (_entity.AnuladoEn is not null)
         {
             <div class="mb-3">
                 <label class="form-label">Anulado en</label>
-                <p class="form-control-plaintext">@_entity.AnuladoEn.Value.ToLocalTime().ToString("g")</p>
+                <p class="form-control-plaintext">@_entity.AnuladoEn.Value.ToBoliviaTime().ToString("g")</p>
             </div>
         }
         <div class="mb-3">
