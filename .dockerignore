@@ -1,0 +1,8 @@
+.git
+.vs
+.claude
+.playwright-mcp
+**/bin
+**/obj
+**/appsettings.Development.json
+README.md

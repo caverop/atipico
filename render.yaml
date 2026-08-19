@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: atipico-api
+    runtime: docker
+    dockerfilePath: ./Atipico.Api/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__Key
+        sync: false
+      - key: Jwt__Issuer
+        sync: false
+      - key: Jwt__Audience
+        sync: false
+      - key: Jwt__ExpiryMinutes
+        sync: false
+
+  - type: web
+    name: atipico-web
+    runtime: docker
+    dockerfilePath: ./Atipico.Web/Dockerfile
+    dockerContext: .
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ApiBaseUrl
+        sync: false
