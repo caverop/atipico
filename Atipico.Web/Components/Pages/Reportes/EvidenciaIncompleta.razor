@@ -1,0 +1,121 @@
+@page "/reportes/evidencia-incompleta"
+@attribute [Authorize(Roles = "Admin,Cajero,Mesero")]
+@inject IEntityApiClient<CuentaQrEvidenciaIncompleta> Api
+
+<PageTitle>Evidencia de pagos QR</PageTitle>
+
+<h3>Evidencia de pagos QR</h3>
+<p class="text-muted">
+    Cuentas cobradas por QR que no tienen ningún comprobante adjunto (respaldado por la
+    vista <code>v_cuenta_qr_evidencia_incompleta</code>). Es la lista de trabajo del cierre
+    de turno: al día, debería estar vacía. Cuando el procesamiento automático empiece a
+    extraer los montos de las imágenes, esta misma lista marcará además las cuentas cuya
+    evidencia no cubra lo cobrado.
+</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_items is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-success">Todas las cuentas QR tienen su comprobante adjunto.</div>
+}
+else
+{
+    @if (_sinEvidencia > 0)
+    {
+        <div class="alert alert-warning">
+            @_sinEvidencia cuenta(s) cobradas por QR sin ningún comprobante adjunto, por un
+            total de @_totalSinEvidencia.ToString("C", _culture).
+        </div>
+    }
+    @if (_descuadradas > 0)
+    {
+        <div class="alert alert-danger">
+            @_descuadradas cuenta(s) con evidencia que no cubre el monto cobrado.
+        </div>
+    }
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Cuenta</th>
+                    <th>Comensal</th>
+                    <th>Estado</th>
+                    <th>Cobrado</th>
+                    <th>Comprobantes</th>
+                    <th>Respaldado</th>
+                    <th>Pagado en</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in _items.OrderBy(x => x.Comprobantes).ThenByDescending(x => x.Monto))
+                {
+                    @* Sin evidencia es un pendiente de trabajo; evidencia que no cuadra es un
+                       problema con el dinero, y se marca mas fuerte. *@
+                    <tr class="@(c.Comprobantes == 0 ? "table-warning" : "table-danger")">
+                        <td>#@c.Id</td>
+                        <td>@(c.Comensal ?? "-")</td>
+                        <td>@c.Estado</td>
+                        <td>@c.Monto.ToString("C", _culture)</td>
+                        <td>
+                            @if (c.Comprobantes == 0)
+                            {
+                                <span class="fw-semibold">Ninguno</span>
+                            }
+                            else
+                            {
+                                <span>@c.Comprobantes</span>
+                            }
+                        </td>
+                        <td>
+                            @if (c.SinMonto > 0)
+                            {
+                                <span class="text-muted fst-italic">pendiente de procesar</span>
+                            }
+                            else
+                            {
+                                <span>@c.MontoRespaldado.ToString("C", _culture)</span>
+                            }
+                        </td>
+                        <td>@(c.PagadoEn?.ToBoliviaTime().ToString("g") ?? "-")</td>
+                        <td><a class="btn btn-sm btn-outline-primary" href="@($"/cuentas/{c.Id}")">Adjuntar</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private readonly System.Globalization.CultureInfo _culture = System.Globalization.CultureInfo.GetCultureInfo("es-BO");
+    private List<CuentaQrEvidenciaIncompleta>? _items;
+    private string? _error;
+
+    private int _sinEvidencia => _items?.Count(c => c.Comprobantes == 0) ?? 0;
+    private int _descuadradas => _items?.Count(c => c.Comprobantes > 0) ?? 0;
+    private decimal _totalSinEvidencia => _items?.Where(c => c.Comprobantes == 0).Sum(c => c.Monto) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Api.GetAllAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
+    }
+}

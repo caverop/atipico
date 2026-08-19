@@ -28,13 +28,18 @@ dotnet test Atipico.Application.Tests
 
 # Run a single test by fully-qualified name
 dotnet test --filter "FullyQualifiedName~AuthServiceTests.LoginAsync_ValidCredentials_ReturnsToken"
+
+# Run both services locally in Docker (copy .env.example to .env first)
+docker compose up
 ```
 
 Test projects mirror the `src` projects 1:1: `Atipico.Domain.Tests`, `Atipico.Application.Tests`, `Atipico.Infraestructure.Tests`, `Atipico.Api.Tests`. They use xUnit + Moq (`Moq.EntityFrameworkCore` for mocking `DbSet<T>`/`DbContext` in repository tests).
 
 The API requires `ConnectionStrings:DefaultConnection` and a `Jwt` section (`Key`, `Issuer`, `Audience`, `ExpiryMinutes`). The `Jwt` section is set directly in `Atipico.Api/appsettings.Development.json`. `ConnectionStrings:DefaultConnection` is deliberately left empty there — set it via .NET User Secrets instead (`dotnet user-secrets set "ConnectionStrings:DefaultConnection" "..." --project Atipico.Api`), so a real DB credential is never committed. `AppDbContext` also falls back to the `DB_CONNECTION_STRING` env var when no options are configured externally (e.g. for `dotnet ef` tooling).
 
-Database schema/migration SQL lives in `sql/` as hand-written, numbered scripts (not EF Core migrations) — see `sql/002_auth_usuario.sql` for the pattern (wrapped in a transaction, includes backfill logic and comments explaining intent).
+Database schema/migration SQL lives in `sql/` as hand-written, numbered scripts (not EF Core migrations) — see `sql/002_auth_usuario.sql` for the pattern (wrapped in a transaction, includes backfill logic and comments explaining intent). `sql/schema_completo.sql` is a *generated* snapshot (via `pg_dump --schema-only` against the real DB, not hand-written) equivalent to running `script_inicial.sql` + all numbered migrations in order — a one-file shortcut for standing up a new environment, not a replacement for the numbered migration history, which stays canonical.
+
+Both `Atipico.Api/Dockerfile` and `Atipico.Web/Dockerfile` deliberately restore against the full source tree (not `--no-restore`) after the initial COPY-csproj-only restore — see the comment in `Atipico.Web/Dockerfile`. Doing the `--no-restore` "optimization" silently drops Blazor's framework static web assets (`_framework/blazor.web.js` etc.) from the published Web image, so the app 404s at runtime with no build-time error. `docker-compose.yml` runs both containers locally from a gitignored `.env` (see `.env.example`); `render.yaml` deploys the same two Dockerfiles as a Render Blueprint (README.md has the env var table).
 
 ## Architecture
 
@@ -74,6 +79,8 @@ Given the generic-service pattern, a new entity typically touches: `Atipico.Doma
 **Error translation**: `EntityControllerBase.TryTranslateDbError` catches `DbUpdateException`, unwraps the inner `PostgresException`, and turns unique/check/FK/insufficient-privilege violations plus trigger-raised `P0001` messages into a 400/409 with `{"message": "..."}` in Spanish — instead of a raw 500 with a stack trace. Any controller that overrides `Create`/`Update` directly (bypassing the base implementation — see `UsuariosController`, `PedidosController`, `PedidoPlatosController`, `CuentasController`) must wrap its own `_service.AddAsync`/`UpdateAsync` call in the same `try { } catch (DbUpdateException ex) { var r = TryTranslateDbError(ex); if (r is not null) return r; throw; }` pattern to get this. On the Blazor side, `Atipico.Web/Services/ApiException.cs` + `EntityApiClient<T>` read that `message` field and throw/surface it; Edit pages catch `ApiException` (friendly message) separately from `HttpRequestException` (real connectivity failure, generic message).
 
 **Transition timestamps** (`ServidoEn`, `CerradoEn`, `PagadoEn`, `AnuladoEn`) are never taken from the client — Npgsql rejects non-UTC `DateTimeOffset` writes to `timestamptz`, and a browser-built `InputDate` carries the local offset. `PedidosController`/`PedidoPlatosController`/`CuentasController` override `Update` to fetch-and-mutate the tracked entity and stamp `DateTimeOffset.UtcNow` themselves when they detect the relevant state transition; the corresponding Razor forms only show these fields read-only, never as editable inputs.
+
+Those UTC timestamps are stored correctly but must not be displayed raw: Blazor Server renders on the server, so `DateTimeOffset.ToLocalTime()` resolves to the *server's* OS timezone (UTC in a Docker container), not the browser's. `Atipico.Web/DateTimeOffsetExtensions.cs` adds `ToBoliviaTime()` (a fixed UTC-4 offset — Bolivia has no DST, so this avoids depending on the container having the IANA timezone database installed) and every Razor page that renders a stored timestamp (`Cuentas/Edit.razor`, `PedidoPlatos/Edit.razor`, `Pedidos/Edit.razor`, `Pedidos/Index.razor`, `Reportes/CuentasDescuadradas.razor`) calls it before formatting. New pages displaying a `DateTimeOffset` from the API should follow the same pattern rather than calling `ToLocalTime()`.
 
 ### Roles
 

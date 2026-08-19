@@ -1,0 +1,96 @@
+@page "/reportes/comprobantes-duplicados"
+@attribute [Authorize(Roles = "Admin,Cajero")]
+@inject IEntityApiClient<ComprobanteDuplicado> Api
+
+<PageTitle>Comprobantes duplicados</PageTitle>
+
+<h3>Comprobantes duplicados</h3>
+<p class="text-muted">
+    Un mismo archivo registrado como comprobante en cuentas distintas (respaldado por la
+    vista <code>v_comprobante_duplicado</code>). Dentro de una misma cuenta el caso ya lo
+    impide la base. En una operación sana esta lista debería estar siempre vacía.
+</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_items is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_items.Count == 0)
+{
+    <div class="alert alert-success">No hay comprobantes repetidos entre cuentas.</div>
+}
+else
+{
+    <div class="alert alert-danger">
+        @_grupos.Count archivo(s) aparecen en más de una cuenta. Cada grupo es el mismo
+        archivo reutilizado: conviene revisar si el cobro fue realmente en QR.
+    </div>
+
+    @foreach (var grupo in _grupos)
+    {
+        <div class="card mb-3">
+            <div class="card-header">
+                <code>@grupo.Key[..12]…</code>
+                <span class="text-muted ms-2">@grupo.Count() registros</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Comprobante</th>
+                            <th>Cuenta</th>
+                            <th>Monto</th>
+                            <th>Registrado</th>
+                            <th>Por (usuario)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in grupo.OrderBy(x => x.CreadoEn))
+                        {
+                            <tr class="table-danger">
+                                <td>#@c.Id</td>
+                                <td>#@c.IdCuenta</td>
+                                <td>@(c.Monto?.ToString("C", _culture) ?? "-")</td>
+                                <td>@c.CreadoEn.ToBoliviaTime().ToString("g")</td>
+                                <td>#@c.IdSubidoPor</td>
+                                <td><a class="btn btn-sm btn-outline-secondary" href="@($"/cuentas/{c.IdCuenta}")">Ver cuenta</a></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+}
+
+@code {
+    private readonly System.Globalization.CultureInfo _culture = System.Globalization.CultureInfo.GetCultureInfo("es-BO");
+    private List<ComprobanteDuplicado>? _items;
+    private string? _error;
+
+    // La vista devuelve una fila por comprobante involucrado; se agrupa por hash para que
+    // se vea de un golpe que cuentas comparten el mismo archivo.
+    private List<IGrouping<string, ComprobanteDuplicado>> _grupos =>
+        _items?.GroupBy(c => c.HashSha256).OrderByDescending(g => g.Count()).ToList() ?? [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _items = await Api.GetAllAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
+    }
+}

@@ -17,6 +17,9 @@ namespace Atipico.Web.Services
             [typeof(DetalleCuenta)] = "detalle-cuentas",
             [typeof(PedidoPlatoSinCobrar)] = "reportes/pedido-platos-sin-cobrar",
             [typeof(CuentaDescuadrada)] = "reportes/cuentas-descuadradas",
+            [typeof(ComprobantePago)] = "comprobantes",
+            [typeof(CuentaQrEvidenciaIncompleta)] = "reportes/cuentas-qr-evidencia-incompleta",
+            [typeof(ComprobanteDuplicado)] = "reportes/comprobantes-duplicados",
         };
 
         public static string For<TEntity>()

@@ -29,5 +29,8 @@ namespace Atipico.Domain.Entities
         public Usuario? Cajero { get; set; }
 
         public ICollection<DetalleCuenta> DetalleCuentas { get; set; } = new List<DetalleCuenta>();
+
+        /// <summary>Evidencia del pago cuando MetodoPago es Qr. Puede haber varios.</summary>
+        public ICollection<ComprobantePago> ComprobantePagos { get; set; } = new List<ComprobantePago>();
     }
 }

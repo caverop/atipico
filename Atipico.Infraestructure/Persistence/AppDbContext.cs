@@ -37,9 +37,16 @@ namespace Atipico.Infraestructure.Persistence
         public DbSet<Cuenta> Cuentas => Set<Cuenta>();
         public DbSet<DetalleCuenta> DetalleCuentas => Set<DetalleCuenta>();
 
-        // Vistas de solo lectura (ver sql/script_inicial.sql): sin PK real, nunca se
-        // crean/actualizan/borran filas de estos DbSet, solo se consultan.
+        // Solo-insercion (tg_comprobante_inmutable rechaza UPDATE y DELETE): la
+        // evidencia se corrige registrando otra fila, nunca editando la existente.
+        public DbSet<ComprobantePago> ComprobantePagos => Set<ComprobantePago>();
+
+        // Vistas de solo lectura (ver sql/script_inicial.sql y sql/006_comprobante_pago.sql):
+        // sin PK real, nunca se crean/actualizan/borran filas de estos DbSet, solo se consultan.
         public DbSet<PedidoPlatoSinCobrar> PedidoPlatosSinCobrar => Set<PedidoPlatoSinCobrar>();
         public DbSet<CuentaDescuadrada> CuentasDescuadradas => Set<CuentaDescuadrada>();
+        public DbSet<ComprobanteVigente> ComprobantesVigentes => Set<ComprobanteVigente>();
+        public DbSet<CuentaQrEvidenciaIncompleta> CuentasQrEvidenciaIncompleta => Set<CuentaQrEvidenciaIncompleta>();
+        public DbSet<ComprobanteDuplicado> ComprobantesDuplicados => Set<ComprobanteDuplicado>();
     }
 }

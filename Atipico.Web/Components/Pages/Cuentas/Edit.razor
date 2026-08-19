@@ -121,6 +121,23 @@
         <a class="btn btn-outline-secondary" href="/cuentas">Cancelar</a>
     </EditForm>
 
+    @if (Id is not null && _entity.MetodoPago == MetodoPago.Qr)
+    {
+        <hr class="my-4" />
+
+        @* Mesero incluido a proposito: en el pago adelantado es quien verifica el
+           comprobante en el mostrador. Una cuenta anulada conserva la evidencia
+           pero ya no admite mas. *@
+        <AuthorizeView Roles="Admin,Cajero,Mesero">
+            <Authorized>
+                <ComprobantesPanel IdCuenta="_entity.Id"
+                                   Monto="_entity.Monto"
+                                   MetodoPago="_entity.MetodoPago"
+                                   PuedeEditar="@(_entity.Estado != EstadoCuenta.Anulada)" />
+            </Authorized>
+        </AuthorizeView>
+    }
+
     <hr class="my-4" />
 
     <AuthorizeView Roles="Admin,Cajero">

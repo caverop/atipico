@@ -10,6 +10,9 @@
 @inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
 @inject IEntityApiClient<Mesa> MesaApi
 @inject IEntityApiClient<PedidoMesa> PedidoMesaApi
+@inject IEntityApiClient<DetalleCuenta> DetalleCuentaApi
+@inject IEntityApiClient<Cuenta> CuentaApi
+@inject IComprobanteApiClient ComprobanteApi
 @inject IHttpClientFactory HttpClientFactory
 @inject NavigationManager Nav
 @inject IJSRuntime JS
@@ -67,6 +70,64 @@
             <button type="button" class="btn btn-outline-secondary" @onclick="HandleAnularPedido">Anular</button>
         }
     </EditForm>
+
+    @* Zona de preparacion de comprobantes. Aparece al elegir Qr y va ENCIMA de platos y
+       mesas porque es lo primero que ocurre en el mostrador: el comensal tiene el
+       comprobante en la mano. La cuenta todavia no existe (la crea PedidosController al
+       pasar a EnPreparacion), asi que aca no se sube nada: se prepara. La subida real
+       ocurre en HandleCerrarPedido, ya con el IdCuenta. Ver docs/comprobantes-qr.md §8.1. *@
+    @if (_pedidoActivo && _metodoPagoSeleccionado == MetodoPago.Qr)
+    {
+        <hr class="my-4" />
+
+        <div class="card mb-4 border-primary">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><strong>Comprobantes QR</strong> — se subirán al pasar a En Preparación</span>
+                @if (_preparados.Count > 0)
+                {
+                    <span class="badge bg-primary">@_preparados.Count preparado(s)</span>
+                }
+            </div>
+            <div class="card-body">
+                @if (_errorComprobante is not null)
+                {
+                    <div class="alert alert-danger">@_errorComprobante</div>
+                }
+
+                @if (_preparados.Count > 0)
+                {
+                    <ul class="list-group mb-3">
+                        @foreach (var pendiente in _preparados)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <span>
+                                    @pendiente.Nombre
+                                    <small class="text-muted ms-2">@(pendiente.Contenido.Length / 1024) KB</small>
+                                </span>
+                                <button type="button" class="btn btn-sm btn-outline-danger"
+                                        @onclick="() => QuitarPreparado(pendiente)">Quitar</button>
+                            </li>
+                        }
+                    </ul>
+                }
+
+                <div class="row g-2 align-items-end">
+                    <div class="col-12">
+                        <label class="form-label">Imagen del comprobante</label>
+                        @* multiple: un comensal puede pagar con varios QR (saldo insuficiente,
+                           monto mal digitado). Cada archivo entra como un comprobante aparte. *@
+                        <InputFile class="form-control" OnChange="PrepararComprobantesAsync"
+                                   accept="image/*" multiple @key="_claveInputComprobante" />
+                        <div class="form-text">
+                            El monto se extraerá de la imagen; no hace falta escribirlo. Adjuntar es
+                            opcional: si no subes nada, el pedido se factura igual y la cuenta queda
+                            listada en el reporte de evidencia de pagos QR.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
 
     <hr class="my-4" />
 
@@ -196,6 +257,23 @@
             }
         </div>
     </div>
+
+    @* Pago adelantado: al pasar a "En Preparación", PedidosController factura y crea la
+       Cuenta con el metodo elegido. Si fue QR, el comprobante se adjunta aca mismo — el
+       mesero lo verifica en el mostrador, con el pedido delante, sin ir a la pantalla de
+       caja. Un pedido puede haber generado mas de una cuenta a lo largo de su vida. *@
+    @if (_cuentasQr.Count > 0)
+    {
+        <hr class="my-4" />
+        <h4>Comprobantes de pago</h4>
+        @foreach (var cuenta in _cuentasQr)
+        {
+            <ComprobantesPanel IdCuenta="cuenta.Id"
+                               Monto="cuenta.Monto"
+                               MetodoPago="cuenta.MetodoPago"
+                               PuedeEditar="@(cuenta.Estado != EstadoCuenta.Anulada)" />
+        }
+    }
 }
 
 @code {
@@ -210,6 +288,18 @@
     private long _selectedPlatoId;
     private List<Mesa> _mesas = [];
     private List<PedidoMesa> _pedidoMesas = [];
+    private List<Cuenta> _cuentasQr = [];
+
+    // Comprobantes preparados: se leen a memoria al elegirlos y se suben recien cuando
+    // existe la cuenta. Ver docs/comprobantes-qr.md §8.1.
+    private readonly List<ComprobantePreparado> _preparados = [];
+    private string? _errorComprobante;
+    private Guid _claveInputComprobante = Guid.NewGuid();
+
+    // Mismo tope que ComprobantesPanel y que RequestSizeLimit en ComprobantesController.
+    private const long TamanoMaximoComprobante = 15 * 1024 * 1024;
+
+    private sealed record ComprobantePreparado(string Nombre, string TipoContenido, byte[] Contenido);
     private long _selectedMesaId;
     private MetodoPago? _metodoPagoSeleccionado;
     private bool _loaded;
@@ -321,6 +411,118 @@
         _mesas = await MesaApi.GetAllAsync();
         var todasMesas = await PedidoMesaApi.GetAllAsync();
         _pedidoMesas = todasMesas.Where(pm => pm.IdPedido == Id).ToList();
+
+        await LoadCuentasQrAsync();
+    }
+
+    // Se copia el contenido a memoria en el momento de elegir el archivo. Conservar el
+    // IBrowserFile hasta despues de facturar es fragil: es una referencia que se lee por el
+    // circuito SignalR y cualquier recomposicion del InputFile la invalida.
+    private async Task PrepararComprobantesAsync(InputFileChangeEventArgs e)
+    {
+        _errorComprobante = null;
+
+        foreach (var archivo in e.GetMultipleFiles())
+        {
+            try
+            {
+                using var memoria = new MemoryStream();
+                await using (var origen = archivo.OpenReadStream(TamanoMaximoComprobante))
+                {
+                    await origen.CopyToAsync(memoria);
+                }
+
+                _preparados.Add(new ComprobantePreparado(
+                    archivo.Name,
+                    string.IsNullOrWhiteSpace(archivo.ContentType) ? "application/octet-stream" : archivo.ContentType,
+                    memoria.ToArray()));
+            }
+            catch (IOException)
+            {
+                _errorComprobante = $"\"{archivo.Name}\" supera el tamaño máximo de {TamanoMaximoComprobante / (1024 * 1024)} MB.";
+            }
+        }
+
+        _claveInputComprobante = Guid.NewGuid();
+    }
+
+    private void QuitarPreparado(ComprobantePreparado pendiente)
+    {
+        _preparados.Remove(pendiente);
+        _errorComprobante = null;
+    }
+
+    // Se llama despues de facturar, cuando la cuenta ya existe. Un fallo aca NO revierte la
+    // cuenta: el dinero entro y el registro debe reflejarlo. Se avisa y la cuenta queda en el
+    // reporte de evidencia incompleta, que existe justamente para eso.
+    private async Task<string?> SubirPreparadosAsync()
+    {
+        if (_preparados.Count == 0)
+            return null;
+
+        await LoadAsociaciones();
+
+        var cuenta = _cuentasQr.OrderByDescending(c => c.Id).FirstOrDefault();
+        if (cuenta is null)
+            return "El pedido se facturó, pero no se encontró la cuenta QR para adjuntar los comprobantes.";
+
+        var fallidos = new List<string>();
+
+        foreach (var pendiente in _preparados.ToList())
+        {
+            try
+            {
+                using var contenido = new MemoryStream(pendiente.Contenido, writable: false);
+                await ComprobanteApi.RegistrarAsync(
+                    cuenta.Id, contenido, pendiente.Nombre, pendiente.TipoContenido);
+
+                _preparados.Remove(pendiente);
+            }
+            catch (ApiException ex)
+            {
+                fallidos.Add($"{pendiente.Nombre}: {ex.Message}");
+            }
+            catch (HttpRequestException)
+            {
+                fallidos.Add($"{pendiente.Nombre}: no se pudo conectar con el servidor.");
+            }
+        }
+
+        return fallidos.Count == 0
+            ? null
+            : "El pedido se facturó correctamente, pero no se pudieron subir algunos comprobantes: "
+              + string.Join(" | ", fallidos)
+              + ". Adjúntalos desde la cuenta #" + cuenta.Id + ".";
+    }
+
+    // No hay FK directa de Pedido a Cuenta: el vinculo es
+    // Pedido -> PedidoPlato -> DetalleCuenta -> Cuenta. Se recorre esa cadena para saber
+    // que cuentas genero este pedido y quedarse solo con las de QR, que son las unicas
+    // que admiten comprobante (lo impone fn_comprobante_inmutable).
+    private async Task LoadCuentasQrAsync()
+    {
+        var idsPedidoPlato = _pedidoPlatos.Select(pp => pp.Id).ToHashSet();
+        if (idsPedidoPlato.Count == 0)
+        {
+            _cuentasQr = [];
+            return;
+        }
+
+        var detalles = await DetalleCuentaApi.GetAllAsync();
+        var idsCuenta = detalles.Where(d => idsPedidoPlato.Contains(d.IdPedidoPlato))
+                                .Select(d => d.IdCuenta)
+                                .ToHashSet();
+
+        if (idsCuenta.Count == 0)
+        {
+            _cuentasQr = [];
+            return;
+        }
+
+        var cuentas = await CuentaApi.GetAllAsync();
+        _cuentasQr = cuentas.Where(c => idsCuenta.Contains(c.Id) && c.MetodoPago == MetodoPago.Qr)
+                            .OrderBy(c => c.Id)
+                            .ToList();
     }
 
     private async Task HandleSave()
@@ -391,6 +593,18 @@
         try
         {
             await ActualizarPedidoConMetodoPagoAsync(actualizado, _metodoPagoSeleccionado.Value);
+
+            // La cuenta ya existe: recien ahora los comprobantes preparados tienen a que
+            // colgarse. Si algo falla aca NO se revierte la facturacion (el dinero entro):
+            // se queda en la pantalla mostrando que paso y como regularizarlo.
+            var errorComprobantes = await SubirPreparadosAsync();
+            if (errorComprobantes is not null)
+            {
+                _error = errorComprobantes;
+                _entity.Estado = EstadoPedido.EnPreparacion;
+                return;
+            }
+
             Nav.NavigateTo("/pedidos");
         }
         catch (ApiException ex)

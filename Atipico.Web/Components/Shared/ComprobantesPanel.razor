@@ -1,0 +1,342 @@
+@using Atipico.Domain.Enums
+@inject IComprobanteApiClient ComprobanteApi
+
+@* Panel de evidencia de pago QR de una cuenta. Vive aca y no dentro de una pagina porque
+   lo usan Cuentas/Edit y Pedidos/Edit: en el flujo de pago adelantado el mesero verifica
+   el comprobante en el mostrador, con el pedido delante, no en la pantalla de caja. *@
+
+@if (MetodoPago != Atipico.Domain.Enums.MetodoPago.Qr)
+{
+    return;
+}
+
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><strong>Comprobantes QR</strong> — cuenta #@IdCuenta</span>
+        <span class="badge @_badgeClase">@_resumen</span>
+    </div>
+    <div class="card-body">
+
+        @if (_error is not null)
+        {
+            <div class="alert alert-danger">@_error</div>
+        }
+
+        @if (!_cargado)
+        {
+            <p class="text-muted"><em>Cargando comprobantes…</em></p>
+        }
+        else
+        {
+            @if (_vigentes.Count == 0)
+            {
+                <p class="text-muted mb-3"><em>Sin comprobantes registrados todavía.</em></p>
+            }
+            else
+            {
+                <ul class="list-group mb-3">
+                    @foreach (var c in _vigentes)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>
+                                @if (c.Monto is not null)
+                                {
+                                    <text>@c.Monto.Value.ToString("C", Cultura)</text>
+                                }
+                                else
+                                {
+                                    <span class="text-muted fst-italic">monto pendiente</span>
+                                }
+                                <small class="text-muted ms-2">@c.CreadoEn.ToBoliviaTime().ToString("g")</small>
+                            </span>
+                            <span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                        @onclick="() => VerAsync(c.Id)">Ver</button>
+                                @if (PuedeEditar)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-warning ms-1"
+                                            @onclick="() => IniciarReemplazo(c.Id)">Reemplazar</button>
+                                }
+                            </span>
+                        </li>
+                    }
+                </ul>
+
+                <p class="mb-3">
+                    @if (_sinMonto > 0)
+                    {
+                        @* Comparar la suma contra el total no significa nada mientras haya
+                           comprobantes sin monto extraido: no esta descuadrado, esta a
+                           medio procesar. *@
+                        <span class="text-muted">
+                            @_sinMonto de @_vigentes.Count comprobante(s) sin monto extraído.
+                            La conciliación por importe queda pendiente del procesamiento
+                            automático.
+                        </span>
+                    }
+                    else
+                    {
+                        <strong>Respaldado:</strong>
+                        <text>@_montoRespaldado.ToString("C", Cultura) de @Monto.ToString("C", Cultura)</text>
+                        @if (_diferencia > 0)
+                        {
+                            <span class="text-warning ms-2">Faltan @_diferencia.ToString("C", Cultura)</span>
+                        }
+                        else if (_diferencia < 0)
+                        {
+                            <span class="text-danger ms-2">Sobran @((-_diferencia).ToString("C", Cultura)) — devolver al comensal</span>
+                        }
+                        else
+                        {
+                            <span class="text-success ms-2">Cuadra</span>
+                        }
+                    }
+                </p>
+            }
+
+            @if (_urlVista is not null)
+            {
+                <div class="mb-3">
+                    <img src="@_urlVista" class="img-fluid border rounded" style="max-height: 480px" alt="Comprobante" />
+                    <div>
+                        <button type="button" class="btn btn-sm btn-link ps-0" @onclick="() => _urlVista = null">Cerrar vista</button>
+                    </div>
+                </div>
+            }
+
+            @if (_reemplazados.Count > 0)
+            {
+                <details class="mb-3">
+                    <summary class="text-muted">Reemplazados (@_reemplazados.Count)</summary>
+                    <ul class="list-group mt-2">
+                        @foreach (var c in _reemplazados)
+                        {
+                            <li class="list-group-item text-muted">
+                                <del>@(c.Monto?.ToString("C", Cultura) ?? "sin monto")</del>
+                                <small class="ms-2">@c.CreadoEn.ToBoliviaTime().ToString("g")</small>
+                                <button type="button" class="btn btn-sm btn-link" @onclick="() => VerAsync(c.Id)">Ver</button>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+
+            @if (PuedeEditar)
+            {
+                <hr />
+                @if (_idReemplaza is not null)
+                {
+                    <div class="alert alert-warning py-2">
+                        Reemplazando el comprobante #@_idReemplaza.
+                        <button type="button" class="btn btn-sm btn-link" @onclick="CancelarReemplazo">Cancelar</button>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Motivo del reemplazo</label>
+                        <input class="form-control" @bind="_motivoReemplazo" placeholder="Ej: foto ilegible" />
+                    </div>
+                }
+
+                <div class="row g-2 align-items-end">
+                    <div class="col-sm-9">
+                        <label class="form-label">Imagen del comprobante</label>
+                        @* La clave fuerza a Blazor a recrear el input y limpiar la seleccion previa. *@
+                        <InputFile class="form-control" OnChange="ArchivoSeleccionado" accept="image/*" @key="_claveInput" />
+                        <div class="form-text">El monto se extraerá de la imagen; no hace falta escribirlo.</div>
+                    </div>
+                    <div class="col-sm-3">
+                        <button type="button" class="btn btn-primary w-100"
+                                disabled="@(_archivo is null || _subiendo)"
+                                @onclick="SubirAsync">
+                            @(_subiendo ? "Subiendo…" : "Registrar")
+                        </button>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private static readonly System.Globalization.CultureInfo Cultura =
+        System.Globalization.CultureInfo.GetCultureInfo("es-BO");
+
+    // Blazor Server manda el archivo por el circuito SignalR y OpenReadStream corta en
+    // ~500 KB salvo que se pase un maximo explicito. Una foto de telefono lo supera
+    // siempre, asi que sin esto la primera prueba real falla.
+    private const long TamanoMaximo = 15 * 1024 * 1024;
+
+    [Parameter, EditorRequired] public long IdCuenta { get; set; }
+    [Parameter, EditorRequired] public decimal Monto { get; set; }
+    [Parameter] public MetodoPago? MetodoPago { get; set; }
+
+    /// <summary>Una cuenta anulada conserva su evidencia pero ya no admite mas.</summary>
+    [Parameter] public bool PuedeEditar { get; set; } = true;
+
+    /// <summary>Para que la pagina refresque su propio estado cuando cambia la evidencia.</summary>
+    [Parameter] public EventCallback OnCambio { get; set; }
+
+    private List<ComprobantePago> _todos = [];
+    private List<ComprobantePago> _vigentes = [];
+    private List<ComprobantePago> _reemplazados = [];
+    private IBrowserFile? _archivo;
+    private long? _idReemplaza;
+    private string? _motivoReemplazo;
+    private string? _urlVista;
+    private string? _error;
+    private bool _cargado;
+    private bool _subiendo;
+    private Guid _claveInput = Guid.NewGuid();
+
+    private int _sinMonto => _vigentes.Count(c => c.Monto is null);
+    private decimal _montoRespaldado => _vigentes.Sum(c => c.Monto ?? 0);
+    private decimal _diferencia => Monto - _montoRespaldado;
+
+    // Mientras haya montos sin extraer no se puede afirmar que la evidencia cubra el cobro,
+    // solo que existe. El badge dice lo que se sabe, no lo que se supone.
+    private string _resumen => !_cargado
+        ? "…"
+        : _vigentes.Count == 0 ? "Sin comprobante"
+        : _sinMonto > 0 ? $"{_vigentes.Count} adjunto(s)"
+        : _diferencia == 0 ? "Cuadra"
+        : _diferencia > 0 ? $"Faltan {_diferencia.ToString("C", Cultura)}"
+        : $"Sobran {(-_diferencia).ToString("C", Cultura)}";
+
+    private string _badgeClase => !_cargado
+        ? "bg-secondary"
+        : _vigentes.Count == 0 ? "bg-warning text-dark"
+        : _sinMonto > 0 ? "bg-secondary"
+        : _diferencia == 0 ? "bg-success"
+        : _diferencia > 0 ? "bg-warning text-dark"
+        : "bg-danger";
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (MetodoPago != Atipico.Domain.Enums.MetodoPago.Qr || IdCuenta == 0)
+        {
+            _cargado = true;
+            return;
+        }
+
+        await CargarAsync();
+    }
+
+    private async Task CargarAsync()
+    {
+        try
+        {
+            _todos = await ComprobanteApi.GetPorCuentaAsync(IdCuenta);
+
+            // Vigente es el que nadie reemplazo — la misma definicion que
+            // v_comprobante_vigente, resuelta aca sobre la lista ya traida.
+            var reemplazados = _todos.Where(c => c.IdReemplaza is not null)
+                                     .Select(c => c.IdReemplaza!.Value)
+                                     .ToHashSet();
+
+            _vigentes = _todos.Where(c => !reemplazados.Contains(c.Id)).ToList();
+            _reemplazados = _todos.Where(c => reemplazados.Contains(c.Id)).ToList();
+
+            _error = null;
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor para leer los comprobantes.";
+        }
+        finally
+        {
+            _cargado = true;
+        }
+    }
+
+    private void ArchivoSeleccionado(InputFileChangeEventArgs e)
+    {
+        _archivo = e.File;
+        _error = null;
+    }
+
+    private void IniciarReemplazo(long id)
+    {
+        _idReemplaza = id;
+        _motivoReemplazo = null;
+    }
+
+    private void CancelarReemplazo()
+    {
+        _idReemplaza = null;
+        _motivoReemplazo = null;
+    }
+
+    private async Task VerAsync(long id)
+    {
+        try
+        {
+            // La URL es firmada y dura 5 minutos: se pide en el momento, no se cachea.
+            _urlVista = await ComprobanteApi.GetUrlAsync(id);
+            if (_urlVista is null)
+                _error = "No se encontró la imagen de ese comprobante.";
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor para abrir el comprobante.";
+        }
+    }
+
+    private async Task SubirAsync()
+    {
+        if (_archivo is null || _subiendo) return;
+
+        if (_idReemplaza is not null && string.IsNullOrWhiteSpace(_motivoReemplazo))
+        {
+            _error = "Indica el motivo del reemplazo.";
+            return;
+        }
+
+        _subiendo = true;
+        _error = null;
+
+        try
+        {
+            await using var contenido = _archivo.OpenReadStream(TamanoMaximo);
+
+            await ComprobanteApi.RegistrarAsync(
+                IdCuenta,
+                contenido,
+                _archivo.Name,
+                string.IsNullOrWhiteSpace(_archivo.ContentType) ? "application/octet-stream" : _archivo.ContentType,
+                _idReemplaza,
+                _motivoReemplazo);
+
+            _archivo = null;
+            _idReemplaza = null;
+            _motivoReemplazo = null;
+            _urlVista = null;
+            _claveInput = Guid.NewGuid();
+
+            await CargarAsync();
+            await OnCambio.InvokeAsync();
+        }
+        catch (IOException)
+        {
+            _error = $"La imagen supera el tamaño máximo de {TamanoMaximo / (1024 * 1024)} MB.";
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor para registrar el comprobante.";
+        }
+        finally
+        {
+            _subiendo = false;
+        }
+    }
+}

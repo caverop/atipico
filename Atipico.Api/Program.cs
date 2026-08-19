@@ -1,8 +1,11 @@
+
 using Atipico.Application.Common.Interfaces;
 using Atipico.Application.Interfaces.Services;
 using Atipico.Application.Services;
+using Atipico.Infraestructure.Imaging;
 using Atipico.Infraestructure.Persistence;
 using Atipico.Infraestructure.Security;
+using Atipico.Infraestructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -37,6 +40,13 @@ builder.Services.AddScoped(typeof(IEntityService<>), typeof(EntityService<>));
 builder.Services.AddSingleton<IPasswordHasher, BCryptPasswordHasher>();
 builder.Services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+
+// Comprobantes de pago QR (ver docs/comprobantes-qr.md). El cliente de R2 y el procesador
+// de imagen no guardan estado entre peticiones, asi que van como singleton; el servicio es
+// scoped porque comparte el DbContext a traves de IUnitOfWork.
+builder.Services.AddSingleton<IAlmacenComprobantes, R2AlmacenComprobantes>();
+builder.Services.AddSingleton<IProcesadorImagenComprobante, ImageSharpProcesadorComprobante>();
+builder.Services.AddScoped<IComprobanteService, ComprobanteService>();
 
 var jwtSection = builder.Configuration.GetSection("Jwt");
 var jwtKey = jwtSection["Key"] ?? throw new InvalidOperationException("Falta configurar Jwt:Key.");

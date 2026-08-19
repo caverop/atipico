@@ -40,6 +40,8 @@ builder.Services.AddHttpClient("AtipicoApi", client =>
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/api/");
 }).AddHttpMessageHandler<JwtForwardingHandler>();
 builder.Services.AddScoped(typeof(IEntityApiClient<>), typeof(EntityApiClient<>));
+// Comprobantes: multipart y endpoints propios, fuera del contrato CRUD generico.
+builder.Services.AddScoped<IComprobanteApiClient, ComprobanteApiClient>();
 
 var app = builder.Build();
 

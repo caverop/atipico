@@ -14,8 +14,29 @@ namespace Atipico.Api.Controllers
         }
 
         // Mesero abre la cuenta pero no la cobra: cobrar (Update) es cosa de Cajero/Admin.
+        // En el flujo de pago adelantado por QR el mesero tampoco necesita Update: crea la
+        // cuenta ya en su estado final (PAGADA) y no la vuelve a tocar, que es justo lo que
+        // permite fn_cuenta_inmutable.
         protected override string[] CreateRoles => ["Admin", "Mesero", "Cajero"];
         protected override string[] UpdateRoles => ["Admin", "Cajero"];
+
+        // Pago adelantado: el comensal paga antes de ser atendido, asi que la cuenta nace
+        // PAGADA en vez de pasar por ABIERTA. ck_cuenta_pago exige entonces metodo, momento
+        // y cajero. El momento se sella aca en UTC por lo mismo que en Update, y el cajero
+        // es el propio mesero cuando no viene otro: en este flujo cobra quien atiende.
+        public override async Task<ActionResult<Cuenta>> Create(Cuenta entity)
+        {
+            if (!HasAnyRole(CreateRoles))
+                return Forbid();
+
+            if (entity.Estado == EstadoCuenta.Pagada)
+            {
+                entity.PagadoEn ??= DateTimeOffset.UtcNow;
+                entity.IdCajero ??= entity.IdMesero;
+            }
+
+            return await base.Create(entity);
+        }
 
         // PagadoEn/AnuladoEn no llegan del cliente: el navegador arma un DateTimeOffset con su
         // propio huso horario, y Npgsql solo acepta offset 0 (UTC) para timestamptz. Se calculan

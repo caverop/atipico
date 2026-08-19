@@ -70,6 +70,11 @@
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="cuentas">Cuentas</NavLink>
                 </div>
+                @* El mesero tambien: en el pago adelantado es quien adjunta el comprobante,
+                   asi que necesita ver que le falta antes de cerrar el turno. *@
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="reportes/evidencia-incompleta">Evidencia de pagos QR</NavLink>
+                </div>
                 <AuthorizeView Roles="Admin,Cajero" Context="cajaContext">
                     <Authorized>
                         <div class="nav-item px-3">
@@ -77,6 +82,9 @@
                         </div>
                         <div class="nav-item px-3">
                             <NavLink class="nav-link" href="reportes/cuentas-descuadradas">Conciliación de cuentas</NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="reportes/comprobantes-duplicados">Comprobantes duplicados</NavLink>
                         </div>
                     </Authorized>
                 </AuthorizeView>

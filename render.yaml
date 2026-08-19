@@ -17,6 +17,16 @@ services:
         sync: false
       - key: Jwt__ExpiryMinutes
         sync: false
+      # Comprobantes de pago QR (ver docs/comprobantes-qr.md). Bucket de produccion:
+      # atipico-comprobantes. Los valores se cargan en el dashboard, no aca.
+      - key: R2__AccountId
+        sync: false
+      - key: R2__AccessKeyId
+        sync: false
+      - key: R2__SecretAccessKey
+        sync: false
+      - key: R2__Bucket
+        sync: false
 
   - type: web
     name: atipico-web
