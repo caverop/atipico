@@ -101,10 +101,8 @@
 
         _columns =
         [
-            ("Id", p => p.Id),
             ("Comensal", p => p.Comensal),
             ("Estado", p => p.Estado),
-            ("Mesero", p => _meseroNombres.GetValueOrDefault(p.IdMesero, $"#{p.IdMesero}")),
             ("Creado", p => p.CreadoEn.ToLocalTime().ToString("g")),
         ];
 

@@ -1,0 +1,10 @@
+- generic [ref=e4]:
+  - heading "ATIPICO" [level=1] [ref=e5]
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - generic [ref=e8]: Usuario
+      - textbox [active] [ref=e9]
+    - generic [ref=e10]:
+      - generic [ref=e11]: Contraseña
+      - textbox [ref=e12]
+    - button "Ingresar" [ref=e13] [cursor=pointer]

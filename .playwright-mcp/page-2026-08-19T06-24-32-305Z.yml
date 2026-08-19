@@ -1,0 +1,10 @@
+- generic [ref=f2e4]:
+  - heading "ATIPICO" [level=1] [ref=f2e5]
+  - generic [ref=f2e6]:
+    - generic [ref=f2e7]:
+      - generic [ref=f2e8]: Usuario
+      - textbox [ref=f2e9]: test.admin
+    - generic [ref=f2e10]:
+      - generic [ref=f2e11]: Contraseña
+      - textbox [active] [ref=f2e12]: Test1234!
+    - button "Ingresar" [ref=f2e13] [cursor=pointer]

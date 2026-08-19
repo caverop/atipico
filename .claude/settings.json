@@ -49,7 +49,15 @@
       "Bash(curl -s -o /dev/null -w \"api /api/platos -> %{http_code}\\\\n\" http://127.0.0.1:15000/api/platos)",
       "Bash(curl -s -X POST http://127.0.0.1:15000/api/auth/login -H \"Content-Type: application/json\" -d '{\"nombreUsuario\":\"test.admin\",\"password\":\"Test1234!\"}' -w \"\\\\nlogin http=%{http_code}\\\\n\")",
       "Bash(curl -s -o /dev/null -w \"web /login -> %{http_code}\\\\n\" http://127.0.0.1:15001/login)",
-      "Bash(curl -s -o /dev/null -w \"web /_framework/blazor.web.js -> %{http_code}\\\\n\" http://127.0.0.1:15001/_framework/blazor.web.js)"
+      "Bash(curl -s -o /dev/null -w \"web /_framework/blazor.web.js -> %{http_code}\\\\n\" http://127.0.0.1:15001/_framework/blazor.web.js)",
+      "Bash(curl -s -X POST http://localhost:5197/api/auth/login -H \"Content-Type: application/json\" -d '{\"nombreUsuario\":\"test.admin\",\"password\":\"Test1234!\"}' -w \"\\\\nhttp=%{http_code}\\\\n\")",
+      "Bash(curl -s -i -X POST http://localhost:5028/auth/login -d \"nombreUsuario=test.admin&password=Test1234!&returnUrl=\" -H \"Content-Type: application/x-www-form-urlencoded\")",
+      "mcp__playwright__browser_evaluate",
+      "Bash(curl -s -c \"C:\\\\Users\\\\pdieg\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pdieg-Atipico\\\\ae13a7e4-544a-4d8a-a4c2-dac9fa671e68\\\\scratchpad\\\\cookies.txt\" -X POST http://localhost:5028/auth/login -d \"nombreUsuario=test.admin&password=Test1234!&returnUrl=\" -H \"Content-Type: application/x-www-form-urlencoded\" -o /dev/null -w \"login status=%{http_code}\\\\n\")",
+      "Bash(curl -s -b \"C:\\\\Users\\\\pdieg\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pdieg-Atipico\\\\ae13a7e4-544a-4d8a-a4c2-dac9fa671e68\\\\scratchpad\\\\cookies.txt\" http://localhost:5028/pedidos -o \"C:\\\\Users\\\\pdieg\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-pdieg-Atipico\\\\ae13a7e4-544a-4d8a-a4c2-dac9fa671e68\\\\scratchpad\\\\pedidos_page.html\" -w \"pedidos page status=%{http_code}\\\\n\")",
+      "mcp__playwright__browser_tabs",
+      "Bash(taskkill //PID 18304 //F)",
+      "Bash(taskkill //PID 12944 //F)"
     ]
   }
 }
