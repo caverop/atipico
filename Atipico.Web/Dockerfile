@@ -7,7 +7,12 @@ COPY ["Atipico.Domain/Atipico.Domain.csproj", "Atipico.Domain/"]
 RUN dotnet restore "Atipico.Web/Atipico.Web.csproj"
 
 COPY . .
-RUN dotnet publish "Atipico.Web/Atipico.Web.csproj" --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
+# --no-restore aca (con el restore de arriba corrido contra solo los .csproj, antes de que
+# exista wwwroot/) hace que Blazor no descubra los static web assets que vienen del propio
+# framework (_framework/blazor.web.js, blazor.server.js): la imagen publica sin ellos y la app
+# tira 404 en runtime. Dejar que publish vuelva a restaurar (rapido, ya con los paquetes en
+# cache) contra el arbol completo lo resuelve.
+RUN dotnet publish "Atipico.Web/Atipico.Web.csproj" --configuration Release --output /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

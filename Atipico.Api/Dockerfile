@@ -8,7 +8,10 @@ COPY ["Atipico.Infraestructure/Atipico.Infraestructure.csproj", "Atipico.Infraes
 RUN dotnet restore "Atipico.Api/Atipico.Api.csproj"
 
 COPY . .
-RUN dotnet publish "Atipico.Api/Atipico.Api.csproj" --configuration Release --no-restore --output /app/publish /p:UseAppHost=false
+# Sin --no-restore a proposito: ver el comentario equivalente en Atipico.Web/Dockerfile — un
+# restore contra solo los .csproj (antes de COPY . .) deja el estado de static web assets
+# incompleto para publish si no se vuelve a restaurar contra el arbol completo.
+RUN dotnet publish "Atipico.Api/Atipico.Api.csproj" --configuration Release --output /app/publish /p:UseAppHost=false
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app

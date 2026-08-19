@@ -4,7 +4,9 @@
       "Bash(dotnet build *)",
       "Bash(tasklist //FI \"IMAGENAME eq dotnet.exe\" //FI \"PID eq 6076\")",
       "Bash(tasklist //FI \"IMAGENAME eq Atipico.Web.exe\")",
-      "Bash(tasklist //FI \"IMAGENAME eq Atipico.Api.exe\")"
+      "Bash(tasklist //FI \"IMAGENAME eq Atipico.Api.exe\")",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" http://localhost:15004/api/platos)",
+      "Bash(docker rmi *)"
     ]
   }
 }
