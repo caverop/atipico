@@ -1,0 +1,44 @@
+/* Cubre toda la ventana y se come los clics: mientras esta visible, nada de lo que hay
+   debajo es alcanzable. Va por encima de la barra de progreso (z-index 2000) para que la
+   senal sea una sola y no dos compitiendo. */
+.bloqueo {
+    position: fixed;
+    inset: 0;
+    z-index: 2100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(248, 249, 250, 0.72);
+    backdrop-filter: blur(2px);
+    cursor: wait;
+}
+
+.bloqueo-caja {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1.6rem 2.2rem;
+    border-radius: 0.5rem;
+    background-color: #fff;
+    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+}
+
+.bloqueo-texto {
+    margin: 0;
+    color: #212529;
+    font-size: 0.95rem;
+}
+
+/* Sin animacion para quien la pidio: el spinner queda como marca estatica y el texto sigue
+   diciendo que esta pasando. */
+@media (prefers-reduced-motion: reduce) {
+    .bloqueo .spinner-border {
+        animation: none;
+        opacity: 0.6;
+    }
+
+    .bloqueo {
+        backdrop-filter: none;
+    }
+}

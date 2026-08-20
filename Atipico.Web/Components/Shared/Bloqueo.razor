@@ -1,0 +1,42 @@
+@implements IDisposable
+@inject EstadoOperaciones Estado
+
+@* Capa que bloquea la pantalla mientras corre una accion del usuario. Se reserva para las
+   operaciones lentas que no admiten hacer otra cosa en el medio: la barra de progreso
+   acompana todo lo demas sin estorbar. *@
+
+@if (_visible)
+{
+    <div class="bloqueo" role="alertdialog" aria-busy="true" aria-live="assertive" aria-label="@_mensaje">
+        <div class="bloqueo-caja">
+            <div class="spinner-border text-primary" aria-hidden="true"></div>
+            <p class="bloqueo-texto">@_mensaje</p>
+        </div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+    private string? _mensaje;
+
+    protected override void OnInitialized()
+    {
+        _visible = Estado.HayBloqueo;
+        _mensaje = Estado.MensajeBloqueo;
+        Estado.OnBloqueoCambio += Actualizar;
+    }
+
+    // Igual que en BarraProgreso: el evento puede llegar desde el hilo de la operacion y no
+    // desde el de la UI, asi que el render tiene que pasar por InvokeAsync.
+    private void Actualizar()
+    {
+        _ = InvokeAsync(() =>
+        {
+            _visible = Estado.HayBloqueo;
+            _mensaje = Estado.MensajeBloqueo;
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() => Estado.OnBloqueoCambio -= Actualizar;
+}

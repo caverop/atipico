@@ -49,6 +49,44 @@ namespace Atipico.Web.Services
             }
         }
 
+        // ---- Bloqueo de pantalla ----------------------------------------------------
+        // Contador aparte del de la barra, a proposito. La barra acompana cualquier llamada,
+        // incluidas las cargas de fondo de una pagina que abre; bloquear la pantalla en cada
+        // una de esas seria insoportable. El bloqueo es opt-in y se reserva para acciones que
+        // el usuario dispara y que no admiten hacer otra cosa mientras corren.
+
+        private int _bloqueos;
+
+        public bool HayBloqueo => _bloqueos > 0;
+
+        public string? MensajeBloqueo { get; private set; }
+
+        public event Action? OnBloqueoCambio;
+
+        public async Task BloquearAsync(Func<Task> accion, string mensaje)
+        {
+            if (Interlocked.Increment(ref _bloqueos) == 1)
+            {
+                MensajeBloqueo = mensaje;
+                OnBloqueoCambio?.Invoke();
+            }
+
+            try
+            {
+                await accion();
+            }
+            finally
+            {
+                // En finally: si la accion falla, la pantalla tiene que desbloquearse igual
+                // o el usuario queda encerrado sin poder ni reintentar ni navegar.
+                if (Interlocked.Decrement(ref _bloqueos) == 0)
+                {
+                    MensajeBloqueo = null;
+                    OnBloqueoCambio?.Invoke();
+                }
+            }
+        }
+
         private void Comenzar()
         {
             // Varias operaciones pueden solaparse (una pagina que carga cuatro catalogos en

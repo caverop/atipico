@@ -31,7 +31,7 @@
 
 @if (_loaded)
 {
-    <EditForm Model="_entity" FormName="pedido-edit" OnValidSubmit="HandleSave">
+    <EditForm Model="_entity" FormName="pedido-edit" OnValidSubmit="@(() => EjecutarAsync(HandleSave, "Guardando el pedido…"))">
         <div class="mb-3">
             <label class="form-label">Comensal</label>
             <InputText class="form-control" @bind-Value="_entity.Comensal" />
@@ -46,7 +46,7 @@
 
         @if (Id is null)
         {
-            <button type="submit" class="btn btn-primary">Continuar</button>
+            <button type="submit" class="btn btn-primary" disabled="@_procesando">Continuar</button>
         }
         @if (_pedidoActivo)
         {
@@ -60,15 +60,25 @@
                     }
                 </select>
             </div>
-            <button type="button" class="btn btn-primary" disabled="@(_metodoPagoSeleccionado is null)" @onclick="HandleCerrarPedido">En Preparación</button>
+            @* La mas lenta de la aplicacion: guarda los platos pendientes, factura creando
+               la cuenta y su detalle, y sube a R2 los comprobantes preparados. La barra
+               global la cubre, pero son 3px arriba del todo mientras la vista esta aqui, en
+               el boton recien pulsado; la espera se leia como que no habia pasado nada. *@
+            <button type="button" class="btn btn-primary"
+                    disabled="@(_metodoPagoSeleccionado is null || _procesando)"
+                    @onclick="@(() => EjecutarAsync(HandleCerrarPedido, "Facturando el pedido y subiendo los comprobantes…"))">
+                En Preparación
+            </button>
         }
         @if (_puedeMarcarServido)
         {
-            <button type="button" class="btn btn-success" @onclick="HandleMarcarServido">Servido</button>
+            <button type="button" class="btn btn-success" disabled="@_procesando"
+                    @onclick="@(() => EjecutarAsync(HandleMarcarServido, "Marcando como servido…"))">Servido</button>
         }
         @if (_puedeAnular)
         {
-            <button type="button" class="btn btn-outline-secondary" @onclick="HandleAnularPedido">Anular</button>
+            <button type="button" class="btn btn-outline-secondary" disabled="@_procesando"
+                    @onclick="@(() => EjecutarAsync(HandleAnularPedido, "Anulando el pedido…"))">Anular</button>
         }
     </EditForm>
 
@@ -467,7 +477,12 @@
         if (_preparados.Count == 0)
             return null;
 
-        await LoadAsociaciones();
+        // Solo lo necesario para encontrar la cuenta recien creada. LoadAsociaciones()
+        // recargaria ademas mesas y pedido-mesas: dos consultas de tabla completa que la
+        // facturacion no altera, porque pasar a EnPreparacion no libera mesas.
+        var todosPlatos = await PedidoPlatoApi.GetAllAsync();
+        _pedidoPlatos = todosPlatos.Where(pp => pp.IdPedido == Id).ToList();
+        await LoadCuentasQrAsync();
 
         var cuenta = _cuentasQr.OrderByDescending(c => c.Id).FirstOrDefault();
         if (cuenta is null)
@@ -530,6 +545,32 @@
         _cuentasQr = cuentas.Where(c => idsCuenta.Contains(c.Id) && c.MetodoPago == MetodoPago.Qr)
                             .OrderBy(c => c.Id)
                             .ToList();
+    }
+
+    private bool _procesando;
+
+    // Envuelve las acciones de la barra de botones: bloquea la pantalla mientras corren y
+    // deshabilita los botones. Lo segundo importa aparte del bloqueo en "En Preparacion",
+    // porque un doble clic ahi intenta facturar dos veces. El servidor ya lo rechaza
+    // (PedidosController solo factura en la transicion Abierto -> EnPreparacion), pero la
+    // interfaz no deberia ni ofrecerlo.
+    private async Task EjecutarAsync(Func<Task> accion, string mensaje)
+    {
+        if (_procesando)
+            return;
+
+        _procesando = true;
+
+        try
+        {
+            await EstadoOperaciones.BloquearAsync(accion, mensaje);
+        }
+        finally
+        {
+            // En finally: si la accion falla, los botones tienen que volver a habilitarse o
+            // la pantalla queda muerta sin forma de reintentar.
+            _procesando = false;
+        }
     }
 
     private async Task HandleSave()
