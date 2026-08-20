@@ -39,9 +39,17 @@ builder.Services.AddHttpClient("AtipicoApi", client =>
 {
     client.BaseAddress = new Uri(apiBaseUrl.TrimEnd('/') + "/api/");
 }).AddHttpMessageHandler<JwtForwardingHandler>();
-builder.Services.AddScoped(typeof(IEntityApiClient<>), typeof(EntityApiClient<>));
+// Los clientes reales se registran por su tipo concreto y la interfaz apunta al decorador
+// que reporta el progreso. Asi cualquier pagina que inyecte la interfaz enciende la barra
+// sin codigo propio. Un HttpClient crudo, en cambio, la evita: ver CLAUDE.md.
+builder.Services.AddScoped<EstadoOperaciones>();
+
+builder.Services.AddScoped(typeof(EntityApiClient<>));
+builder.Services.AddScoped(typeof(IEntityApiClient<>), typeof(EntityApiClientConProgreso<>));
+
 // Comprobantes: multipart y endpoints propios, fuera del contrato CRUD generico.
-builder.Services.AddScoped<IComprobanteApiClient, ComprobanteApiClient>();
+builder.Services.AddScoped<ComprobanteApiClient>();
+builder.Services.AddScoped<IComprobanteApiClient, ComprobanteApiClientConProgreso>();
 
 var app = builder.Build();
 

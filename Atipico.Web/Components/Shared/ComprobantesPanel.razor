@@ -69,9 +69,8 @@
                            comprobantes sin monto extraido: no esta descuadrado, esta a
                            medio procesar. *@
                         <span class="text-muted">
-                            @_sinMonto de @_vigentes.Count comprobante(s) sin monto extraído.
-                            La conciliación por importe queda pendiente del procesamiento
-                            automático.
+                            @_sinMonto de @_vigentes.Count sin monto
+                            <Ayuda Texto="Todavía no se extrajo el importe de esas imágenes, así que no se puede comparar la evidencia contra el total cobrado. No significa que falte dinero." />
                         </span>
                     }
                     else
@@ -141,7 +140,10 @@
                         <label class="form-label">Imagen del comprobante</label>
                         @* La clave fuerza a Blazor a recrear el input y limpiar la seleccion previa. *@
                         <InputFile class="form-control" OnChange="ArchivoSeleccionado" accept="image/*" @key="_claveInput" />
-                        <div class="form-text">El monto se extraerá de la imagen; no hace falta escribirlo.</div>
+                        <div class="form-text">
+                            Solo la imagen
+                            <Ayuda Texto="El monto se extraerá automáticamente de la imagen; no hace falta escribirlo." />
+                        </div>
                     </div>
                     <div class="col-sm-3">
                         <button type="button" class="btn btn-primary w-100"

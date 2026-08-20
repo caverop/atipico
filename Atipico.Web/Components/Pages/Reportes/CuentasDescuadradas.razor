@@ -6,9 +6,8 @@
 
 <h3>Conciliación de cuentas</h3>
 <p class="text-muted">
-    Cuentas cuyo monto declarado no coincide con la suma de su detalle de facturación
-    (respaldado por la vista <code>v_cuenta_descuadrada</code>). En una base sana esta lista
-    debería estar siempre vacía.
+    Cuentas cuyo monto no coincide con su detalle. Debería estar siempre vacía.
+    <Ayuda Texto="Respaldado por la vista v_cuenta_descuadrada, que compara el monto declarado de cada cuenta contra la suma de sus líneas de facturación." />
 </p>
 
 @if (_error is not null)

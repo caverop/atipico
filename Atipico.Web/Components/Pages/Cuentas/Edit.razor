@@ -25,7 +25,10 @@
         <div class="alert alert-info">
             @if (_entity.Estado == EstadoCuenta.Pagada)
             {
-                <text>Esta cuenta ya está pagada: solo se puede anular (con responsable y motivo). El resto de los campos queda fijo.</text>
+                <text>
+                    Cuenta pagada: solo admite anulación
+                    <Ayuda Texto="Anular exige responsable y motivo. El resto de los campos ya no se puede modificar." />
+                </text>
             }
             else
             {
@@ -48,8 +51,8 @@
                 }
             </InputSelect>
             <div class="form-text">
-                "Pagada" requiere método de pago y cajero; la fecha de pago se registra sola.
-                "Anulada" requiere responsable y motivo; la fecha de anulación se registra sola.
+                Cada estado exige sus datos
+                <Ayuda Texto="Pagada requiere método de pago y cajero. Anulada requiere responsable y motivo. En ambos casos la fecha se registra sola." />
             </div>
         </div>
         <div class="mb-3">
@@ -151,7 +154,10 @@
                 }
                 else
                 {
-                    <p class="text-muted">Selecciona los platos servidos que se incluirán en el detalle de esta cuenta. El monto se calcula automáticamente y puede ajustarse arriba.</p>
+                    <p class="text-muted">
+                        Selecciona los platos a facturar
+                        <Ayuda Texto="Se incluirán en el detalle de esta cuenta. El monto se calcula solo con lo que marques, y puede ajustarse arriba." />
+                    </p>
                     <ul class="list-group mb-3">
                         @foreach (var pp in _pedidoPlatosDisponibles)
                         {

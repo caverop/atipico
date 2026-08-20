@@ -1,0 +1,34 @@
+/* Barra fija en el borde superior de la ventana: no empuja el contenido ni provoca un
+   salto de layout cada vez que aparece o desaparece. */
+.barra-progreso {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 2000;
+    overflow: hidden;
+    background-color: rgba(13, 110, 253, 0.15);
+}
+
+.barra-progreso-avance {
+    width: 40%;
+    height: 100%;
+    background-color: #0d6efd;
+    animation: barra-progreso-recorrido 1.1s ease-in-out infinite;
+}
+
+@keyframes barra-progreso-recorrido {
+    0%   { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+}
+
+/* Respeta a quien pidio menos movimiento: se mantiene visible como banda fija, que sigue
+   comunicando "esperando", pero sin desplazamiento continuo. */
+@media (prefers-reduced-motion: reduce) {
+    .barra-progreso-avance {
+        width: 100%;
+        animation: none;
+        opacity: 0.6;
+    }
+}

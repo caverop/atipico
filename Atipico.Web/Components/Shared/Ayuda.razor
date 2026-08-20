@@ -1,0 +1,10 @@
+@* Tooltip de ayuda, solo CSS. No usa el de Bootstrap por dos razones: el bundle de JS de
+   Bootstrap no se carga en App.razor (data-bs-toggle="tooltip" seria un no-op silencioso),
+   y aunque se cargara, cada re-render de Blazor deja huerfanas las instancias ya
+   inicializadas. Hover y foco, sin JS de por medio. *@
+
+<span class="ayuda" tabindex="0" role="note" aria-label="@Texto" data-ayuda="@Texto">?</span>
+
+@code {
+    [Parameter, EditorRequired] public string Texto { get; set; } = string.Empty;
+}

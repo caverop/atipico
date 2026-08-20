@@ -14,6 +14,7 @@
 @inject IEntityApiClient<Cuenta> CuentaApi
 @inject IComprobanteApiClient ComprobanteApi
 @inject IHttpClientFactory HttpClientFactory
+@inject EstadoOperaciones EstadoOperaciones
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -82,7 +83,10 @@
 
         <div class="card mb-4 border-primary">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <span><strong>Comprobantes QR</strong> — se subirán al pasar a En Preparación</span>
+                <span>
+                    <strong>Comprobantes QR</strong>
+                    <Ayuda Texto="Las imágenes quedan preparadas y se suben al pulsar En Preparación, que es cuando se crea la cuenta a la que se adjuntan." />
+                </span>
                 @if (_preparados.Count > 0)
                 {
                     <span class="badge bg-primary">@_preparados.Count preparado(s)</span>
@@ -119,9 +123,8 @@
                         <InputFile class="form-control" OnChange="PrepararComprobantesAsync"
                                    accept="image/*" multiple @key="_claveInputComprobante" />
                         <div class="form-text">
-                            El monto se extraerá de la imagen; no hace falta escribirlo. Adjuntar es
-                            opcional: si no subes nada, el pedido se factura igual y la cuenta queda
-                            listada en el reporte de evidencia de pagos QR.
+                            Opcional — solo la imagen
+                            <Ayuda Texto="El monto se extraerá automáticamente de la imagen. Si no adjuntas nada, el pedido se factura igual y la cuenta aparecerá en el reporte de evidencia de pagos QR." />
                         </div>
                     </div>
                 </div>
@@ -426,11 +429,15 @@
         {
             try
             {
+                // No es una llamada HTTP, pero se espera igual: los bytes viajan del
+                // navegador al servidor por el circuito SignalR y una foto de telefono
+                // tarda. Sin esto la pantalla se queda muda justo en esa espera.
                 using var memoria = new MemoryStream();
-                await using (var origen = archivo.OpenReadStream(TamanoMaximoComprobante))
+                await EstadoOperaciones.SeguirAsync(async () =>
                 {
+                    await using var origen = archivo.OpenReadStream(TamanoMaximoComprobante);
                     await origen.CopyToAsync(memoria);
-                }
+                });
 
                 _preparados.Add(new ComprobantePreparado(
                     archivo.Name,
@@ -650,14 +657,20 @@
     // factura automaticamente al pasar a EnPreparacion). IEntityApiClient<T> es generico y no
     // soporta query params (lo usan 8+ paginas mas sin tocar); en vez de estirarlo, se arma un
     // HttpClient crudo, igual que /auth/login en Program.cs.
-    private async Task ActualizarPedidoConMetodoPagoAsync(Pedido pedido, MetodoPago metodoPago)
+    private Task ActualizarPedidoConMetodoPagoAsync(Pedido pedido, MetodoPago metodoPago)
     {
-        var http = HttpClientFactory.CreateClient("AtipicoApi");
-        var url = $"{ApiRoutes.For<Pedido>()}/{pedido.Id}?metodoPago={Uri.EscapeDataString(metodoPago.ToString())}";
+        // Este PUT no pasa por IEntityApiClient<T>, asi que tampoco por su decorador: hay
+        // que reportar el progreso a mano. Es la unica llamada de la aplicacion en esa
+        // situacion, y encima es de las lentas (factura y crea la cuenta).
+        return EstadoOperaciones.SeguirAsync(async () =>
+        {
+            var http = HttpClientFactory.CreateClient("AtipicoApi");
+            var url = $"{ApiRoutes.For<Pedido>()}/{pedido.Id}?metodoPago={Uri.EscapeDataString(metodoPago.ToString())}";
 
-        var response = await http.PutAsJsonAsync(url, pedido, JsonOptions);
-        if (!response.IsSuccessStatusCode)
-            throw new ApiException(await LeerMensajeErrorAsync(response));
+            var response = await http.PutAsJsonAsync(url, pedido, JsonOptions);
+            if (!response.IsSuccessStatusCode)
+                throw new ApiException(await LeerMensajeErrorAsync(response));
+        });
     }
 
     // Copiado de EntityApiClient<TEntity> (es privado ahi): mismo contrato { "message": "..." }

@@ -85,3 +85,13 @@ Those UTC timestamps are stored correctly but must not be displayed raw: Blazor 
 ### Roles
 
 `RolUsuario` enum (`Atipico.Domain/Enums/RolUsuario.cs`): `Mesero`, `Cajero`, `Cocinero`, `Admin`. Used both for API authorization (`CreateRoles`/`UpdateRoles`/`DeleteRoles` on controllers) and Web UI gating (`WriteRoles` on `EntityTable`).
+
+### Global progress bar
+
+`Atipico.Web/Components/Shared/BarraProgreso.razor` renders a thin indeterminate bar at the top of the viewport whenever an API call is in flight. It sits in `MainLayout.razor`, so it covers the whole app; **individual pages need no code for it**.
+
+The wiring is a decorator, not an HTTP handler, and that choice is load-bearing: `IHttpClientFactory` pools and reuses `DelegatingHandler` instances outside the Blazor circuit's DI scope, so a scoped counter injected there would capture the wrong circuit and one user's bar would light up for another user's request. Instead `EntityApiClient<T>` and `ComprobanteApiClient` are registered by their concrete type, and the interfaces resolve to `EntityApiClientConProgreso<T>` / `ComprobanteApiClientConProgreso`, which report to the scoped `EstadoOperaciones` (scoped == per circuit in Blazor Server). The counter increments on start and decrements in a `finally`, so a failed call can't leave the bar stuck; overlapping calls only clear it when the last one finishes.
+
+**The consequence for new code**: anything reached through `IEntityApiClient<T>` or `IComprobanteApiClient` gets the bar for free, but a raw `HttpClientFactory.CreateClient("AtipicoApi")` call bypasses it silently. There is exactly one such call today — the `metodoPago` query-string PUT in `Pedidos/Edit.razor`, which can't go through the generic client — and it wraps itself in `EstadoOperaciones.SeguirAsync` by hand. Any new raw-`HttpClient` call must do the same, as must long non-HTTP waits (`PrepararComprobantesAsync` wraps its `OpenReadStream` copy, since a phone photo crossing the SignalR circuit is a real wait with no request behind it).
+
+The bar is deliberately **indeterminate**: neither the API nor R2 reports progress, so a percentage would be fabricated. It also honours `prefers-reduced-motion` by holding a static band instead of animating.

@@ -1,0 +1,39 @@
+@implements IDisposable
+@inject EstadoOperaciones Estado
+
+@* Barra indeterminada: ni la API ni R2 reportan cuanto falta, asi que un porcentaje seria
+   inventado. La animacion continua dice lo unico que se sabe de verdad — que hay algo en
+   curso — y no le ensena al usuario a desconfiar de una cifra que nunca avanza. *@
+@if (_visible)
+{
+    <div class="barra-progreso" role="status" aria-live="polite" aria-label="Operación en curso">
+        <div class="barra-progreso-avance"></div>
+    </div>
+}
+
+@code {
+    private bool _visible;
+
+    protected override void OnInitialized()
+    {
+        _visible = Estado.HayOperaciones;
+        Estado.OnCambio += Actualizar;
+    }
+
+    // El evento puede dispararse desde el hilo de una llamada HTTP, no desde el de la UI:
+    // sin InvokeAsync, Blazor lanza al intentar renderizar fuera de su contexto.
+    private void Actualizar()
+    {
+        _ = InvokeAsync(() =>
+        {
+            var visible = Estado.HayOperaciones;
+            if (visible == _visible)
+                return;
+
+            _visible = visible;
+            StateHasChanged();
+        });
+    }
+
+    public void Dispose() => Estado.OnCambio -= Actualizar;
+}

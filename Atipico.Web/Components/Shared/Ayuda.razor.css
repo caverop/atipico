@@ -1,0 +1,63 @@
+.ayuda {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.05rem;
+    height: 1.05rem;
+    margin-left: 0.35rem;
+    border-radius: 50%;
+    border: 1px solid #adb5bd;
+    color: #6c757d;
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1;
+    cursor: help;
+    user-select: none;
+    position: relative;
+    vertical-align: middle;
+}
+
+.ayuda:hover,
+.ayuda:focus-visible {
+    border-color: #0d6efd;
+    color: #0d6efd;
+    outline: none;
+}
+
+/* La burbuja. Se muestra en hover y tambien en foco, para que sirva por teclado y no solo
+   con el mouse. */
+.ayuda::after {
+    content: attr(data-ayuda);
+    position: absolute;
+    bottom: calc(100% + 0.5rem);
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 20rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 0.35rem;
+    background-color: #212529;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 400;
+    line-height: 1.35;
+    text-align: left;
+    white-space: normal;
+    z-index: 1080;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.12s ease-in-out;
+    pointer-events: none;
+}
+
+.ayuda:hover::after,
+.ayuda:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ayuda::after {
+        transition: none;
+    }
+}

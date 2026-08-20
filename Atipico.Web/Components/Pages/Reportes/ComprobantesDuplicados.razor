@@ -6,9 +6,8 @@
 
 <h3>Comprobantes duplicados</h3>
 <p class="text-muted">
-    Un mismo archivo registrado como comprobante en cuentas distintas (respaldado por la
-    vista <code>v_comprobante_duplicado</code>). Dentro de una misma cuenta el caso ya lo
-    impide la base. En una operación sana esta lista debería estar siempre vacía.
+    El mismo archivo usado en cuentas distintas. Debería estar siempre vacía.
+    <Ayuda Texto="Respaldado por la vista v_comprobante_duplicado. Repetir un archivo dentro de una misma cuenta ya lo impide la base; esto detecta el reuso entre cuentas, que es la señal de un cobro en efectivo respaldado con un comprobante ajeno." />
 </p>
 
 @if (_error is not null)
@@ -26,8 +25,8 @@ else if (_items.Count == 0)
 else
 {
     <div class="alert alert-danger">
-        @_grupos.Count archivo(s) aparecen en más de una cuenta. Cada grupo es el mismo
-        archivo reutilizado: conviene revisar si el cobro fue realmente en QR.
+        @_grupos.Count archivo(s) en más de una cuenta
+        <Ayuda Texto="Cada grupo es el mismo archivo reutilizado. Conviene revisar si esos cobros fueron realmente por QR." />
     </div>
 
     @foreach (var grupo in _grupos)

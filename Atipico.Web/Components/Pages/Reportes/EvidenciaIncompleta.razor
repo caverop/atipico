@@ -6,11 +6,8 @@
 
 <h3>Evidencia de pagos QR</h3>
 <p class="text-muted">
-    Cuentas cobradas por QR que no tienen ningún comprobante adjunto (respaldado por la
-    vista <code>v_cuenta_qr_evidencia_incompleta</code>). Es la lista de trabajo del cierre
-    de turno: al día, debería estar vacía. Cuando el procesamiento automático empiece a
-    extraer los montos de las imágenes, esta misma lista marcará además las cuentas cuya
-    evidencia no cubra lo cobrado.
+    Cobros por QR sin comprobante adjunto. Al día, debería estar vacía.
+    <Ayuda Texto="Respaldado por la vista v_cuenta_qr_evidencia_incompleta. Es la lista de trabajo del cierre de turno. Cuando el procesamiento automático empiece a extraer los montos, esta misma lista marcará además las cuentas cuya evidencia no cubra lo cobrado." />
 </p>
 
 @if (_error is not null)
