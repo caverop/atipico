@@ -4,8 +4,8 @@ Especificación funcional y técnica para adjuntar la evidencia de un pago por Q
 `Cuenta`. Documento de referencia previo a la implementación: recoge las decisiones ya
 tomadas y su porqué, para que no haya que volver a discutirlas al escribir el código.
 
-- **Estado:** implementado, con las migraciones `006` y `007` aplicadas. **Sin probar
-  contra R2 real**: las pruebas usan dobles del almacenamiento.
+- **Estado:** implementado y **verificado de punta a punta en desarrollo**: subida real a
+  R2, migraciones `006` y `007` aplicadas. Pendiente la puesta en producción (§14).
 - **Alcance:** cuentas con `MetodoPago.Qr`. El pago en efectivo queda fuera.
 - **Almacenamiento:** Cloudflare R2 (compatible S3), bucket privado.
 
@@ -48,19 +48,20 @@ sequenceDiagram
     C-->>M: Muestra ambos comprobantes
     M->>M: Verifica los montos en pantalla
 
-    M->>W: Registra pedido y cuenta
-    W->>A: POST /api/cuentas — PAGADA, QR, Bs 200
-    A->>A: Sella PagadoEn (UTC), IdCajero = IdMesero
-    A->>DB: INSERT cuenta
-    Note over DB: fn_cuenta_inmutable sella la fila:<br/>ningun UPDATE posterior es admitido
+    M->>W: Elige metodo Qr y adjunta las imagenes
+    Note over W: Quedan en memoria del circuito:<br/>la cuenta todavia no existe
 
-    Note over M,DB: Ventana sin evidencia guardada — minutos u horas
+    M->>W: Pulsa "En Preparacion"
+    W->>A: PUT /api/pedidos/{id}?metodoPago=Qr
+    A->>DB: INSERT cuenta (ABIERTA, QR) + detalle
+    Note over DB: fn_cuenta_inmutable la sellara<br/>en cuanto deje de estar ABIERTA
 
-    M->>W: Adjunta comprobante (solo la imagen)
-    W->>A: POST /api/comprobantes — multipart
-    A->>A: magic bytes, quita EXIF, recodifica, SHA-256
-    A->>R2: (1) PUT objeto
-    A->>DB: (2) INSERT comprobante_pago
+    loop por cada imagen preparada
+        W->>A: POST /api/comprobantes — multipart
+        A->>A: magic bytes, quita EXIF, recodifica, SHA-256
+        A->>R2: (1) PUT objeto
+        A->>DB: (2) INSERT comprobante_pago (monto NULL)
+    end
 ```
 
 ---
@@ -544,21 +545,23 @@ El adaptador usa `AWSSDK.S3` con `ForcePathStyle = true`.
 
 ---
 
-## 10. Verificaciones previas
+## 10. Verificaciones — resueltas en desarrollo
 
-- [ ] **Confirmar que la base acepta `QR`.** `sql/script_inicial.sql` define
-      `ck_cuenta_metodo` permitiendo `EFECTIVO, TARJETA, TRANSFERENCIA, YAPE, PLIN` — sin
-      `QR`. El comentario de `MetodoPago.cs` afirma que la base desplegada sí lo acepta y
-      `schema_completo.sql` documenta el desvío como conocido. Toda esta especificación se
-      apoya en ese valor.
+- [x] **La base acepta `QR`.** Era el riesgo de fondo: `sql/script_inicial.sql` define
+      `ck_cuenta_metodo` con `EFECTIVO, TARJETA, TRANSFERENCIA, YAPE, PLIN` y sin `QR`, y
+      `schema_completo.sql` documenta el desvío. La prueba confirma que la base desplegada
+      sí lo acepta, como afirmaba el comentario de `MetodoPago.cs`. **Vale volver a
+      confirmarlo en producción**: el desvío es por base, no por código.
 - [x] **Librería de imagen: SixLabors.ImageSharp 3.1.12.** La 4.x emite un aviso en cada
       compilación exigiendo licencia; la 3.1 se rige por la Six Labors Split License, libre
       para esta escala. Se prefirió sobre SkiaSharp porque es manejada pura y no obliga a
       instalar librerías nativas en el contenedor. Si la facturación crece, revisar la
       licencia o migrar a SkiaSharp.
-- [ ] **Verificar los GRANT** sobre la tabla nueva después de correr la migración.
-- [ ] **Probar una subida real contra R2** cuando el token nuevo esté en `.env`. El código
-      no se puede validar de otra forma: las pruebas usan dobles del almacenamiento.
+- [x] **GRANT sobre los objetos nuevos.** Los scripts los reponen explícitamente, incluido
+      el de la vista recreada en la `007`.
+- [x] **Subida real contra R2.** Verificada de punta a punta: la firma con
+      `DisablePayloadSigning` y `AuthenticationRegion = "auto"` funciona contra R2, que era
+      lo único que las pruebas con dobles no podían cubrir.
 
 ---
 
@@ -626,3 +629,71 @@ presupuesto a largo plazo. Con ~150 KB por comprobante y unos 50 pagos QR diario
 tributaria, no de lo técnico.
 
 No bloquea la implementación: sin regla de ciclo de vida configurada, no se borra nada.
+
+---
+
+## 14. Puesta en producción
+
+Lo verificado en desarrollo no se traslada solo. Cuatro cosas viven por entorno y ninguna
+viaja en el repositorio.
+
+### 14.1 Las migraciones, contra la base de producción
+
+`sql/006_comprobante_pago.sql` y luego `sql/007_comprobante_monto_opcional.sql`, en ese
+orden. Se aplicaron en desarrollo; producción es otra base.
+
+Correr la `006` sin la `007` deja la columna `monto` en `NOT NULL` y **todos los INSERT
+fallan**, porque la aplicación ya no manda ese campo. Las dos o ninguna.
+
+Después, confirmar los permisos:
+
+```sql
+SELECT table_name, privilege_type
+  FROM information_schema.role_table_grants
+ WHERE grantee = 'app_restaurante'
+   AND table_name IN ('comprobante_pago', 'v_comprobante_vigente',
+                      'v_cuenta_qr_evidencia_incompleta', 'v_comprobante_duplicado');
+```
+
+Deben aparecer `SELECT` en los cuatro objetos e `INSERT` en `comprobante_pago`. Si falta
+alguno, la migración corrió con un usuario cuyos privilegios por defecto no alcanzan.
+
+### 14.2 Confirmar que la base de producción acepta `QR`
+
+Es el mismo desvío conocido de §10, y se verifica por base:
+
+```sql
+SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname = 'ck_cuenta_metodo';
+```
+
+Si el resultado no incluye `'QR'`, ninguna cuenta puede crearse con ese método y la
+funcionalidad entera queda muerta en producción aunque el código sea idéntico.
+
+### 14.3 Las variables de R2, en el dashboard de Render
+
+`render.yaml` las declara con `sync: false`, lo que significa que **el valor no está en el
+repositorio** y hay que cargarlo a mano en el servicio `atipico-api`:
+
+| Variable | Valor |
+|---|---|
+| `R2__AccountId` | El id de cuenta de Cloudflare |
+| `R2__AccessKeyId` | Credencial del token |
+| `R2__SecretAccessKey` | Credencial del token |
+| `R2__Bucket` | `atipico-comprobantes` — **el de producción, no el `-dev`** |
+
+Solo el servicio de la API las necesita; el Web nunca habla con R2.
+
+### 14.4 El bucket de producción
+
+Verificar que `atipico-comprobantes` esté creado y **privado**: sin dominio público, sin
+`r2.dev` habilitado y sin regla de ciclo de vida (la retención sigue sin decidirse, §13).
+
+### 14.5 Qué mirar en la primera venta real
+
+1. El pedido pasa a `EnPreparacion` y aparece la cuenta con método `QR`.
+2. El comprobante sube y el botón **Ver** abre la imagen.
+3. El reporte *Evidencia de pagos QR* queda vacío para esa cuenta.
+
+Si el paso 2 falla pero el 1 funcionó, la venta **está registrada igual**: la cuenta no se
+revierte por un fallo de subida (§8.1). La cuenta aparecerá en el reporte de evidencia y el
+comprobante se adjunta después desde la pantalla de cuenta. No hay que rehacer la venta.
