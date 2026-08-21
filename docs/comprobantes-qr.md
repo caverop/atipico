@@ -486,8 +486,8 @@ tiene el comprobante en la mano. En ese momento la cuenta **todavía no existe**
 `PedidosController` al pasar el pedido a `EnPreparacion`. El comprobante no tiene a qué
 colgarse.
 
-La salida es una **zona de preparación** en `Pedidos/Edit.razor`, encima de las secciones de
-platos y mesas, que aparece en cuanto se selecciona Qr:
+La salida es una **zona de preparación** en `Pedidos/Edit.razor`, debajo de la lista de
+platos del pedido, que aparece en cuanto se selecciona Qr:
 
 1. El mesero adjunta una o varias imágenes. Sin teclear nada.
 2. Al pulsar **En Preparación** se factura y nace la cuenta, como siempre.
@@ -499,8 +499,9 @@ transcribir a mano un dato que el comprobante ya trae impreso. Los comprobantes 
 con `monto` en `NULL` y la conciliación, mientras tanto, vigila lo que sí puede: que ninguna
 cuenta QR se quede sin evidencia.
 
-Va **encima** de platos y mesas a propósito: es lo primero que ocurre en el mostrador, y
-dejarlo al final obligaría a bajar por toda la pantalla en el momento de más apuro.
+Va **debajo de la lista de platos** a propósito: el mesero primero ve qué está cobrando y
+recién después adjunta el comprobante que lo respalda. Queda dentro de la columna de platos,
+no al final de la pantalla, para que siga a la vista sin tener que bajar.
 
 **Adjuntar es opcional y nunca bloquea.** Si no se preparó ningún archivo, el pedido se
 factura igual y la cuenta se crea igual. Si la subida falla después de creada la cuenta, la
