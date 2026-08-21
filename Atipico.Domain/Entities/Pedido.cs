@@ -12,6 +12,9 @@ namespace Atipico.Domain.Entities
         public string? Comensal { get; set; }
         public EstadoPedido Estado { get; set; } = EstadoPedido.Abierto;
 
+        /// <summary>Donde se consume. ck_pedido_tipo. Ver docs/tipo-pedido.md.</summary>
+        public TipoPedido Tipo { get; set; } = TipoPedido.EnSalon;
+
         public DateTimeOffset CreadoEn { get; set; }
         public DateTimeOffset ActualizadoEn { get; set; }
 

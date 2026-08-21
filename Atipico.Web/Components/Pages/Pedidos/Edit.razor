@@ -36,6 +36,18 @@
             <label class="form-label">Comensal</label>
             <InputText class="form-control" @bind-Value="_entity.Comensal" />
         </div>
+        <div class="mb-3">
+            <label class="form-label">Tipo de pedido</label>
+            @* Se sabe antes de tomar el primer plato, por eso va arriba. Deshabilitado en un
+               pedido que ya no esta Abierto: no hay boton que persista el cambio y quedaria
+               como una edicion fantasma. Ver docs/tipo-pedido.md §5. *@
+            <select class="form-select" @bind="_entity.Tipo" disabled="@(Id is not null && !_pedidoActivo)">
+                @foreach (var tipo in Enum.GetValues<TipoPedido>())
+                {
+                    <option value="@tipo">@tipo.Etiqueta()</option>
+                }
+            </select>
+        </div>
         @if (_entity.CerradoEn is not null)
         {
             <div class="mb-3">
@@ -85,7 +97,7 @@
     <hr class="my-4" />
 
     <div class="row">
-        <div class="col-md-6">
+        <div class="@(_mostrarMesas ? "col-md-6" : "col-12")">
             <h4>Platos del pedido</h4>
             @if (Id is null)
             {
@@ -213,60 +225,73 @@
                 }
             }
         </div>
-        <div class="col-md-6">
-            <h4>Mesas del pedido</h4>
-            @if (Id is null)
-            {
-                <p class="text-muted"><em>Guarda el pedido primero para poder asociar mesas.</em></p>
-            }
-            else
-            {
-                @if (_pedidoMesas.Count == 0)
+        @if (_mostrarMesas)
+        {
+            <div class="col-md-6">
+                <h4>Mesas del pedido</h4>
+                @if (_entity.Tipo != TipoPedido.EnSalon)
                 {
-                    <p class="text-muted"><em>Sin mesas asociadas todavía.</em></p>
+                    @* El tipo cambio despues de asociar la mesa. No se desasocia sola ni se
+                       esconde: una mesa ocupada de forma invisible solo se liberaria al cerrar
+                       el pedido, y nadie podria diagnosticarlo. Decide la persona. *@
+                    <div class="alert alert-warning py-2">
+                        Este pedido es <strong>@_entity.Tipo.Etiqueta()</strong> y tiene mesas asociadas.
+                        Si ya no corresponde, quítalas para liberarlas.
+                    </div>
+                }
+                @if (Id is null)
+                {
+                    <p class="text-muted"><em>Guarda el pedido primero para poder asociar mesas.</em></p>
                 }
                 else
                 {
-                    <ul class="list-group mb-3">
-                        @foreach (var pm in _pedidoMesas)
-                        {
-                            <li class="list-group-item d-flex justify-content-between align-items-center">
-                                <span>Mesa @(_mesas.FirstOrDefault(m => m.Id == pm.IdMesa)?.Numero.ToString() ?? $"#{pm.IdMesa}")</span>
-                                @if (_puedeAsociarMesa)
-                                {
-                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveMesa(pm.Id)">Quitar</button>
-                                }
-                            </li>
-                        }
-                    </ul>
-                }
-                @if (_puedeAsociarMesa)
-                {
-                    @if (_mesasDisponibles.Count > 0)
+                    @if (_pedidoMesas.Count == 0)
                     {
-                        <div class="input-group mb-4">
-                            <select class="form-select" @bind="_selectedMesaId">
-                                @foreach (var mesa in _mesasDisponibles)
-                                {
-                                    <option value="@mesa.Id">
-                                        Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ya ocupada por otro pedido" : "")
-                                    </option>
-                                }
-                            </select>
-                            <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
-                        </div>
+                        <p class="text-muted"><em>Sin mesas asociadas todavía.</em></p>
                     }
                     else
                     {
-                        <p class="text-muted"><em>No hay mesas disponibles para asociar.</em></p>
+                        <ul class="list-group mb-3">
+                            @foreach (var pm in _pedidoMesas)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>Mesa @(_mesas.FirstOrDefault(m => m.Id == pm.IdMesa)?.Numero.ToString() ?? $"#{pm.IdMesa}")</span>
+                                    @if (_puedeAsociarMesa)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleRemoveMesa(pm.Id)">Quitar</button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    }
+                    @if (_puedeAsociarMesa)
+                    {
+                        @if (_mesasDisponibles.Count > 0)
+                        {
+                            <div class="input-group mb-4">
+                                <select class="form-select" @bind="_selectedMesaId">
+                                    @foreach (var mesa in _mesasDisponibles)
+                                    {
+                                        <option value="@mesa.Id">
+                                            Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ya ocupada por otro pedido" : "")
+                                        </option>
+                                    }
+                                </select>
+                                <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted"><em>No hay mesas disponibles para asociar.</em></p>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted"><em>El pedido ya está cerrado o anulado; no se puede cambiar la mesa.</em></p>
                     }
                 }
-                else
-                {
-                    <p class="text-muted"><em>El pedido ya está cerrado o anulado; no se puede cambiar la mesa.</em></p>
-                }
-            }
-        </div>
+            </div>
+        }
     </div>
 
     @* Pago adelantado: al pasar a "En Preparación", PedidosController factura y crea la
@@ -348,6 +373,11 @@
 
     // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
     // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
+    // Para llevar y delivery no usan mesa, asi que la seccion desaparece... salvo que el
+    // pedido ya tenga mesas asociadas, en cuyo caso hay que poder verlas para quitarlas.
+    private bool _mostrarMesas =>
+        _entity.Tipo == TipoPedido.EnSalon || _pedidoMesas.Count > 0;
+
     private bool _pedidoActivo =>
         Id is not null && _entity.Estado == EstadoPedido.Abierto;
 
@@ -633,6 +663,7 @@
             Id = _entity.Id,
             Comensal = _entity.Comensal,
             Estado = EstadoPedido.EnPreparacion,
+            Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
         };
 
@@ -674,6 +705,7 @@
             Id = _entity.Id,
             Comensal = _entity.Comensal,
             Estado = EstadoPedido.Servido,
+            Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
         };
 
@@ -755,6 +787,7 @@
             Id = _entity.Id,
             Comensal = _entity.Comensal,
             Estado = EstadoPedido.Anulado,
+            Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
         };
 

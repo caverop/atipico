@@ -99,3 +99,22 @@ The bar is deliberately **indeterminate**: neither the API nor R2 reports progre
 **Blocking overlay.** `EstadoOperaciones` also exposes `BloquearAsync(accion, mensaje)`, rendered by `Bloqueo.razor` (also in `MainLayout`) as a full-viewport overlay with a spinner and a message. It uses a **separate counter** from the bar on purpose: the bar accompanies every call including a page's background loads, and blocking the screen for each of those would be unbearable. Blocking is opt-in and reserved for user-triggered actions that admit nothing else while they run — today the four buttons in `Pedidos/Edit.razor`, wrapped by its local `EjecutarAsync` helper.
 
 Both counters release in a `finally`, so a failed action can never leave the screen blocked or the bar stuck. Buttons are *also* disabled during the action, which is not redundant: it closes the window between the click and the overlay rendering, and on "En Preparación" a double click would try to bill twice (the server already rejects it — `PedidosController` only bills on the `Abierto -> EnPreparacion` transition — but the UI shouldn't offer it).
+
+### Sorting in `EntityTable`
+
+`EntityTable` renders clickable, sortable headers **only** when the page hooks its `OnSort`
+callback (plus `SortHeader` / `SortDescending`). Pages that don't hook it render exactly as
+before. The grid never sorts anything itself, and that is deliberate: a column is declared as
+`(Header, Func<TEntity, object?> Value)` where `Value` returns the **already formatted text**
+— currency via `"C"`, dates via `"g"`/`"d"`, `"Sí"`/`"No"` for booleans. Sorting on those
+strings gives plausible-looking but wrong results (`Bs 1.000,00` before `Bs 9,50`; dates
+ordered by day-of-month). Only the page knows the real value behind each column, so the
+ordering lives there.
+
+`Pedidos/Index.razor` is the reference implementation. Two things worth copying: `Creado` is
+ordered **by day, not by instant** (ordering by the full timestamp would make every secondary
+criterion unreachable, since each row has its own microsecond — and the page's own date
+filter already treats `Creado` as a day); and the non-selected columns stay on as
+tie-breakers in the default order, so sorting by `Estado` still shows the most recent first
+within each state instead of an arbitrary order. `Id` closes the chain to keep the order
+stable across re-renders.

@@ -1,0 +1,38 @@
+/* El encabezado ordenable es un <button> de verdad (foco y teclado gratis), pintado como
+   el texto de cabecera que reemplaza. */
+.entity-table-orden {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    font-weight: 600;
+    color: inherit;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.entity-table-orden:hover,
+.entity-table-orden:focus-visible {
+    color: var(--bs-primary, #0d6efd);
+}
+
+/* El icono esta siempre presente, tambien en las columnas inactivas: es lo que avisa que la
+   cabecera se puede ordenar, y ademas evita que el ancho de la columna salte al cambiar el
+   orden. Apagado mientras no manda, para que la columna activa se distinga de un vistazo. */
+.entity-table-icono {
+    flex: none;
+    opacity: 0.3;
+}
+
+.entity-table-icono.activa {
+    opacity: 1;
+    color: var(--bs-primary, #0d6efd);
+}
+
+.entity-table-orden:hover .entity-table-icono,
+.entity-table-orden:focus-visible .entity-table-icono {
+    opacity: 1;
+}

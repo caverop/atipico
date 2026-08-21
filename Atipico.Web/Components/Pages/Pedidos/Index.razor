@@ -28,6 +28,16 @@
             }
         </select>
     </div>
+    <div class="col-md-2">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" @bind="_filtroTipo">
+            <option value="">Todos</option>
+            @foreach (var tipo in Enum.GetValues<TipoPedido>())
+            {
+                <option value="@tipo">@tipo.Etiqueta()</option>
+            }
+        </select>
+    </div>
     <AuthorizeView Roles="Mesero">
         <NotAuthorized>
             <div class="col-md-2">
@@ -53,8 +63,11 @@
 
 <EntityTable TEntity="Pedido"
              Title="Pedidos"
-             Items="_pedidosFiltrados"
+             Items="_pedidosOrdenados"
              Columns="_columns"
+             SortHeader="_ordenColumna"
+             SortDescending="_ordenDesc"
+             OnSort="Ordenar"
              CreateUrl="/pedidos/nuevo"
              EditUrlPrefix="/pedidos"
              ShowDelete="false"
@@ -68,6 +81,7 @@
     private string? _filtroId;
     private string? _filtroComensal;
     private EstadoPedido? _filtroEstado;
+    private TipoPedido? _filtroTipo;
     private long? _filtroMesero;
     private DateOnly? _filtroCreado;
 
@@ -85,9 +99,72 @@
             (string.IsNullOrWhiteSpace(_filtroId) || p.Id.ToString().Contains(_filtroId.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (string.IsNullOrWhiteSpace(_filtroComensal) || (p.Comensal ?? "").Contains(_filtroComensal.Trim(), StringComparison.OrdinalIgnoreCase)) &&
             (_filtroEstado is null || p.Estado == _filtroEstado) &&
+            (_filtroTipo is null || p.Tipo == _filtroTipo) &&
             (_filtroMesero is null || p.IdMesero == _filtroMesero) &&
             (_filtroCreado is null || DateOnly.FromDateTime(p.CreadoEn.ToBoliviaTime().DateTime) == _filtroCreado))
         .ToList();
+
+    // Orden por defecto: primero Creado, luego Estado, por ultimo Comensal.
+    private string _ordenColumna = "Creado";
+    private bool _ordenDesc = true;
+
+    // Creado se ordena por DIA, no por instante. Si se ordenara por el timestamp completo los
+    // otros dos criterios no llegarian a aplicarse nunca (cada pedido tiene su microsegundo),
+    // y lo util es justamente lo contrario: ver el dia de hoy agrupado por estado. Es ademas
+    // como ya trataba a Creado el filtro de esta misma pantalla.
+    private static DateOnly DiaCreado(Pedido p) =>
+        DateOnly.FromDateTime(p.CreadoEn.ToBoliviaTime().DateTime);
+
+    // La columna elegida manda, y las demas quedan de desempate en el orden por defecto. Asi,
+    // al ordenar por Estado, dentro de cada estado siguen apareciendo los mas recientes
+    // primero en vez de en un orden arbitrario. Id cierra la cadena para que dos filas
+    // identicas no se intercambien entre renders.
+    private List<Pedido>? _pedidosOrdenados
+    {
+        get
+        {
+            var filtrados = _pedidosFiltrados;
+            if (filtrados is null)
+                return null;
+
+            var ordenados = _ordenColumna switch
+            {
+                "Comensal" => Aplicar(filtrados, p => p.Comensal ?? "", StringComparer.CurrentCultureIgnoreCase),
+                "Estado" => Aplicar(filtrados, p => p.Estado),
+                // Ordena por el valor del enum, no por la etiqueta: el orden de declaracion
+                // (salon, para llevar, delivery) agrupa mejor que el alfabetico.
+                "Tipo" => Aplicar(filtrados, p => p.Tipo),
+                _ => Aplicar(filtrados, DiaCreado),
+            };
+
+            if (_ordenColumna != "Creado")
+                ordenados = ordenados.ThenByDescending(DiaCreado);
+            if (_ordenColumna != "Estado")
+                ordenados = ordenados.ThenBy(p => p.Estado);
+            if (_ordenColumna != "Comensal")
+                ordenados = ordenados.ThenBy(p => p.Comensal ?? "", StringComparer.CurrentCultureIgnoreCase);
+
+            return ordenados.ThenBy(p => p.Id).ToList();
+        }
+    }
+
+    private IOrderedEnumerable<Pedido> Aplicar<TClave>(
+        IEnumerable<Pedido> fuente, Func<Pedido, TClave> clave, IComparer<TClave>? comparador = null) =>
+        _ordenDesc ? fuente.OrderByDescending(clave, comparador) : fuente.OrderBy(clave, comparador);
+
+    // Misma columna: invierte. Otra columna: arranca ascendente, salvo Creado, donde lo que
+    // se quiere ver primero es siempre lo mas reciente.
+    private void Ordenar(string columna)
+    {
+        if (_ordenColumna == columna)
+        {
+            _ordenDesc = !_ordenDesc;
+            return;
+        }
+
+        _ordenColumna = columna;
+        _ordenDesc = columna == "Creado";
+    }
 
     // Solo los meseros que efectivamente tienen pedidos, no todos los usuarios: evita opciones
     // muertas en el filtro.
@@ -108,6 +185,7 @@
         [
             ("Comensal", p => p.Comensal),
             ("Estado", p => p.Estado),
+            ("Tipo", p => p.Tipo.Etiqueta()),
             ("Creado", p => p.CreadoEn.ToBoliviaTime().ToString("g")),
         ];
 
@@ -119,6 +197,7 @@
         _filtroId = null;
         _filtroComensal = null;
         _filtroEstado = null;
+        _filtroTipo = null;
         _filtroMesero = null;
         _filtroCreado = null;
     }

@@ -24,7 +24,48 @@ else
                 <tr>
                     @foreach (var col in Columns)
                     {
-                        <th>@col.Header</th>
+                        @* Ordenable solo si la pantalla enganchó OnSort. Sin eso el <th> queda
+                           igual que siempre: el orden no se puede resolver aquí porque
+                           col.Value devuelve el texto ya formateado (montos en "C", fechas en
+                           "g", "Sí"/"No"), y ordenar por esa cadena da resultados falsos.
+                           La clave real la conoce la pantalla, y ahí vive el ordenamiento. *@
+                        @if (OnSort.HasDelegate)
+                        {
+                            var activa = col.Header == SortHeader;
+                            var descendente = activa && SortDescending;
+                            <th aria-sort="@(activa ? (descendente ? "descending" : "ascending") : "none")">
+                                <button type="button" class="entity-table-orden"
+                                        title="@(activa
+                                                 ? $"Ordenado por {col.Header}, {(descendente ? "de mayor a menor" : "de menor a mayor")}. Clic para invertir."
+                                                 : $"Ordenar por {col.Header}")"
+                                        @onclick="() => OnSort.InvokeAsync(col.Header)">
+                                    @col.Header
+                                    @* Iconos de Bootstrap Icons (MIT) copiados como SVG en linea: el proyecto no
+                                       carga la fuente de iconos, y NavMenu ya resuelve sus iconos asi. La columna
+                                       inactiva muestra la doble flecha, que es lo que delata que la cabecera se
+                                       puede pulsar; sin ella no habria nada que invite al clic. *@
+                                    <svg class="entity-table-icono @(activa ? "activa" : "")"
+                                         viewBox="0 0 16 16" width="12" height="12" fill="currentColor" aria-hidden="true">
+                                        @if (!activa)
+                                        {
+                                            <path d="M3.646 9.146a.5.5 0 0 1 .708 0L8 12.793l3.646-3.647a.5.5 0 0 1 .708.708l-4 4a.5.5 0 0 1-.708 0l-4-4a.5.5 0 0 1 0-.708zm0-2.292a.5.5 0 0 0 .708 0L8 3.207l3.646 3.647a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 0 0 0 .708z" />
+                                        }
+                                        else if (descendente)
+                                        {
+                                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                                        }
+                                        else
+                                        {
+                                            <path d="M7.247 4.86l-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z" />
+                                        }
+                                    </svg>
+                                </button>
+                            </th>
+                        }
+                        else
+                        {
+                            <th>@col.Header</th>
+                        }
                     }
                     <AuthorizeView Roles="@RolesCsv" Context="headerAuth">
                         <Authorized><th></th></Authorized>
@@ -71,6 +112,14 @@ else
     // depende de la entidad (Activo=false, Estado=Inactiva/Anulado/Anulada, ...).
     [Parameter] public EventCallback<long> OnDelete { get; set; }
     [Parameter] public string DeleteLabel { get; set; } = "Eliminar";
+
+    // Ordenamiento: opcional y opt-in. La grilla no ordena nada, solo dibuja el encabezado
+    // clicleable y avisa cual se pulso; quien decide el criterio es la pantalla, que es la
+    // unica que conoce el valor real detras de cada columna. Las pantallas que no enganchan
+    // OnSort quedan exactamente como estaban.
+    [Parameter] public string? SortHeader { get; set; }
+    [Parameter] public bool SortDescending { get; set; }
+    [Parameter] public EventCallback<string> OnSort { get; set; }
 
     // Algunas pantallas (p.ej. Pedidos) sacan esta accion de la grilla a proposito: solo se
     // puede anular entrando a editar el registro, no desde la lista.

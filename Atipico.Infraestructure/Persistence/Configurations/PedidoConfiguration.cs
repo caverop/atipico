@@ -27,6 +27,12 @@ namespace Atipico.Infraestructure.Persistence.Configurations
             builder.Property(p => p.Estado).HasColumnName("estado")
                 .HasConversion(new UpperSnakeCaseEnumConverter<EstadoPedido>()).HasMaxLength(20).IsRequired();
 
+            // ck_pedido_tipo (sql/008_pedido_tipo.sql). El DEFAULT 'EN_SALON' vive en la
+            // base para las filas que ya existian; aca no se declara HasDefaultValue porque
+            // la entidad siempre manda un valor explicito.
+            builder.Property(p => p.Tipo).HasColumnName("tipo")
+                .HasConversion(new UpperSnakeCaseEnumConverter<TipoPedido>()).HasMaxLength(20).IsRequired();
+
             builder.Property(p => p.CreadoEn).HasColumnName("creado_en")
                 .HasDefaultValueSql("now()").ValueGeneratedOnAdd();
             builder.Property(p => p.ActualizadoEn).HasColumnName("actualizado_en")
