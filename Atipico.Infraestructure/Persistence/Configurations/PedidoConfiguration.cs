@@ -33,6 +33,13 @@ namespace Atipico.Infraestructure.Persistence.Configurations
             builder.Property(p => p.Tipo).HasColumnName("tipo")
                 .HasConversion(new UpperSnakeCaseEnumConverter<TipoPedido>()).HasMaxLength(20).IsRequired();
 
+            // Entrega (sql/009_pedido_direccion_entrega.sql). HasPrecision(9, 6) refleja el
+            // numeric(9,6) de la base: 3 digitos enteros y 6 decimales, unos 11 cm.
+            builder.Property(p => p.DireccionEntrega).HasColumnName("direccion_entrega");
+            builder.Property(p => p.UbicacionCompartida).HasColumnName("ubicacion_compartida");
+            builder.Property(p => p.LatitudEntrega).HasColumnName("latitud_entrega").HasPrecision(9, 6);
+            builder.Property(p => p.LongitudEntrega).HasColumnName("longitud_entrega").HasPrecision(9, 6);
+
             builder.Property(p => p.CreadoEn).HasColumnName("creado_en")
                 .HasDefaultValueSql("now()").ValueGeneratedOnAdd();
             builder.Property(p => p.ActualizadoEn).HasColumnName("actualizado_en")

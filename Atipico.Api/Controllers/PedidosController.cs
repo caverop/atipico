@@ -87,9 +87,16 @@ namespace Atipico.Api.Controllers
             if (pasaAEnPreparacion && metodoPago is null)
                 return BadRequest(new { message = "Selecciona un método de pago antes de pasar el pedido a En Preparación." });
 
+            // Update no vuelca la entidad recibida: carga la fila y copia campo por campo.
+            // Toda columna que falte aca es una columna que ningun PUT puede modificar nunca.
             existing.Comensal = entity.Comensal;
             existing.Estado = entity.Estado;
+            existing.Tipo = entity.Tipo;
             existing.IdMesero = entity.IdMesero;
+            existing.DireccionEntrega = entity.DireccionEntrega;
+            existing.UbicacionCompartida = entity.UbicacionCompartida;
+            existing.LatitudEntrega = entity.LatitudEntrega;
+            existing.LongitudEntrega = entity.LongitudEntrega;
 
             if (pasaACerrado)
                 existing.CerradoEn = DateTimeOffset.UtcNow;

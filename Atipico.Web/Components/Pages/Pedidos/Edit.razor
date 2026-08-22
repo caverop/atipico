@@ -2,6 +2,7 @@
 @page "/pedidos/{Id:long}"
 @attribute [Authorize(Roles = "Admin,Mesero")]
 @using System.Net
+@using Atipico.Application.Common
 @using System.Text.Json
 @using System.Text.Json.Serialization
 @inject IEntityApiClient<Pedido> Api
@@ -97,7 +98,7 @@
     <hr class="my-4" />
 
     <div class="row">
-        <div class="@(_mostrarMesas ? "col-md-6" : "col-12")">
+        <div class="@(_mostrarMesas || _mostrarEntrega ? "col-md-6" : "col-12")">
             <h4>Platos del pedido</h4>
             @if (Id is null)
             {
@@ -292,6 +293,83 @@
                 }
             </div>
         }
+        @if (_mostrarEntrega)
+        {
+            <div class="col-md-6">
+                <h4>Entrega</h4>
+
+                @if (string.IsNullOrWhiteSpace(_entity.DireccionEntrega) && _entity.LatitudEntrega is null)
+                {
+                    @* Se avisa, no se bloquea: el pedido se factura igual sin esto. *@
+                    <div class="alert alert-warning py-2">
+                        Este pedido es delivery y todavía no tiene a dónde ir.
+                    </div>
+                }
+
+                <div class="mb-3">
+                    <label class="form-label">Referencia</label>
+                    @* Fuera del EditForm no hay EditContext, asi que van <textarea>/<input>
+                       comunes con @@bind y no los componentes InputText/InputNumber. *@
+                    <textarea class="form-control" rows="2" @bind="_entity.DireccionEntrega"
+                              disabled="@_entregaBloqueada"
+                              placeholder="Casa verde, media cuadra del surtidor"></textarea>
+                    <div class="form-text">
+                        Cómo llegar, en palabras
+                        <Ayuda Texto="Es lo único que puede contradecir al pin: quien comparte su ubicación actual desde la oficina manda un punto que no es su casa." />
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Ubicación de WhatsApp</label>
+                    <textarea class="form-control" rows="2" @bind="_entity.UbicacionCompartida"
+                              @bind:after="LeerUbicacion" disabled="@_entregaBloqueada"
+                              placeholder="Pega el enlace o las coordenadas"></textarea>
+                    <div class="form-text">
+                        Se guarda tal cual, aunque no se puedan leer las coordenadas
+                        <Ayuda Texto="Un enlace corto de maps.app.goo.gl no trae coordenadas, pero el repartidor lo puede abrir igual." />
+                    </div>
+                </div>
+
+                @if (_avisoUbicacion is not null)
+                {
+                    <div class="alert alert-warning py-2">@_avisoUbicacion</div>
+                }
+
+                @if (_entity.LatitudEntrega is decimal lat && _entity.LongitudEntrega is decimal lng)
+                {
+                    @* El enlace se arma con las coordenadas y no se reusa el original: un
+                       enlace de "ubicacion en tiempo real" caduca a las horas, un punto no. *@
+                    <div class="mb-3">
+                        <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+                           href="@UbicacionCompartida.EnlaceMapa(lat, lng)">Ver en el mapa</a>
+                    </div>
+
+                    @if (UbicacionCompartida.FueraDeBolivia(lat, lng))
+                    {
+                        <div class="alert alert-warning py-2">
+                            Ese punto no cae en Bolivia. Casi siempre significa que la latitud y
+                            la longitud están invertidas.
+                        </div>
+                    }
+                }
+
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label">Latitud</label>
+                        <input type="number" step="any" class="form-control"
+                               @bind="_entity.LatitudEntrega" disabled="@_entregaBloqueada" />
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label">Longitud</label>
+                        <input type="number" step="any" class="form-control"
+                               @bind="_entity.LongitudEntrega" disabled="@_entregaBloqueada" />
+                    </div>
+                    <div class="col-12">
+                        <div class="form-text">Se llenan solas al pegar arriba; se pueden corregir a mano.</div>
+                    </div>
+                </div>
+            </div>
+        }
     </div>
 
     @* Pago adelantado: al pasar a "En Preparación", PedidosController factura y crea la
@@ -360,7 +438,9 @@
     {
         get
         {
-            var hoy = DateOnly.FromDateTime(DateTime.UtcNow);
+            // ToBoliviaDate y no DateTime.UtcNow: con UTC-4 la fecha UTC cambia a las
+            // 20:00 de acá, y un plato habilitado "hasta hoy" se caía del menú en plena cena.
+            var hoy = DateTimeOffset.UtcNow.ToBoliviaDate();
             return _platos.Where(p => p.Activo && p.HabilitadoDesde <= hoy && (p.HabilitadoHasta is null || p.HabilitadoHasta >= hoy)).ToList();
         }
     }
@@ -373,6 +453,36 @@
 
     // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
     // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
+    private bool _mostrarEntrega => _entity.Tipo == TipoPedido.Delivery;
+
+    // Editable mientras el pedido este Abierto, o mientras todavia no exista: una vez
+    // facturado se sigue viendo (el repartidor la necesita) pero ya no se toca.
+    private bool _entregaBloqueada => Id is not null && !_pedidoActivo;
+
+    private string? _avisoUbicacion;
+
+    // Corre al salir del campo, no en cada tecla: pegar un enlace largo dispararia el parser
+    // decenas de veces sin necesidad.
+    private void LeerUbicacion()
+    {
+        _avisoUbicacion = null;
+
+        if (string.IsNullOrWhiteSpace(_entity.UbicacionCompartida))
+            return;
+
+        if (UbicacionCompartida.TryExtraer(_entity.UbicacionCompartida, out var lat, out var lng))
+        {
+            _entity.LatitudEntrega = lat;
+            _entity.LongitudEntrega = lng;
+            return;
+        }
+
+        // No se borra lo que ya haya en latitud/longitud: pueden venir de una correccion a
+        // mano, y perderlas por pegar un enlace ilegible seria peor que no leerlo.
+        _avisoUbicacion = "No se pudieron leer coordenadas de ese texto. Se guarda igual, y el "
+                        + "repartidor puede abrirlo; si querés el punto, cargalo abajo a mano.";
+    }
+
     // Para llevar y delivery no usan mesa, asi que la seccion desaparece... salvo que el
     // pedido ya tenga mesas asociadas, en cuyo caso hay que poder verlas para quitarlas.
     private bool _mostrarMesas =>
@@ -665,6 +775,10 @@
             Estado = EstadoPedido.EnPreparacion,
             Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
+            DireccionEntrega = _entity.DireccionEntrega,
+            UbicacionCompartida = _entity.UbicacionCompartida,
+            LatitudEntrega = _entity.LatitudEntrega,
+            LongitudEntrega = _entity.LongitudEntrega,
         };
 
         try
@@ -707,6 +821,10 @@
             Estado = EstadoPedido.Servido,
             Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
+            DireccionEntrega = _entity.DireccionEntrega,
+            UbicacionCompartida = _entity.UbicacionCompartida,
+            LatitudEntrega = _entity.LatitudEntrega,
+            LongitudEntrega = _entity.LongitudEntrega,
         };
 
         try
@@ -789,6 +907,10 @@
             Estado = EstadoPedido.Anulado,
             Tipo = _entity.Tipo,
             IdMesero = _entity.IdMesero,
+            DireccionEntrega = _entity.DireccionEntrega,
+            UbicacionCompartida = _entity.UbicacionCompartida,
+            LatitudEntrega = _entity.LatitudEntrega,
+            LongitudEntrega = _entity.LongitudEntrega,
         };
 
         try

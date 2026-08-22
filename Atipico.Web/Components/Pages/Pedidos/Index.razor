@@ -101,7 +101,7 @@
             (_filtroEstado is null || p.Estado == _filtroEstado) &&
             (_filtroTipo is null || p.Tipo == _filtroTipo) &&
             (_filtroMesero is null || p.IdMesero == _filtroMesero) &&
-            (_filtroCreado is null || DateOnly.FromDateTime(p.CreadoEn.ToBoliviaTime().DateTime) == _filtroCreado))
+            (_filtroCreado is null || p.CreadoEn.ToBoliviaDate() == _filtroCreado))
         .ToList();
 
     // Orden por defecto: primero Creado, luego Estado, por ultimo Comensal.
@@ -112,8 +112,12 @@
     // otros dos criterios no llegarian a aplicarse nunca (cada pedido tiene su microsegundo),
     // y lo util es justamente lo contrario: ver el dia de hoy agrupado por estado. Es ademas
     // como ya trataba a Creado el filtro de esta misma pantalla.
-    private static DateOnly DiaCreado(Pedido p) =>
-        DateOnly.FromDateTime(p.CreadoEn.ToBoliviaTime().DateTime);
+    private static DateOnly DiaCreado(Pedido p) => p.CreadoEn.ToBoliviaDate();
+
+    // Falta a dónde entregar solo si no hay NINGUNA de las dos: con la referencia escrita
+    // alcanza en un barrio conocido, y con el punto solo, el repartidor llega igual.
+    private static bool SinDondeEntregar(Pedido p) =>
+        string.IsNullOrWhiteSpace(p.DireccionEntrega) && p.LatitudEntrega is null;
 
     // La columna elegida manda, y las demas quedan de desempate en el orden por defecto. Asi,
     // al ordenar por Estado, dentro de cada estado siguen apareciendo los mas recientes
@@ -185,7 +189,11 @@
         [
             ("Comensal", p => p.Comensal),
             ("Estado", p => p.Estado),
-            ("Tipo", p => p.Tipo.Etiqueta()),
+            // Se reporta, no se bloquea: un delivery sin dirección se factura igual, pero
+            // tiene que verse en la lista. Ver docs/direccion-entrega.md §4.
+            ("Tipo", p => p.Tipo == TipoPedido.Delivery && SinDondeEntregar(p)
+                ? "Delivery · sin dirección"
+                : p.Tipo.Etiqueta()),
             ("Creado", p => p.CreadoEn.ToBoliviaTime().ToString("g")),
         ];
 

@@ -85,6 +85,12 @@ namespace Atipico.Api.Controllers
             "ck_comprobante_bytes" => "El archivo del comprobante está vacío.",
             "ck_comprobante_tipo" => "El formato de imagen del comprobante no está permitido.",
             "ck_comprobante_reemplazo" => "Para reemplazar un comprobante se debe indicar el motivo.",
+            // Tipo de pedido (sql/008_pedido_tipo.sql).
+            "ck_pedido_tipo" => "El tipo de pedido no es válido.",
+            // Direccion de entrega (sql/009_pedido_direccion_entrega.sql).
+            "ck_pedido_coordenada" => "La ubicación de entrega necesita latitud y longitud, o ninguna de las dos.",
+            "ck_pedido_latitud" => "La latitud de entrega está fuera de rango (-90 a 90).",
+            "ck_pedido_longitud" => "La longitud de entrega está fuera de rango (-180 a 180).",
             _ => null
         };
     }

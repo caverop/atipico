@@ -15,6 +15,20 @@ namespace Atipico.Domain.Entities
         /// <summary>Donde se consume. ck_pedido_tipo. Ver docs/tipo-pedido.md.</summary>
         public TipoPedido Tipo { get; set; } = TipoPedido.EnSalon;
 
+        // Entrega. Solo se usan cuando Tipo es Delivery; las cuatro son anulables porque un
+        // pedido puede nacer sin ellas. Ver docs/direccion-entrega.md.
+
+        /// <summary>La referencia escrita: "casa verde, media cuadra del surtidor".</summary>
+        public string? DireccionEntrega { get; set; }
+
+        /// <summary>Lo que llegó de WhatsApp tal cual, se haya podido parsear o no.</summary>
+        public string? UbicacionCompartida { get; set; }
+
+        /// <summary>ck_pedido_coordenada: va junto con <see cref="LongitudEntrega"/> o no va.</summary>
+        public decimal? LatitudEntrega { get; set; }
+
+        public decimal? LongitudEntrega { get; set; }
+
         public DateTimeOffset CreadoEn { get; set; }
         public DateTimeOffset ActualizadoEn { get; set; }
 

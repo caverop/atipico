@@ -11,5 +11,14 @@ namespace Atipico.Web
         private static readonly TimeSpan BoliviaOffset = TimeSpan.FromHours(-4);
 
         public static DateTimeOffset ToBoliviaTime(this DateTimeOffset value) => value.ToOffset(BoliviaOffset);
+
+        /// <summary>
+        /// La fecha calendario en Bolivia. Existe para que no vuelva a colarse
+        /// <c>DateOnly.FromDateTime(DateTime.UtcNow)</c>, que parece correcto y no lo es: con
+        /// UTC-4 la fecha UTC rueda a las 20:00 hora boliviana, asi que entre las 20:00 y la
+        /// medianoche "hoy" en UTC ya es mañana acá.
+        /// </summary>
+        public static DateOnly ToBoliviaDate(this DateTimeOffset value) =>
+            DateOnly.FromDateTime(value.ToBoliviaTime().DateTime);
     }
 }

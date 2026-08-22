@@ -148,17 +148,24 @@ orden por defecto, que sigue siendo Creado → Estado → Comensal.
 **Nada más cambia.** El flujo de facturación, los comprobantes QR y los estados del pedido
 son indiferentes al tipo.
 
-### 5.1 Las transiciones de estado tienen que arrastrar el tipo
+### 5.1 Una columna nueva se copia en DOS lugares, o no se guarda
 
-Aparecido al implementar, y no es evidente. `HandleCerrarPedido`, `HandleMarcarServido` y
-`HandleAnularPedido` **no envían `_entity`**: arman un `Pedido` nuevo copiando campo por
-campo (`Id`, `Comensal`, `Estado`, `IdMesero`) y lo mandan por `UpdateAsync`, que es un PUT
-de la entidad completa.
+Aparecido al implementar, y no es evidente, porque son dos copias encadenadas y cada una
+falla distinto:
 
-Toda columna nueva que no se copie ahí viaja en su valor por defecto y **el PUT la pisa en la
-base**. Sin agregar `Tipo = _entity.Tipo` en los tres, cada pedido para llevar volvería a
-`EN_SALON` al pasar a En Preparación, en silencio y sin error. Lo mismo le pasará a la
-próxima columna que se agregue a `pedido`.
+**En la API.** `PedidosController.Update` **no vuelca la entidad recibida**: carga la fila con
+`GetByIdAsync` y copia campo por campo (`Comensal`, `Estado`, `Tipo`, `IdMesero`). Una columna
+que falte en esa lista es una columna que **ningún PUT puede modificar jamás** — se guarda al
+crear y queda congelada. No hay error: el PUT responde 200 y el cambio desaparece.
+
+**En la web.** `HandleCerrarPedido`, `HandleMarcarServido` y `HandleAnularPedido` no envían
+`_entity`: arman un `Pedido` nuevo copiando campo por campo. Una columna que falte ahí viaja
+en su valor por defecto — y ahora que la API sí copia `Tipo`, **eso la pisa en la base**: cada
+pedido para llevar volvería a `EN_SALON` al pasar a En Preparación.
+
+Las dos copias se necesitan mutuamente. Con solo la de la web, el tipo no se puede editar;
+con solo la de la API, se pierde en cada transición. Lo mismo le va a pasar a la próxima
+columna que se agregue a `pedido` — la dirección de entrega, por ejemplo.
 
 ## 6. API y roles
 
