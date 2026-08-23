@@ -3,8 +3,9 @@
 Especificación funcional y técnica para registrar a dónde va un pedido `DELIVERY`. Continúa
 [tipo-pedido.md](tipo-pedido.md), que dejó `DELIVERY` como una etiqueta sin datos operativos.
 
-- **Estado:** **implementado**, compila y con pruebas en verde. Falta correr la migración
-  contra producción (§10) y probarlo con una ubicación real de WhatsApp.
+- **Estado:** **en producción**. `sql/009_pedido_direccion_entrega.sql` ejecutado; pruebas en
+  verde. El mapa se verificó contra un punto conocido (§2.3). Falta probar el pegado de una
+  ubicación real de WhatsApp, con los dispositivos que usan los meseros (§10).
 - **Alcance:** guardar la ubicación de entrega de un pedido — una referencia escrita y un
   punto GPS — y poder abrirla en un mapa.
 - **Fuera de alcance:** costo de envío, repartidor asignado, estados de reparto, entidad
@@ -86,6 +87,12 @@ El día que hagan falta consultas de verdad ("pedidos a menos de 2 km"), se agre
 `geography(Point,4326)` y se llena desde estas dos. Empezar simple no cierra esa puerta.
 
 ### 2.3 Los decimales que se descartan
+
+**Decidido y verificado en pantalla.** Se evaluó migrar a `numeric(18,15)` para conservar los
+quince decimales que copia Google Maps, y se comparó el mapa con las dos versiones del punto:
+caen en el mismo lugar. El redondeo corre el pin **0,1 píxeles** en el mapa embebido y menos
+de uno al zoom máximo de Google Maps. La migración quedó descartada; queda anotado para no
+volver a discutirlo.
 
 Google Maps copia quince decimales; se guardan **seis**. No se pierde precisión real: seis
 decimales son unos 11 cm, y un GPS de teléfono en la calle acierta dentro de 3 a 10 metros. Lo

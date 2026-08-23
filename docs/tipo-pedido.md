@@ -4,8 +4,7 @@ Especificación funcional y técnica para distinguir cómo se consume un pedido.
 referencia previo a la implementación: recoge las decisiones tomadas y su porqué, para no
 volver a discutirlas al escribir el código.
 
-- **Estado:** **implementado**, compila y con pruebas en verde. Falta correr la migración
-  contra producción (§9) y probarlo con datos reales.
+- **Estado:** **en producción**. `sql/008_pedido_tipo.sql` ejecutado; pruebas en verde.
 - **Alcance:** clasificar el pedido en uno de tres tipos, y poder filtrar y ordenar por eso.
   Nada más.
 - **Fuera de alcance:** todo lo operativo del delivery — dirección, teléfono, costo de envío,
