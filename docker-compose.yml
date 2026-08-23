@@ -30,5 +30,14 @@ services:
       # "api" resuelve al contenedor de arriba por el nombre del servicio, via la red
       # que crea compose automaticamente — no hace falta host.docker.internal aca.
       ApiBaseUrl: http://api:10000
+    volumes:
+      # El llavero de Data Protection, que cifra la cookie de sesion y el token antiforgery.
+      # Sin este volumen se pierde al recrear el contenedor: al levantar de nuevo las claves
+      # son otras, lo cifrado con las anteriores ya no se puede descifrar, y aparece
+      # "The antiforgery token could not be decrypted" ademas de cerrarse todas las sesiones.
+      - atipico-keys:/var/atipico/keys
     depends_on:
       - api
+
+volumes:
+  atipico-keys:

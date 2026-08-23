@@ -4,6 +4,7 @@ using Atipico.Web.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using System.Net.Http.Json;
 using System.Security.Claims;
 
@@ -42,7 +43,35 @@ builder.Services.AddHttpClient("AtipicoApi", client =>
 // Los clientes reales se registran por su tipo concreto y la interfaz apunta al decorador
 // que reporta el progreso. Asi cualquier pagina que inyecte la interfaz enciende la barra
 // sin codigo propio. Un HttpClient crudo, en cambio, la evita: ver CLAUDE.md.
+// Data Protection cifra la cookie de autenticacion y el token antiforgery. Sin esto, el
+// llavero se guarda en el home del usuario del contenedor, que se pierde en cada
+// recreacion: al levantar de nuevo, ASP.NET Core genera claves nuevas y todo lo cifrado con
+// las anteriores deja de poder descifrarse. Eso es lo que produce "The antiforgery token
+// could not be decrypted" y, peor, cierra la sesion de todos los usuarios en cada deploy.
+//
+// La ruta se puede montar como volumen (ver docker-compose.yml) o como disco persistente.
+// Si no se monta nada, escribe dentro del contenedor y el comportamiento es el de antes: no
+// empeora nada donde no haya donde persistir.
+builder.Services.AddDataProtection()
+    // Fijo y explicito: por defecto se deriva de la ruta del contenido, que cambia entre
+    // entornos y haria ilegibles las claves aunque el directorio si se conserve.
+    .SetApplicationName("Atipico")
+    .PersistKeysToFileSystem(new DirectoryInfo(
+        builder.Configuration["DataProtection:KeysPath"] ?? "/var/atipico/keys"));
+
 builder.Services.AddScoped<EstadoOperaciones>();
+
+// Resolver enlaces cortos de Google Maps (docs/enlace-corto-ubicacion.md). Cliente aparte del
+// de la API: no lleva el token del usuario, y sobre todo NO sigue redirects solo — cada salto
+// se valida antes de seguirlo. El timeout corto no es prudencia teorica: el cajero espera con
+// el comensal enfrente.
+builder.Services.AddHttpClient(ResolvedorEnlaceUbicacion.ClienteHttp, client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(5);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Atipico/1.0 (sistema de restaurante)");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+
+builder.Services.AddScoped<IResolvedorEnlaceUbicacion, ResolvedorEnlaceUbicacion>();
 
 builder.Services.AddScoped(typeof(EntityApiClient<>));
 builder.Services.AddScoped(typeof(IEntityApiClient<>), typeof(EntityApiClientConProgreso<>));

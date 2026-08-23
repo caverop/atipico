@@ -25,6 +25,33 @@ namespace Atipico.Application.Tests
             Assert.Equal(-63.182140m, lng);
         }
 
+        // Una URL de "place" trae el encuadre de la cámara en el @ y el pin real en !3d/!4d.
+        // El de la cámara aparece primero, así que "el primer par" agarra el equivocado — en
+        // este caso a unos 40 metros. Es la URL real a la que resuelve un maps.app.goo.gl.
+        [Fact]
+        public void EnUnaUrlDePlaceGanaElPinYNoElEncuadre()
+        {
+            const string url = "https://www.google.com/maps/place/17%C2%B045'49.3%22S+63%C2%B011'59.7%22W"
+                             + "/@-17.7637728,-63.2002991,18.94z/data=!4m4!3m3!8m2!3d-17.763701!4d-63.19992?entry=tts";
+
+            Assert.True(UbicacionCompartida.TryExtraer(url, out var lat, out var lng));
+
+            Assert.Equal(-17.763701m, lat);
+            Assert.Equal(-63.19992m, lng);
+            Assert.NotEqual(-17.7637728m, lat);   // el encuadre, que es lo que se leía antes
+        }
+
+        // Sin !3d/!4d, el @ es lo único que hay y sigue siendo lo correcto.
+        [Fact]
+        public void SinPinSeUsaElEncuadre()
+        {
+            Assert.True(UbicacionCompartida.TryExtraer(
+                "https://www.google.com/maps/@-17.783241,-63.182140,17z", out var lat, out var lng));
+
+            Assert.Equal(-17.783241m, lat);
+            Assert.Equal(-63.182140m, lng);
+        }
+
         // El ",17z" del nivel de zoom va pegado a la longitud y no tiene parte decimal: no
         // debe confundirse con un tercer numero ni cortar el par.
         [Fact]
@@ -124,6 +151,52 @@ namespace Atipico.Application.Tests
             Assert.True(UbicacionCompartida.TryExtraer(texto, out var lat2, out var lng2));
             Assert.Equal(lat, lat2);
             Assert.Equal(lng, lng2);
+        }
+
+        // ---- Enlaces cortos (docs/enlace-corto-ubicacion.md) ----
+
+        [Theory]
+        [InlineData("https://maps.app.goo.gl/gYQEJD9DL87Sk9WZA")]
+        [InlineData("https://goo.gl/maps/AbCdEf")]
+        [InlineData("Te mando la ubicación: https://maps.app.goo.gl/gYQEJD9DL87Sk9WZA gracias")]
+        public void ReconoceUnEnlaceQueValeLaPenaResolver(string texto)
+        {
+            Assert.True(UbicacionCompartida.TryObtenerEnlaceResoluble(texto, out var enlace));
+            Assert.NotNull(enlace);
+        }
+
+        // La URL la escribe el comensal, no el cajero. Sin la lista de anfitriones, quien
+        // manda el mensaje elige a qué dirección hace una petición el servidor.
+        [Theory]
+        [InlineData("https://bit.ly/algo")]                      // otro acortador
+        [InlineData("https://ejemplo.com/maps.app.goo.gl")]      // el dominio en la ruta, no en el host
+        [InlineData("https://maps.app.goo.gl.ejemplo.com/x")]    // sufijo, no coincidencia exacta
+        [InlineData("http://maps.app.goo.gl/AbCdEf")]            // sin https
+        [InlineData("https://169.254.169.254/latest/meta-data")] // IP interna del hosting
+        [InlineData("la casa verde de la esquina")]              // sin URL
+        [InlineData("")]
+        [InlineData(null)]
+        public void NoResuelveNadaQueNoSeaGoogleMapsPorHttps(string? texto)
+        {
+            Assert.False(UbicacionCompartida.TryObtenerEnlaceResoluble(texto, out var enlace));
+            Assert.Null(enlace);
+        }
+
+        // Cada salto se valida igual que el primero: un redirect puede apuntar a cualquier
+        // parte, y validar solo la URL pegada dejaría la puerta abierta en el segundo paso.
+        [Theory]
+        [InlineData("https://www.google.com/maps/place/x", true)]
+        [InlineData("https://maps.google.com/?q=1.0,2.0", true)]
+        [InlineData("https://otro-sitio.com/x", false)]
+        public void ValidaCadaSaltoDelRedirect(string url, bool esperado)
+        {
+            Assert.Equal(esperado, UbicacionCompartida.EsResoluble(new Uri(url)));
+        }
+
+        [Fact]
+        public void UnSaltoNuloNoEsResoluble()
+        {
+            Assert.False(UbicacionCompartida.EsResoluble(null));
         }
 
         // El punto de referencia se pega en un solo campo y tiene que volver a leerse igual:

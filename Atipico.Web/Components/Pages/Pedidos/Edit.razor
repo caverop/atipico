@@ -16,6 +16,7 @@
 @inject IComprobanteApiClient ComprobanteApi
 @inject IHttpClientFactory HttpClientFactory
 @inject EstadoOperaciones EstadoOperaciones
+@inject IResolvedorEnlaceUbicacion ResolvedorEnlace
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
@@ -325,13 +326,13 @@
                 </div>
 
                 <div class="mb-3">
-                    <label class="form-label">Ubicación de WhatsApp</label>
+                    <label class="form-label">Ubicación</label>
                     <textarea class="form-control" rows="2" @bind="_entity.UbicacionCompartida"
                               @bind:after="LeerUbicacion" disabled="@_entregaBloqueada"
                               placeholder="Pega el enlace o las coordenadas"></textarea>
                     <div class="form-text">
                         Se guarda tal cual, aunque no se puedan leer las coordenadas
-                        <Ayuda Texto="Un enlace corto de maps.app.goo.gl no trae coordenadas, pero el repartidor lo puede abrir igual." />
+                        <Ayuda Texto="Acepta coordenadas, el enlace largo de Google Maps y el corto de maps.app.goo.gl, que se resuelve solo." />
                     </div>
                 </div>
 
@@ -522,26 +523,52 @@
 
     // Corre al salir del campo, no en cada tecla: pegar un enlace largo dispararia el parser
     // decenas de veces sin necesidad.
-    private void LeerUbicacion()
+    private async Task LeerUbicacion()
     {
         _avisoUbicacion = null;
 
         if (string.IsNullOrWhiteSpace(_entity.UbicacionCompartida))
             return;
 
+        // Primero sin salir a la red: un texto que ya trae coordenadas no necesita ninguna
+        // peticion.
         if (UbicacionCompartida.TryExtraer(_entity.UbicacionCompartida, out var lat, out var lng))
         {
-            _entity.LatitudEntrega = lat;
-            _entity.LongitudEntrega = lng;
-            SincronizarCoordenadas();
-            _errorCoordenadas = null;
+            FijarPunto(lat, lng);
+            return;
+        }
+
+        // Un maps.app.goo.gl no trae coordenadas: hay que seguir su redirect. Se envuelve en
+        // SeguirAsync para que la barra global acompañe la espera, como a cualquier otra
+        // llamada. Ver docs/enlace-corto-ubicacion.md.
+        var resolucion = await EstadoOperaciones.SeguirAsync(
+            () => ResolvedorEnlace.ResolverAsync(_entity.UbicacionCompartida));
+
+        if (resolucion.Resuelto)
+        {
+            FijarPunto(resolucion.Latitud!.Value, resolucion.Longitud!.Value);
             return;
         }
 
         // No se borra lo que ya haya en latitud/longitud: pueden venir de una correccion a
         // mano, y perderlas por pegar un enlace ilegible seria peor que no leerlo.
-        _avisoUbicacion = "No se pudieron leer coordenadas de ese texto. Se guarda igual, y el "
-                        + "repartidor puede abrirlo; si querés el punto, cargalo abajo a mano.";
+        //
+        // Dos mensajes distintos a proposito. "Era un enlace de Google y no se pudo consultar"
+        // y "este texto no tiene coordenadas" se arreglan de formas distintas, y con un solo
+        // mensaje generico no habria manera de saber cual de las dos paso.
+        _avisoUbicacion = resolucion.SeIntento
+            ? "Es un enlace de Google Maps, pero no se pudo consultar. Abrilo en el navegador y "
+            + "pegá acá la dirección larga que aparece en la barra de direcciones."
+            : "No se pudieron leer coordenadas de ese texto. Se guarda igual, y el repartidor "
+            + "puede abrirlo; si querés el punto, cargalo abajo a mano.";
+    }
+
+    private void FijarPunto(decimal latitud, decimal longitud)
+    {
+        _entity.LatitudEntrega = latitud;
+        _entity.LongitudEntrega = longitud;
+        SincronizarCoordenadas();
+        _errorCoordenadas = null;
     }
 
     // Para llevar y delivery no usan mesa, asi que la seccion desaparece... salvo que el
