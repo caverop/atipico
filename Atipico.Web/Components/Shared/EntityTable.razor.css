@@ -36,3 +36,129 @@
 .entity-table-orden:focus-visible .entity-table-icono {
     opacity: 1;
 }
+
+/* --- Lista en tarjetas (movil) -------------------------------------------
+   Debajo de 641px la tabla desaparece y la reemplaza .entity-cards. Son dos
+   dibujos de los mismos datos, no una tabla escondida: la tabla necesita
+   arrastre horizontal para llegar a la ultima columna, y en el telefono esa
+   columna suele ser justo el estado. */
+.entity-cards {
+    display: none;
+}
+
+@media (max-width: 640.98px) {
+    .entity-cards {
+        display: block;
+    }
+
+    .table-responsive {
+        display: none;
+    }
+}
+
+/* Un solo contenedor con el borde de 2px de la casa; adentro, filetes de 1px.
+   Un borde grueso por fila satura una pantalla angosta. */
+.entity-cards-lista {
+    border: 2px solid var(--atipico-ink);
+    border-radius: 0.75rem;
+    background: var(--atipico-surface);
+    overflow: hidden;
+}
+
+.entity-card {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding-right: 0.75rem;
+    border-top: 1px solid var(--atipico-rule);
+}
+
+    .entity-card:first-child {
+        border-top: 0;
+    }
+
+.entity-card-link {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 70px;
+    padding: 0.75rem 0 0.75rem 0.875rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.entity-card-plana {
+    min-height: 70px;
+    padding: 0.75rem 0.875rem;
+}
+
+.entity-card-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.entity-card-title {
+    font-size: 1rem;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
+.entity-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+    opacity: 0.6;
+}
+
+/* El separador vive en el segundo dato y siguientes, asi ninguna fila abre ni
+   cierra con un punto suelto cuando un valor viene vacio. */
+.entity-card-dato + .entity-card-dato::before {
+    content: "·";
+    margin-right: 0.35rem;
+    opacity: 0.7;
+}
+
+.entity-card-chevron {
+    flex: none;
+    opacity: 0.3;
+}
+
+.entity-card-accion {
+    flex: none;
+}
+
+/* El encabezado clicleable se fue con la tabla; el orden necesita su propio
+   control. Mismo contrato que OnSort: solo dice que columna se eligio. */
+.entity-cards-orden {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.entity-cards-orden-label {
+    margin: 0;
+    font-size: 0.6875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    opacity: 0.55;
+    white-space: nowrap;
+}
+
+.entity-cards-orden select {
+    flex: 1;
+    min-width: 0;
+}
+
+.entity-cards-orden-dir {
+    flex: none;
+    width: 44px;
+    padding-left: 0;
+    padding-right: 0;
+}

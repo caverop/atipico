@@ -10,7 +10,15 @@
 
     <main>
         <div class="top-row px-3 px-sm-4">
-            <span>Panel administrativo</span>
+            @* En movil el sidebar no existe, asi que la marca vuelve aca: la franja de
+               3.5rem ya estaba ocupando alto y solo decia "Panel administrativo". *@
+            <a class="atipico-brand top-row-marca" href="">
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                    <polygon points="12,1 22,7 22,17 12,23 2,17 2,7" fill="none" stroke="currentColor" stroke-width="1.5" />
+                </svg>
+                ATIPICO
+            </a>
+            <span class="top-row-titulo">Panel administrativo</span>
         </div>
 
         <article class="content px-3 px-sm-4">
@@ -18,6 +26,9 @@
         </article>
     </main>
 </div>
+
+@* Navegacion de movil. El propio componente se apaga por CSS arriba de 641px. *@
+<BarraInferior />
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.

@@ -118,3 +118,53 @@ filter already treats `Creado` as a day); and the non-selected columns stay on a
 tie-breakers in the default order, so sorting by `Estado` still shows the most recent first
 within each state instead of an arbitrary order. `Id` closes the chain to keep the order
 stable across re-renders.
+
+### Mobile layout
+
+**`641px` is the single mobile breakpoint** for the whole app, because it is the width at
+which `MainLayout.razor.css` decides whether the sidebar exists. Everything else keys off
+the same number (`@media (max-width: 640.98px)`), so "there is a bottom tab bar" and "there
+is no sidebar" are always the same condition. CSS can't read a custom property in a media
+query, so the number is repeated by hand in `app.css`, `MainLayout.razor.css`,
+`EntityTable.razor.css` and `BarraInferior.razor.css` — a new mobile rule belongs at that
+same breakpoint, not a Bootstrap one (`sm`/`md` don't line up with it).
+
+- **`EntityTable` renders its rows twice** — once as the `<table>`, once as
+  `.entity-cards` — and CSS shows exactly one. This is deliberate, not an oversight: Blazor
+  Server renders on the server and cannot know the viewport, so a single-markup solution
+  would need a JS-interop breakpoint probe and would flash the wrong layout on first paint.
+  The cost is a doubled DOM per row; it is paid because the table needs horizontal dragging
+  on a phone to reach the last column, which is usually the state. In the card, the title is
+  **the first column whose header isn't `Id`** (`IndiceTitulo`) — most Index pages open with
+  `Id`, and a list of primary keys is unreadable; the `Id` drops into the context line
+  prefixed with `#`. Pass `TituloHeader` to override. The sortable `<th>` goes away with the
+  table, so the card list grows its own "Ordenar por" select plus a direction button — same
+  `OnSort` contract, the page still owns the ordering.
+- **Navigation is one model, two drawings.** `Atipico.Web/Services/Navegacion.cs` holds the
+  sections and links; `NavMenu.razor` draws them as the desktop sidebar and
+  `BarraInferior.razor` draws them as the mobile tab bar plus a "Más" sheet. A section's
+  `RolesCsv` is **derived** from the union of its links' roles rather than declared: the two
+  used to be separate lists and drifted, so a `Cocinero` saw a "Pedidos" heading with
+  nothing under it. Deriving it makes that state unwritable. Adding a link means editing
+  `Navegacion.cs` only — never one of the two components. This is UI gating only; the API
+  re-checks every action.
+- **Touch targets.** `app.css` forces `min-height: 44px` and `display: inline-flex` on
+  `.btn`/`.btn-sm` below the breakpoint (`min-height` alone on an inline-block leaves the
+  label stuck to the top). Inputs go to `font-size: 16px` there too — iOS zooms into any
+  field under 16px and never zooms back out; the visible size is held by `min-height`, so
+  nothing looks bigger.
+- **Fixed bottom chrome.** The tab bar is `z-index: 1030` and the "Más" sheet `1035`/`1036`,
+  which is why `#blazor-error-ui` was raised from `1000` to `1040` — it is also pinned to
+  the bottom and was being covered exactly when it needed reading. `Ayuda`'s tooltip
+  (`1080`), `BarraProgreso` (`2000`) and `Bloqueo` (`2100`) stay above all of it. `.content`
+  reserves `--atipico-tabbar` of bottom padding so the last row of any list stays reachable.
+- **The panel does one API call, not nine.** `Home.razor` used to load all nine entity
+  lists in sequence purely to put a count on each card. It now loads `Pedido` only and shows
+  the orders in progress; the shortcut cards carry no counts. When adding to the dashboard,
+  do not reintroduce a count that costs a full `GetAllAsync()` — there is no count endpoint.
+
+Enum display strings live in `Atipico.Web/*Extensions.cs` (`TipoPedidoExtensions`,
+`EstadoPedidoExtensions`), never inline in a page: `EnPreparacion` reads badly in a status
+pill, and two pages formatting the same enum by hand is how they drift. `EstadoPedidoExtensions.ClasePill()`
+also maps a state to the `.estado-pill` modifier, so the same state looks the same in the
+grid and on the panel.

@@ -1,0 +1,141 @@
+@implements IDisposable
+@inject NavigationManager Nav
+
+@* Navegacion de movil. Existe solo debajo de 641px (lo decide el CSS); arriba de
+   ese ancho manda el sidebar de NavMenu y este componente no se dibuja.
+
+   Reemplaza al hamburger de NavMenu, que abria los quince links de golpe: los dos
+   o tres destinos que un turno toca cada minuto quedan a un toque, y el resto vive
+   detras de "Mas". Las secciones salen de Navegacion.Secciones, la misma fuente
+   que consume el sidebar. *@
+
+<AuthorizeView>
+    <Authorized>
+        <nav class="barra-inferior">
+            <NavLink class="barra-tab" href="" Match="NavLinkMatch.All">
+                <svg viewBox="0 0 22 22" width="21" height="21" fill="none" stroke="currentColor"
+                     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M3 9.5 11 3.5l8 6V18a1 1 0 0 1-1 1h-4v-5.5H8V19H4a1 1 0 0 1-1-1z" />
+                </svg>
+                <span>Panel</span>
+            </NavLink>
+
+            @foreach (var pestana in Navegacion.Pestanas)
+            {
+                <AuthorizeView Roles="@string.Join(",", pestana.Roles)" Context="pestanaAuth">
+                    <Authorized>
+                        <NavLink class="barra-tab" href="@pestana.Url">
+                            @if (pestana.Url == "pedidos")
+                            {
+                                <svg viewBox="0 0 22 22" width="21" height="21" fill="none" stroke="currentColor"
+                                     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="4" y="3" width="14" height="16" rx="2" />
+                                    <path d="M8 8h6M8 12h6M8 16h3" />
+                                </svg>
+                            }
+                            else
+                            {
+                                <svg viewBox="0 0 22 22" width="21" height="21" fill="none" stroke="currentColor"
+                                     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <rect x="3" y="6" width="16" height="11" rx="2" />
+                                    <path d="M3 10h16" />
+                                </svg>
+                            }
+                            <span>@pestana.Texto</span>
+                        </NavLink>
+                    </Authorized>
+                </AuthorizeView>
+            }
+
+            <button type="button" class="barra-tab @(_hojaAbierta ? "activa" : "")"
+                    aria-expanded="@_hojaAbierta.ToString().ToLowerInvariant()"
+                    @onclick="() => _hojaAbierta = !_hojaAbierta">
+                <svg viewBox="0 0 22 22" width="21" height="21" fill="none" stroke="currentColor"
+                     stroke-width="1.7" stroke-linecap="round" aria-hidden="true">
+                    <path d="M4 7h14M4 11h14M4 15h14" />
+                </svg>
+                <span>Más</span>
+            </button>
+        </nav>
+
+        @if (_hojaAbierta)
+        {
+            <div class="hoja-fondo" @onclick="() => _hojaAbierta = false"></div>
+            <div class="hoja">
+                <div class="hoja-tirador"></div>
+
+                <div class="hoja-usuario">
+                    <span class="hoja-avatar">@Iniciales(context.User.FindFirst("nombre")?.Value)</span>
+                    <div class="hoja-usuario-datos">
+                        <div class="hoja-usuario-nombre">@context.User.FindFirst("nombre")?.Value</div>
+                        <div class="hoja-usuario-rol">@context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</div>
+                    </div>
+                    <form method="post" action="/auth/logout">
+                        <button type="submit" class="btn btn-sm btn-outline-dark">Salir</button>
+                    </form>
+                </div>
+
+                <div class="hoja-lista">
+                    @foreach (var seccion in Navegacion.Secciones)
+                    {
+                        <AuthorizeView Roles="@seccion.RolesCsv" Context="seccionAuth">
+                            <Authorized>
+                                <div class="hoja-seccion">@seccion.Titulo</div>
+                                @foreach (var enlace in seccion.Enlaces)
+                                {
+                                    <AuthorizeView Roles="@string.Join(",", enlace.Roles)" Context="enlaceAuth">
+                                        <Authorized>
+                                            <NavLink class="hoja-enlace" href="@enlace.Url">
+                                                <span class="hoja-punto"></span>
+                                                <span class="hoja-enlace-texto">@enlace.Texto</span>
+                                                <svg viewBox="0 0 20 20" width="15" height="15" fill="none"
+                                                     stroke="currentColor" stroke-width="1.7" stroke-linecap="round"
+                                                     stroke-linejoin="round" aria-hidden="true">
+                                                    <path d="m7.5 4 6 6-6 6" />
+                                                </svg>
+                                            </NavLink>
+                                        </Authorized>
+                                    </AuthorizeView>
+                                }
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+                </div>
+            </div>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@code {
+    private bool _hojaAbierta;
+
+    protected override void OnInitialized() => Nav.LocationChanged += CerrarAlNavegar;
+
+    // Sin esto la hoja queda abierta encima de la pantalla recien cargada: el enlace
+    // navega, pero nada le avisa al overlay que su trabajo termino.
+    private void CerrarAlNavegar(object? sender, LocationChangedEventArgs e)
+    {
+        if (!_hojaAbierta)
+        {
+            return;
+        }
+
+        _hojaAbierta = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private static string Iniciales(string? nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            return "?";
+        }
+
+        var partes = nombre.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return partes.Length == 1
+            ? partes[0][..1].ToUpperInvariant()
+            : (partes[0][..1] + partes[1][..1]).ToUpperInvariant();
+    }
+
+    public void Dispose() => Nav.LocationChanged -= CerrarAlNavegar;
+}

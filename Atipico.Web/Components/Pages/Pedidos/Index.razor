@@ -6,60 +6,75 @@
 
 <PageTitle>Pedidos</PageTitle>
 
-<div class="row g-2 mb-3">
-    <AuthorizeView Roles="Mesero">
-        <NotAuthorized>
-            <div class="col-md-2">
-                <label class="form-label">Id</label>
-                <input class="form-control" @bind="_filtroId" @bind:event="oninput" placeholder="Id" />
-            </div>
-        </NotAuthorized>
-    </AuthorizeView>
-    <div class="col-md-3">
-        <label class="form-label">Comensal</label>
-        <input class="form-control" @bind="_filtroComensal" @bind:event="oninput" placeholder="Comensal" />
+@* Los siete filtros eran siete columnas iguales. En el telefono se apilan y empujan
+   la lista fuera de la pantalla, y en el escritorio pesan lo mismo aunque no se usen
+   igual. Ahora: buscar por comensal y el estado siempre a la vista (son los dos que
+   se tocan a cada rato), y los otros cuatro detras de "Filtros". *@
+<div class="filtros mb-3">
+    <div class="filtros-buscar">
+        <input class="form-control" @bind="_filtroComensal" @bind:event="oninput"
+               placeholder="Buscar comensal" aria-label="Buscar comensal" />
+        <button type="button" class="btn btn-outline-secondary filtros-toggle @(HayFiltrosAvanzados ? "con-filtros" : "")"
+                aria-expanded="@_panelAbierto.ToString().ToLowerInvariant()"
+                @onclick="() => _panelAbierto = !_panelAbierto">
+            Filtros@(HayFiltrosAvanzados ? $" ({CuantosFiltrosAvanzados})" : "")
+        </button>
     </div>
-    <div class="col-md-2">
-        <label class="form-label">Estado</label>
-        <select class="form-select" @bind="_filtroEstado">
-            <option value="">Todos</option>
-            @foreach (var estado in _estadosFiltrables)
-            {
-                <option value="@estado">@estado</option>
-            }
-        </select>
+
+    <div class="filtros-chips">
+        <button type="button" class="filtro-chip @(_filtroEstado is null ? "activo" : "")"
+                @onclick="() => _filtroEstado = null">Todos</button>
+        @foreach (var estado in _estadosFiltrables)
+        {
+            <button type="button" class="filtro-chip @(_filtroEstado == estado ? "activo" : "")"
+                    @onclick="() => _filtroEstado = estado">@estado.Etiqueta()</button>
+        }
     </div>
-    <div class="col-md-2">
-        <label class="form-label">Tipo</label>
-        <select class="form-select" @bind="_filtroTipo">
-            <option value="">Todos</option>
-            @foreach (var tipo in Enum.GetValues<TipoPedido>())
-            {
-                <option value="@tipo">@tipo.Etiqueta()</option>
-            }
-        </select>
-    </div>
-    <AuthorizeView Roles="Mesero">
-        <NotAuthorized>
-            <div class="col-md-2">
-                <label class="form-label">Mesero</label>
-                <select class="form-select" @bind="_filtroMesero">
+
+    @if (_panelAbierto)
+    {
+        <div class="filtros-panel row g-2">
+            <AuthorizeView Roles="Mesero">
+                <NotAuthorized>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label">Id</label>
+                        <input class="form-control" @bind="_filtroId" @bind:event="oninput" placeholder="Id" />
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+            <div class="col-6 col-md-3">
+                <label class="form-label">Tipo</label>
+                <select class="form-select" @bind="_filtroTipo">
                     <option value="">Todos</option>
-                    @foreach (var mesero in _meserosDisponibles)
+                    @foreach (var tipo in Enum.GetValues<TipoPedido>())
                     {
-                        <option value="@mesero.Id">@mesero.Nombre</option>
+                        <option value="@tipo">@tipo.Etiqueta()</option>
                     }
                 </select>
             </div>
-            <div class="col-md-2">
-                <label class="form-label">Creado</label>
-                <input type="date" class="form-control" @bind="_filtroCreado" />
+            <AuthorizeView Roles="Mesero">
+                <NotAuthorized>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Mesero</label>
+                        <select class="form-select" @bind="_filtroMesero">
+                            <option value="">Todos</option>
+                            @foreach (var mesero in _meserosDisponibles)
+                            {
+                                <option value="@mesero.Id">@mesero.Nombre</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Creado</label>
+                        <input type="date" class="form-control" @bind="_filtroCreado" />
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+            <div class="col-12 col-md-auto d-flex align-items-end">
+                <button type="button" class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">Limpiar</button>
             </div>
-        </NotAuthorized>
-    </AuthorizeView>
-    <div class="col-md-1 d-flex align-items-end">
-        <button type="button" class="btn btn-outline-secondary w-100" @onclick="LimpiarFiltros">Limpiar</button>
-    </div>
+        </div>
+    }
 </div>
 
 <EntityTable TEntity="Pedido"
@@ -85,6 +100,18 @@
     private TipoPedido? _filtroTipo;
     private long? _filtroMesero;
     private DateOnly? _filtroCreado;
+
+    // Los filtros que viven detras del boton. Se muestra cuantos hay puestos porque,
+    // plegados, no hay ninguna otra senal de que la lista viene recortada.
+    private bool _panelAbierto;
+
+    private int CuantosFiltrosAvanzados =>
+        (string.IsNullOrWhiteSpace(_filtroId) ? 0 : 1)
+        + (_filtroTipo is null ? 0 : 1)
+        + (_filtroMesero is null ? 0 : 1)
+        + (_filtroCreado is null ? 0 : 1);
+
+    private bool HayFiltrosAvanzados => CuantosFiltrosAvanzados > 0;
 
     // El filtro de Estado solo ofrece los estados de un pedido "en curso": Cerrado/Anulado
     // quedan fuera a pedido del usuario.
@@ -195,7 +222,7 @@
         _columns =
         [
             ("Comensal", p => p.Comensal),
-            ("Estado", p => p.Estado),
+            ("Estado", p => p.Estado.Etiqueta()),
             // Se reporta, no se bloquea: un delivery sin dirección se factura igual, pero
             // tiene que verse en la lista. Ver docs/direccion-entrega.md §4.
             ("Tipo", p => p.Tipo == TipoPedido.Delivery && SinDondeEntregar(p)

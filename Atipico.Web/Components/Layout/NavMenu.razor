@@ -9,9 +9,11 @@
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+@* El hamburger que colapsaba este menu se fue con el rediseño movil: debajo de 641px
+   el sidebar entero no se dibuja (MainLayout) y navega BarraInferior. Arriba de 641px
+   el menu siempre estuvo abierto. No quedaba ancho en el que el toggler se mostrara,
+   y su onclick apuntaba a un elemento que ya nadie ve. *@
+<div class="nav-scrollable">
     <nav class="nav flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -19,77 +21,28 @@
             </NavLink>
         </div>
 
-        <AuthorizeView Roles="Admin">
-            <Authorized>
-                <div class="nav-item px-3 nav-section">Personal</div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="usuarios">Usuarios</NavLink>
-                </div>
-
-                <div class="nav-item px-3 nav-section">Carta</div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="tipos-plato">Tipos de plato</NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="platos">Platos</NavLink>
-                </div>
-
-                <div class="nav-item px-3 nav-section">Salón</div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="mesas">Mesas</NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Admin,Mesero,Cocinero">
-            <Authorized>
-                <div class="nav-item px-3 nav-section">Pedidos</div>
-                <AuthorizeView Roles="Admin,Mesero" Context="pedidosContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="pedidos">Pedidos</NavLink>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
-                <AuthorizeView Roles="Admin" Context="pedidosContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="pedido-mesas">Pedido &lt;-&gt; Mesa</NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="pedido-platos">Pedido &lt;-&gt; Plato</NavLink>
-                </div>
-                    </Authorized>
-                </AuthorizeView>                
-            </Authorized>
-        </AuthorizeView>
-
-        <AuthorizeView Roles="Admin,Cajero">
-            <Authorized>
-                <div class="nav-item px-3 nav-section">Caja</div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="cuentas">Cuentas</NavLink>
-                </div>
-                @* El mesero tambien: en el pago adelantado es quien adjunta el comprobante,
-                   asi que necesita ver que le falta antes de cerrar el turno. *@
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="reportes/evidencia-incompleta">Evidencia de pagos QR</NavLink>
-                </div>
-                <AuthorizeView Roles="Admin,Cajero" Context="cajaContext">
-                    <Authorized>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="detalle-cuentas">Detalle de cuentas</NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="reportes/cuentas-descuadradas">Conciliación de cuentas</NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="reportes/comprobantes-duplicados">Comprobantes duplicados</NavLink>
-                        </div>
-                    </Authorized>
-                </AuthorizeView>
-            </Authorized>
-        </AuthorizeView>
+        @* Las secciones salen de Navegacion.Secciones, la misma fuente que usa la hoja
+           "Mas" de la barra inferior en movil. El titulo se muestra segun la union de
+           los roles de sus links, asi que ya no puede quedar un encabezado sin nada
+           debajo (le pasaba a Cocinero con "Pedidos"). *@
+        @foreach (var seccion in Navegacion.Secciones)
+        {
+            <AuthorizeView Roles="@seccion.RolesCsv" Context="seccionAuth">
+                <Authorized>
+                    <div class="nav-item px-3 nav-section">@seccion.Titulo</div>
+                    @foreach (var enlace in seccion.Enlaces)
+                    {
+                        <AuthorizeView Roles="@string.Join(",", enlace.Roles)" Context="enlaceAuth">
+                            <Authorized>
+                                <div class="nav-item px-3">
+                                    <NavLink class="nav-link" href="@enlace.Url">@enlace.Texto</NavLink>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+                    }
+                </Authorized>
+            </AuthorizeView>
+        }
     </nav>
 
     <AuthorizeView>

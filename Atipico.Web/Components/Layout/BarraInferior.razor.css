@@ -1,0 +1,185 @@
+/* Toda la barra existe solo en movil: arriba de 641px manda el sidebar y esto
+   desaparece por completo, sin dejar espacio reservado ni handlers colgando. */
+.barra-inferior,
+.hoja,
+.hoja-fondo {
+    display: none;
+}
+
+@media (max-width: 640.98px) {
+    .barra-inferior {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1030;
+        height: var(--atipico-tabbar);
+        display: flex;
+        background-color: var(--atipico-surface);
+        border-top: 2px solid var(--atipico-ink);
+        /* En iPhone con barra de gestos, el borde inferior queda debajo del
+           indicador si no se respeta el area segura. */
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        box-sizing: content-box;
+    }
+
+    .barra-tab {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--atipico-ink);
+        text-decoration: none;
+        font-size: 0.6875rem;
+        letter-spacing: 0.02em;
+        /* La pestaña inactiva se apaga en vez de cambiar de color: un solo tono
+           de tinta, como el resto de la app. */
+        opacity: 0.45;
+    }
+
+    .barra-tab span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    /* NavLink pone .active solo; el boton de "Mas" usa .activa porque no es un link. */
+    .barra-tab.active,
+    .barra-tab.activa {
+        opacity: 1;
+        font-weight: 500;
+    }
+
+    .hoja-fondo {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 1035;
+        background-color: rgba(28, 23, 18, 0.42);
+    }
+
+    .hoja {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        left: 0;
+        right: 0;
+        /* Arranca justo encima de la barra para que las pestañas sigan visibles y
+           se pueda cerrar tocando la misma pestaña que la abrio. */
+        bottom: calc(var(--atipico-tabbar) + env(safe-area-inset-bottom, 0px));
+        z-index: 1036;
+        max-height: 76vh;
+        background-color: var(--atipico-surface);
+        border-top: 2px solid var(--atipico-ink);
+        border-radius: 1.25rem 1.25rem 0 0;
+        padding: 0.625rem 1.125rem 1rem;
+    }
+
+    .hoja-tirador {
+        flex: none;
+        width: 38px;
+        height: 4px;
+        margin: 0 auto 0.875rem;
+        border-radius: 999px;
+        background-color: rgba(28, 23, 18, 0.2);
+    }
+
+    .hoja-usuario {
+        flex: none;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding-bottom: 0.875rem;
+        border-bottom: 1px solid var(--atipico-rule);
+    }
+
+    .hoja-avatar {
+        flex: none;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        background-color: var(--atipico-ink);
+        color: var(--atipico-cream);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9375rem;
+        font-weight: 500;
+    }
+
+    .hoja-usuario-datos {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .hoja-usuario-nombre {
+        font-size: 1rem;
+        font-weight: 500;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .hoja-usuario-rol {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        opacity: 0.55;
+    }
+
+    .hoja-lista {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.5rem;
+    }
+
+    .hoja-seccion {
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.45;
+        padding: 0.875rem 0 0.25rem;
+    }
+
+    .hoja-enlace {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-height: 50px;
+        color: var(--atipico-ink);
+        text-decoration: none;
+        font-size: 1rem;
+    }
+
+    .hoja-enlace.active {
+        font-weight: 500;
+        color: var(--atipico-accent);
+    }
+
+    .hoja-punto {
+        flex: none;
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background-color: var(--atipico-accent);
+        opacity: 0.55;
+    }
+
+    .hoja-enlace-texto {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .hoja-enlace svg {
+        flex: none;
+        opacity: 0.28;
+    }
+}

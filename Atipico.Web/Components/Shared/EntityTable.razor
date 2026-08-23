@@ -1,6 +1,45 @@
 @typeparam TEntity where TEntity : class, IEntity
 @inject IJSRuntime JS
 
+@* Resumen de una fila para la lista movil: la primera columna con significado hace de
+   titulo (ver IndiceTitulo) y el resto baja a una linea de contexto. Se declara aca
+   arriba, en contexto de marcado, porque la usan las dos ramas del AuthorizeView (con y
+   sin permiso de escritura) y no hay donde ponerla dentro del @@if sin duplicarla. *@
+@{
+    RenderFragment<TEntity> Resumen = item =>
+        @<div class="entity-card-main">
+            <span class="entity-card-title">@Columns[IndiceTitulo].Value(item)</span>
+            @if (Columns.Count > 1)
+            {
+                <span class="entity-card-meta">
+                    @for (var i = 0; i < Columns.Count; i++)
+                    {
+                        if (i == IndiceTitulo)
+                        {
+                            continue;
+                        }
+
+                        var valor = Columns[i].Value(item);
+                        @* Un valor vacio no aporta un punto separador de mas. *@
+                        if (valor is null || string.IsNullOrWhiteSpace(valor.ToString()))
+                        {
+                            continue;
+                        }
+
+                        if (EsColumnaId(Columns[i].Header))
+                        {
+                            <span class="entity-card-dato">#@valor</span>
+                        }
+                        else
+                        {
+                            <span class="entity-card-dato">@valor</span>
+                        }
+                    }
+                </span>
+            }
+        </div>;
+}
+
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">@Title</h3>
     <AuthorizeView Roles="@RolesCsv">
@@ -18,6 +57,84 @@ else if (Items.Count == 0)
 }
 else
 {
+    @* --- Móvil: lista en tarjetas -------------------------------------------
+       Debajo de 641px la <table> obliga a arrastrar de costado para llegar a las
+       ultimas columnas. Las mismas Columns se reordenan: la primera es el titulo
+       de la fila y el resto va como una linea de contexto separada por puntos.
+       No es una tabla escondida, es otro dibujo de los mismos datos; el CSS
+       decide cual de los dos existe. *@
+    @* Columns es EditorRequired, pero una lista vacia haria estallar a Columns[IndiceTitulo].
+       La tabla con cero columnas se dibuja vacia sin romper; la lista movil se saltea. *@
+    @if (Columns.Count > 0)
+    {
+    <div class="entity-cards">
+        @if (OnSort.HasDelegate)
+        {
+            @* El encabezado clicleable se va con la tabla, asi que el orden necesita
+               su propio control aca. Mismo contrato: solo avisa que columna se eligio. *@
+            <div class="entity-cards-orden">
+                <label class="entity-cards-orden-label" for="entity-orden">Ordenar por</label>
+                <select id="entity-orden" class="form-select form-select-sm" value="@SortHeader"
+                        @onchange="OnCambiarOrden">
+                    @foreach (var col in Columns)
+                    {
+                        <option value="@col.Header" selected="@(col.Header == SortHeader)">@col.Header</option>
+                    }
+                </select>
+                <button type="button" class="btn btn-sm btn-outline-secondary entity-cards-orden-dir"
+                        title="@(SortDescending ? "De mayor a menor. Tocá para invertir." : "De menor a mayor. Tocá para invertir.")"
+                        @onclick="() => OnSort.InvokeAsync(SortHeader ?? Columns[0].Header)">
+                    <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true">
+                        @if (SortDescending)
+                        {
+                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                        }
+                        else
+                        {
+                            <path d="M7.247 4.86l-4.796 5.481c-.566.647-.106 1.659.753 1.659h9.592a1 1 0 0 0 .753-1.659l-4.796-5.48a1 1 0 0 0-1.506 0z" />
+                        }
+                    </svg>
+                    <span class="visually-hidden">Invertir el orden</span>
+                </button>
+            </div>
+        }
+
+        <div class="entity-cards-lista">
+            @foreach (var item in Items)
+            {
+                <AuthorizeView Roles="@RolesCsv" Context="cardAuth">
+                    <Authorized>
+                        <div class="entity-card">
+                            @* Con permiso de escritura la fila entera lleva a la ficha: es el
+                               gesto natural en el telefono y evita apuntarle a un boton chico. *@
+                            <a class="entity-card-link" href="@($"{EditUrlPrefix}/{item.Id}")">
+                                @Resumen(item)
+                                <svg class="entity-card-chevron" viewBox="0 0 20 20" width="16" height="16"
+                                     fill="none" stroke="currentColor" stroke-width="1.7"
+                                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="m7.5 4 6 6-6 6" />
+                                </svg>
+                            </a>
+                            @if (ShowDelete)
+                            {
+                                <button type="button" class="btn btn-sm btn-danger entity-card-accion"
+                                        @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
+                            }
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        @* Sin permiso de escritura la ficha de edicion no es alcanzable, asi
+                           que la fila no es un enlace: seria una promesa que la API rechaza. *@
+                        <div class="entity-card entity-card-plana">
+                            @Resumen(item)
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
+            }
+        </div>
+    </div>
+    }
+
     <div class="table-responsive">
         <table class="table table-hover align-middle">
             <thead>
@@ -130,7 +247,44 @@ else
     // decide qué botones se muestran.
     [Parameter] public string[] WriteRoles { get; set; } = ["Admin"];
 
+    // Que columna hace de titulo en la lista movil. Casi todas las pantallas abren con
+    // "Id", que es la clave tecnica y no lo que alguien busca de un vistazo: como titulo
+    // daria una lista de numeros. Por eso el titulo es la primera columna con significado
+    // y el Id baja a la linea de contexto, prefijado con # para que se lea como tal.
+    // TituloHeader permite forzarlo desde la pantalla si la heuristica no aplica.
+    [Parameter] public string? TituloHeader { get; set; }
+
+    private static bool EsColumnaId(string header) =>
+        string.Equals(header, "Id", StringComparison.OrdinalIgnoreCase);
+
+    private int IndiceTitulo
+    {
+        get
+        {
+            if (TituloHeader is not null)
+            {
+                var elegido = Columns.FindIndex(c => c.Header == TituloHeader);
+                if (elegido >= 0)
+                {
+                    return elegido;
+                }
+            }
+
+            var primero = Columns.FindIndex(c => !EsColumnaId(c.Header));
+            return primero >= 0 ? primero : 0;
+        }
+    }
+
     private string RolesCsv => string.Join(",", WriteRoles);
+
+    // Version movil de pulsar un encabezado. Un <select> no dispara change al reelegir
+    // lo ya elegido, asi que esto nunca invierte el orden sin querer: para eso esta el
+    // boton de direccion al lado.
+    private Task OnCambiarOrden(ChangeEventArgs e)
+    {
+        var columna = e.Value?.ToString();
+        return string.IsNullOrWhiteSpace(columna) ? Task.CompletedTask : OnSort.InvokeAsync(columna);
+    }
 
     private async Task HandleDelete(long id)
     {

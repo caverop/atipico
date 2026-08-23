@@ -1,19 +1,19 @@
 @page "/"
 @attribute [Authorize]
-@inject IEntityApiClient<Usuario> UsuarioApi
-@inject IEntityApiClient<TipoPlato> TipoPlatoApi
-@inject IEntityApiClient<Plato> PlatoApi
-@inject IEntityApiClient<Mesa> MesaApi
+@using System.Security.Claims
+@using Atipico.Application.Common
 @inject IEntityApiClient<Pedido> PedidoApi
-@inject IEntityApiClient<PedidoMesa> PedidoMesaApi
-@inject IEntityApiClient<PedidoPlato> PedidoPlatoApi
-@inject IEntityApiClient<Cuenta> CuentaApi
-@inject IEntityApiClient<DetalleCuenta> DetalleCuentaApi
 
 <PageTitle>Panel - Atipico</PageTitle>
 
-<h1 class="mb-1">ATIPICO</h1>
-<p class="text-muted mb-4">Panel administrativo. Los datos se leen y se guardan en vivo contra Atipico.Api.</p>
+@* El panel cargaba nueve listas completas (Usuarios, TipoPlato, Plato, Mesa, Pedido,
+   PedidoMesa, PedidoPlato, Cuenta, DetalleCuenta) una detras de otra, y las usaba
+   solo para poner un numero en cada tarjeta. En el telefono eso son nueve viajes
+   antes de ver nada. Ahora se pide una sola lista, la que de verdad se mira al
+   entrar: los pedidos en curso. Los atajos no llevan conteo. *@
+
+<h1 class="panel-saludo">@Saludo,<br />@_nombre</h1>
+<p class="text-muted panel-fecha">@Fecha</p>
 
 @if (_error is not null)
 {
@@ -21,66 +21,138 @@
         No se pudo conectar con la API (@_error). Confirmá que Atipico.Api esté corriendo.
     </div>
 }
-else
-{
-    <div class="row g-3">
-        @foreach (var card in _cards)
+
+<AuthorizeView Roles="Admin,Mesero">
+    <Authorized>
+        <a href="/pedidos/nuevo" class="btn btn-primary panel-accion">+ Nuevo pedido</a>
+    </Authorized>
+</AuthorizeView>
+
+<AuthorizeView Roles="Admin,Mesero">
+    <Authorized>
+        <div class="d-flex align-items-baseline justify-content-between mb-2">
+            <h2 class="panel-seccion">@(_soloMios ? "Tus pedidos activos" : "Pedidos activos")</h2>
+            <a href="/pedidos" class="panel-vertodos">Ver todos</a>
+        </div>
+
+        @if (_pedidos is null && _error is null)
         {
-            <AuthorizeView Roles="@string.Join(",", card.Roles)" Context="cardAuth">
-                <Authorized>
-                    <div class="col-12 col-sm-6 col-lg-4">
-                        <a href="@card.Url" class="text-decoration-none">
-                            <div class="p-3 h-100 dashboard-card">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <h4 class="mb-0">@card.Title</h4>
-                                    <span class="badge">@card.Count</span>
-                                </div>
-                                <p class="text-muted mb-0 mt-2">@card.Description</p>
-                            </div>
-                        </a>
-                    </div>
-                </Authorized>
-            </AuthorizeView>
+            <p class="text-muted"><em>Cargando...</em></p>
         }
-    </div>
-}
+        else if (_activos.Count == 0)
+        {
+            <p class="text-muted"><em>Ningún pedido en curso ahora mismo.</em></p>
+        }
+        else
+        {
+            <div class="panel-lista mb-4">
+                @foreach (var pedido in _activos)
+                {
+                    <a class="panel-fila" href="@($"/pedidos/{pedido.Id}")">
+                        <span class="panel-fila-datos">
+                            <span class="panel-fila-titulo d-block">@(string.IsNullOrWhiteSpace(pedido.Comensal) ? $"Pedido #{pedido.Id}" : pedido.Comensal)</span>
+                            <span class="panel-fila-meta">@pedido.Tipo.Etiqueta() · @pedido.CreadoEn.ToBoliviaTime().ToString("t", _cultura)</span>
+                        </span>
+                        <span class="estado-pill @pedido.Estado.ClasePill()">@pedido.Estado.Etiqueta()</span>
+                    </a>
+                }
+            </div>
+        }
+    </Authorized>
+</AuthorizeView>
+
+@* La union de los roles de _atajos. Sin esto, a un Mesero (que no tiene ninguno) le
+   quedaba el titulo "Atajos" con una fila vacia debajo. *@
+<AuthorizeView Roles="Admin,Cajero">
+    <Authorized>
+        <h2 class="panel-seccion mb-2">Atajos</h2>
+        <div class="row g-2 g-sm-3">
+            @foreach (var atajo in _atajos)
+            {
+                <AuthorizeView Roles="@atajo.Roles" Context="atajoAuth">
+                    <Authorized>
+                        <div class="col-6 col-lg-3">
+                            <a href="@atajo.Url" class="text-decoration-none">
+                                <div class="p-3 h-100 dashboard-card panel-atajo">
+                                    <h4 class="mb-0">@atajo.Titulo</h4>
+                                    <p class="text-muted mb-0 mt-1">@atajo.Descripcion</p>
+                                </div>
+                            </a>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
+            }
+        </div>
+    </Authorized>
+</AuthorizeView>
 
 @code {
-    private record Card(string Title, string Description, string Url, int Count, string[] Roles);
+    [CascadingParameter] private Task<AuthenticationState>? AuthStateTask { get; set; }
 
-    private static readonly string[] AdminOnly = ["Admin"];
-    private static readonly string[] AdminMesero = ["Admin", "Mesero"];
-    private static readonly string[] AdminCajero = ["Admin", "Cajero"];
+    private record Atajo(string Titulo, string Descripcion, string Url, string Roles);
 
-    private List<Card> _cards = [];
+    // Un subconjunto elegido a mano, no todo el menu: un atajo a cada cosa deja de
+    // ser un atajo. El resto sigue estando en el menu lateral y en la hoja "Mas".
+    private static readonly Atajo[] _atajos =
+    [
+        new("Platos", "Carta y precios.", "/platos", "Admin"),
+        new("Mesas", "Mesas del salón.", "/mesas", "Admin"),
+        new("Cuentas", "Abiertas, pagadas o anuladas.", "/cuentas", "Admin,Cajero"),
+        new("Usuarios", "Meseros, cajeros y cocineros.", "/usuarios", "Admin"),
+    ];
+
+    private static readonly EstadoPedido[] _estadosActivos =
+        [EstadoPedido.Abierto, EstadoPedido.EnPreparacion, EstadoPedido.Servido];
+
+    private List<Pedido>? _pedidos;
     private string? _error;
+    private string _nombre = "";
+    private long? _idUsuario;
+    private bool _soloMios;
+
+    // El mesero ve los suyos; Admin ve los de todos. Mismo criterio que Pedidos/Edit
+    // usa para saber quien es el mesero por defecto de un pedido nuevo.
+    private List<Pedido> _activos =>
+        (_pedidos ?? [])
+            .Where(p => _estadosActivos.Contains(p.Estado))
+            .Where(p => !_soloMios || _idUsuario is null || p.IdMesero == _idUsuario)
+            .OrderByDescending(p => p.CreadoEn)
+            .Take(5)
+            .ToList();
+
+    // La app no configura cultura global: cada formato pasa es-BO a mano (mismo criterio
+    // que Platos/Index, Cuentas/Index, ComprobantesDuplicados...). Sin esto el dia de la
+    // semana sale en el idioma del sistema del servidor, que en Docker es ingles.
+    private static readonly System.Globalization.CultureInfo _cultura =
+        System.Globalization.CultureInfo.GetCultureInfo("es-BO");
+
+    private static string Saludo => DateTimeOffset.UtcNow.ToBoliviaTime().Hour switch
+    {
+        < 12 => "Buenos días",
+        < 19 => "Buenas tardes",
+        _ => "Buenas noches",
+    };
+
+    private static string Fecha =>
+        DateTimeOffset.UtcNow.ToBoliviaTime().ToString("dddd d 'de' MMMM", _cultura);
 
     protected override async Task OnInitializedAsync()
     {
+        if (AuthStateTask is not null)
+        {
+            var user = (await AuthStateTask).User;
+            _nombre = user.FindFirst("nombre")?.Value ?? "";
+            _soloMios = user.IsInRole("Mesero") && !user.IsInRole("Admin");
+
+            if (long.TryParse(user.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id))
+            {
+                _idUsuario = id;
+            }
+        }
+
         try
         {
-            var usuarios = await UsuarioApi.GetAllAsync();
-            var tipos = await TipoPlatoApi.GetAllAsync();
-            var platos = await PlatoApi.GetAllAsync();
-            var mesas = await MesaApi.GetAllAsync();
-            var pedidos = await PedidoApi.GetAllAsync();
-            var pedidoMesas = await PedidoMesaApi.GetAllAsync();
-            var pedidoPlatos = await PedidoPlatoApi.GetAllAsync();
-            var cuentas = await CuentaApi.GetAllAsync();
-            var detalles = await DetalleCuentaApi.GetAllAsync();
-
-            _cards =
-            [
-                new("Usuarios", "Meseros, cajeros, cocineros y administradores.", "/usuarios", usuarios.Count, AdminOnly),
-                new("Tipos de plato", "Categorías de la carta.", "/tipos-plato", tipos.Count, AdminOnly),
-                new("Platos", "Platos disponibles y sus precios.", "/platos", platos.Count, AdminOnly),
-                new("Mesas", "Mesas del salón.", "/mesas", mesas.Count, AdminOnly),
-                new("Pedidos", "Pedidos abiertos, servidos o cerrados.", "/pedidos", pedidos.Count, AdminMesero),
-                new("Pedido - Mesa", "Qué mesa ocupa cada pedido.", "/pedido-mesas", pedidoMesas.Count, AdminOnly),
-                new("Pedido - Plato", "Platos servidos en cada pedido.", "/pedido-platos", pedidoPlatos.Count, AdminOnly),
-                new("Cuentas", "Cuentas abiertas, pagadas o anuladas.", "/cuentas", cuentas.Count, AdminCajero),
-                new("Detalle de cuentas", "Líneas facturadas por cuenta.", "/detalle-cuentas", detalles.Count, AdminCajero),
-            ];
+            _pedidos = await PedidoApi.GetAllAsync();
         }
         catch (HttpRequestException ex)
         {

@@ -141,6 +141,15 @@
                                 }
                             </li>
                         }
+                        @* Lo que va a salir cobrado si se factura ahora. No sustituye al monto
+                           de la cuenta (esa la calcula PedidosController al pasar a
+                           EnPreparacion): es la misma suma, adelantada, para que el mesero
+                           pueda cantar el total en el mostrador sin sacar la calculadora.
+                           Los anulados no suman, igual que en el detalle. *@
+                        <li class="list-group-item d-flex justify-content-between align-items-center pedido-subtotal">
+                            <span class="text-muted">Subtotal</span>
+                            <strong>@Subtotal.ToString("C", System.Globalization.CultureInfo.GetCultureInfo("es-BO"))</strong>
+                        </li>
                     </ul>
                 }
                 @if (_pedidoActivo)
@@ -422,6 +431,17 @@
     private List<Plato> _platos = [];
     private List<PedidoPlato> _pedidoPlatos = [];
     private List<long> _platosPendientes = [];
+
+    // Suma de los platos que hoy se facturarian: los guardados que no estan anulados mas
+    // los todavia sin guardar. Un plato borrado de la carta despues de haberse pedido no
+    // aparece en _platos y suma 0; es preferible a no mostrar nada, y el monto real lo
+    // sigue calculando la API contra el precio del momento.
+    private decimal Subtotal =>
+        _pedidoPlatos
+            .Where(pp => pp.Estado != EstadoPedidoPlato.Anulado)
+            .Sum(pp => _platos.FirstOrDefault(p => p.Id == pp.IdPlato)?.Precio ?? 0m)
+        + _platosPendientes
+            .Sum(id => _platos.FirstOrDefault(p => p.Id == id)?.Precio ?? 0m);
     private long _selectedPlatoId;
     private List<Mesa> _mesas = [];
     private List<PedidoMesa> _pedidoMesas = [];

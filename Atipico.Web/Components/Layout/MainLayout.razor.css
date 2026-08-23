@@ -42,9 +42,34 @@ main {
         text-overflow: ellipsis;
     }
 
+.top-row-marca {
+    display: none;
+}
+
 @media (max-width: 640.98px) {
+    /* El sidebar entero se va: en movil navega la barra inferior (BarraInferior).
+       Dejarlo colapsado significaba cargar los quince links y el hamburger en cada
+       pantalla para no mostrarlos nunca. */
+    .sidebar {
+        display: none;
+    }
+
     .top-row {
-        justify-content: space-between;
+        justify-content: flex-start;
+    }
+
+    .top-row-marca {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.05rem;
+        letter-spacing: 0.08em;
+        text-decoration: none;
+        color: var(--atipico-ink);
+    }
+
+    .top-row-titulo {
+        display: none;
     }
 
     .top-row ::deep a, .top-row ::deep .btn-link {
@@ -93,7 +118,11 @@ main {
     padding: 0.6rem 1.25rem 0.7rem 1.25rem;
     position: fixed;
     width: 100%;
-    z-index: 1000;
+    /* Por encima de la barra de pestañas (1030) y de la hoja "Mas" (1036): las dos
+       tambien son fixed contra el borde inferior, y con z-index 1000 este aviso
+       quedaba tapado justo cuando hace falta leerlo. Debajo del tooltip de Ayuda
+       (1080), del overlay de Bloqueo (2100) y de la barra de progreso (2000). */
+    z-index: 1040;
 }
 
     #blazor-error-ui .dismiss {
