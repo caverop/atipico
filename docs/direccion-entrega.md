@@ -85,6 +85,24 @@ espacialmente.
 El día que hagan falta consultas de verdad ("pedidos a menos de 2 km"), se agrega una columna
 `geography(Point,4326)` y se llena desde estas dos. Empezar simple no cierra esa puerta.
 
+### 2.3 Los decimales que se descartan
+
+Google Maps copia quince decimales; se guardan **seis**. No se pierde precisión real: seis
+decimales son unos 11 cm, y un GPS de teléfono en la calle acierta dentro de 3 a 10 metros. Lo
+que viene después no es información, es el ruido de representar el punto en punto flotante.
+
+Y el texto original, con todos sus decimales, **queda intacto** en `ubicacion_compartida`. No
+se pierde nada: se guarda el crudo y se deriva el punto, igual que con los comprobantes (§2).
+
+El redondeo se hace **al leer, no al guardar.** Postgres redondearía igual al insertar en
+`numeric(9,6)`, pero entonces la pantalla mostraría los quince decimales pegados y recién al
+recargar aparecerían seis — se lee como que la aplicación perdió datos. Redondeando al leer,
+lo que se ve es lo que se guarda desde el primer momento.
+
+Se usa `MidpointRounding.AwayFromZero` y no el `ToEven` que trae .NET por defecto, porque es
+como redondea Postgres. Si difirieran, un valor podría cambiar al pasar por la base y romper
+la comparación por igualdad de §5.4.
+
 ---
 
 ## 3. Modelo de datos
@@ -95,7 +113,7 @@ El día que hagan falta consultas de verdad ("pedidos a menos de 2 km"), se agre
 |---|---|---|
 | `direccion_entrega` | `text` | la referencia escrita: *"casa verde, media cuadra del surtidor"* |
 | `ubicacion_compartida` | `text` | lo pegado de WhatsApp, **tal cual**, se haya podido parsear o no |
-| `latitud_entrega` | `numeric(9,6)` | extraída de lo anterior, o tecleada a mano |
+| `latitud_entrega` | `numeric(9,6)` | extraída de lo anterior, o pegada en el campo único (§5.3) |
 | `longitud_entrega` | `numeric(9,6)` | ídem |
 
 Las cuatro son anulables. Un pedido `EN_SALON` o `PARA_LLEVAR` simplemente las deja vacías, y
@@ -150,10 +168,10 @@ falta perseguirlos, una vista `v_pedido_delivery_sin_direccion` con la forma exa
 **No se exige coordenada.** La referencia escrita sola puede alcanzar en un barrio conocido.
 
 **Pero la obligatoriedad depende del flujo, no de la tabla.** El argumento de arriba vale para
-el mesero, que arma el pedido de a poco. Un formulario de autopedido (§7) se envía de una sola
-vez: ahí la dirección **sí** se puede exigir, y conviene. Que se exija **como validación del
-formulario, nunca como `CHECK`**: la base no puede distinguir qué flujo creó la fila, y un
-`CHECK` que sirva al autopedido rompería el del mesero.
+el mesero, que arma el pedido de a poco. Un flujo que junte todo antes de escribir —el agente
+de §7, o cualquier formulario de un solo envío— **sí** puede exigir la dirección, y conviene
+que lo haga. Pero **como validación de ese flujo, nunca como `CHECK`**: la base no puede
+distinguir qué camino creó la fila, y una restricción que sirva a uno rompe al otro.
 
 **No se valida que el punto caiga en Bolivia** con una restricción. Se avisa en la interfaz
 (§5.2), porque una caja geográfica mal calibrada bloqueando pedidos reales es peor que el
@@ -199,8 +217,8 @@ sequenceDiagram
 ```
 
 El punto guardado se muestra como un enlace a `https://www.google.com/maps?q=lat,lng`, que
-abre el pin en la app de mapas del teléfono. Sin librería de mapas, sin API key, sin tiles
-externos — que además el CSP del proyecto no permitiría.
+abre el pin en la app de mapas del teléfono. Sin librería de mapas, sin API key y sin pedirle
+tiles a un tercero en cada carga.
 
 ### 5.1 El parser: permisivo, no estricto
 
@@ -225,7 +243,37 @@ fuera de esa caja casi seguro está invertido.
 
 Aviso en la pantalla, no restricción en la base (§4).
 
-### 5.3 Una columna nueva se copia en DOS lugares
+### 5.3 Las coordenadas se editan en UN campo, no en dos
+
+Google Maps copia el par junto —`-17.763701, -63.199920`— y dos campos numéricos obligaban a
+partirlo a mano cada vez. Va un solo campo de texto que acepta ese pegado directo y lo lee con
+el mismo parser de §5.1.
+
+Un efecto secundario que vale: **`ck_pedido_coordenada` se vuelve inalcanzable desde la
+interfaz.** Con un campo no hay forma de dejar una latitud sin su longitud; vaciarlo borra las
+dos juntas. La restricción sigue en la base, cuidando a los demás clientes.
+
+El texto tecleado se guarda en un campo aparte de la entidad, no derivado de ella. Si lo
+pegado no se puede leer, tiene que quedar a la vista junto al mensaje de error; un valor
+calculado desde las coordenadas lo borraría en el render siguiente.
+
+### 5.4 El punto por defecto: el local
+
+Un pedido nuevo arranca con las coordenadas del local
+(`UbicacionCompartida.LatitudPorDefecto` / `LongitudPorDefecto`). No es la dirección de
+entrega de nadie: es un punto de partida para mover, y hace que el mapa muestre algo
+reconocible en vez de una caja gris.
+
+**Eso obliga a una salvedad en el aviso de §4.** Si toda fila delivery nace con coordenadas,
+"no tiene a dónde ir" no se encendería nunca. Por eso el aviso pregunta además si el punto
+**sigue siendo el de referencia**: un pedido que apunta al local es un pedido apuntándose a sí
+mismo, y eso es exactamente no tener dirección.
+
+Las constantes llevan **seis decimales**, los que admite `numeric(9,6)`. Con más, Postgres
+redondea al guardar y la comparación por igualdad dejaría de dar — el aviso se apagaría en
+cuanto el pedido volviera de la base.
+
+### 5.5 Una columna nueva se copia en DOS lugares
 
 Lo mismo que documenta [tipo-pedido.md §5.1](tipo-pedido.md), y que ya costó un defecto:
 
@@ -243,7 +291,7 @@ Son cuatro columnas nuevas por dos lugares: ocho líneas que no se pueden olvida
 ## 6. API y roles
 
 Ningún endpoint nuevo. `PedidosController` ya cubre create y update; solo suma las cuatro
-asignaciones de §5.3.
+asignaciones de §5.5.
 
 Roles sin cambios respecto de `pedido`: quien puede editar un pedido puede editar su dirección
 de entrega.
@@ -335,10 +383,10 @@ vez con "qué platos se pueden pedir hoy". Es la razón por la que el parser de 
 | 1 | SQL | `sql/009_pedido_direccion_entrega.sql` | las 4 columnas y las 3 restricciones |
 | 2 | Dominio | `Atipico.Domain/Entities/Pedido.cs` | 4 propiedades anulables |
 | 3 | Infra | `.../Configurations/PedidoConfiguration.cs` | mapeo, con `HasPrecision(9, 6)` |
-| 4 | API | `Atipico.Api/Controllers/PedidosController.cs` | 4 asignaciones en `Update` (§5.3) |
+| 4 | API | `Atipico.Api/Controllers/PedidosController.cs` | 4 asignaciones en `Update` (§5.5) |
 | 5 | API | `Atipico.Api/Controllers/ApiControllerBase.cs` | mensajes para las 3 restricciones nuevas |
 | 6 | Application | `Atipico.Application/Common/UbicacionCompartida.cs` | el parser de §5.1 y la caja de Bolivia |
-| 7 | Web | `Components/Pages/Pedidos/Edit.razor` | los campos, el enlace al mapa, 4×3 copias (§5.3) |
+| 7 | Web | `Components/Pages/Pedidos/Edit.razor` | los campos, el mapa, 4×3 copias (§5.5) |
 | 8 | Web | `Components/Pages/Pedidos/Index.razor` | aviso de delivery sin dirección |
 | 9 | Pruebas | `Atipico.Application.Tests/UbicacionCompartidaTest.cs` | el parser, con los formatos de §1 y los casos borde |
 

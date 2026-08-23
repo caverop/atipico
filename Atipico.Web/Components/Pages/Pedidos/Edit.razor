@@ -298,11 +298,16 @@
             <div class="col-md-6">
                 <h4>Entrega</h4>
 
-                @if (string.IsNullOrWhiteSpace(_entity.DireccionEntrega) && _entity.LatitudEntrega is null)
+                @if (string.IsNullOrWhiteSpace(_entity.DireccionEntrega)
+                     && (_entity.LatitudEntrega is null
+                         || UbicacionCompartida.EsReferenciaPorDefecto(_entity.LatitudEntrega, _entity.LongitudEntrega)))
                 {
-                    @* Se avisa, no se bloquea: el pedido se factura igual sin esto. *@
+                    @* Se avisa, no se bloquea: el pedido se factura igual sin esto. El punto
+                       por defecto no cuenta como dirección — es el local, o sea el pedido
+                       apuntando a sí mismo. *@
                     <div class="alert alert-warning py-2">
-                        Este pedido es delivery y todavía no tiene a dónde ir.
+                        Este pedido es delivery y todavía no tiene a dónde ir: el punto sigue
+                        siendo el del local.
                     </div>
                 }
 
@@ -335,39 +340,56 @@
                     <div class="alert alert-warning py-2">@_avisoUbicacion</div>
                 }
 
-                @if (_entity.LatitudEntrega is decimal lat && _entity.LongitudEntrega is decimal lng)
-                {
-                    @* El enlace se arma con las coordenadas y no se reusa el original: un
-                       enlace de "ubicacion en tiempo real" caduca a las horas, un punto no. *@
-                    <div class="mb-3">
-                        <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
-                           href="@UbicacionCompartida.EnlaceMapa(lat, lng)">Ver en el mapa</a>
-                    </div>
+                @{
+                    // Sin punto propio el mapa igual se dibuja, centrado en el local: una caja
+                    // gris no le dice nada a nadie, y ver el local ubica al mesero.
+                    var lat = _entity.LatitudEntrega ?? UbicacionCompartida.LatitudPorDefecto;
+                    var lng = _entity.LongitudEntrega ?? UbicacionCompartida.LongitudPorDefecto;
+                }
+                @* Mapa embebido de OpenStreetMap. Sin libreria ni interop: es un iframe,
+                   asi que no hay ciclo de vida que manejar ni nada que liberar al salir
+                   de la pantalla. Ver docs/mapa-entrega.md. *@
+                <iframe class="w-100 border rounded mb-2" height="260"
+                        loading="lazy" referrerpolicy="no-referrer"
+                        title="Ubicación de entrega"
+                        src="@UbicacionCompartida.EmbedMapa(lat, lng)"></iframe>
 
-                    @if (UbicacionCompartida.FueraDeBolivia(lat, lng))
-                    {
-                        <div class="alert alert-warning py-2">
-                            Ese punto no cae en Bolivia. Casi siempre significa que la latitud y
-                            la longitud están invertidas.
-                        </div>
-                    }
+                @* El mapa y el enlace no compiten: el de arriba confirma de un vistazo que
+                   el punto tiene sentido, este abre la app de mapas del telefono, que es
+                   la que sabe navegar hasta ahi. Se arma con las coordenadas y no se reusa
+                   el texto original: un enlace de "ubicacion en tiempo real" caduca a las
+                   horas, un punto no. *@
+                <div class="mb-3">
+                    <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+                       href="@UbicacionCompartida.EnlaceMapa(lat, lng)">Abrir para navegar</a>
+                </div>
+
+                @if (UbicacionCompartida.FueraDeBolivia(lat, lng))
+                {
+                    <div class="alert alert-warning py-2">
+                        Ese punto no cae en Bolivia. Casi siempre significa que la latitud y
+                        la longitud están invertidas.
+                    </div>
                 }
 
-                <div class="row g-2">
-                    <div class="col-6">
-                        <label class="form-label">Latitud</label>
-                        <input type="number" step="any" class="form-control"
-                               @bind="_entity.LatitudEntrega" disabled="@_entregaBloqueada" />
-                    </div>
-                    <div class="col-6">
-                        <label class="form-label">Longitud</label>
-                        <input type="number" step="any" class="form-control"
-                               @bind="_entity.LongitudEntrega" disabled="@_entregaBloqueada" />
-                    </div>
-                    <div class="col-12">
-                        <div class="form-text">Se llenan solas al pegar arriba; se pueden corregir a mano.</div>
+                <div class="mb-3">
+                    <label class="form-label">Coordenadas</label>
+                    @* Un solo campo y no dos numericos: Google Maps copia el par junto
+                       ("-17.76, -63.19") y partirlo obligaba a cortarlo a mano. De paso vuelve
+                       inalcanzable a ck_pedido_coordenada, porque no hay forma de dejar una
+                       sola de las dos. *@
+                    <input class="form-control" @bind="_coordenadasTexto" @bind:after="LeerCoordenadas"
+                           disabled="@_entregaBloqueada" placeholder="-17.763701, -63.199920" />
+                    <div class="form-text">
+                        Se llenan solas al pegar arriba; se pueden pegar directo de Google Maps
+                        <Ayuda Texto="En Google Maps, pulsación larga sobre el punto y después un toque en las coordenadas para copiarlas." />
                     </div>
                 </div>
+
+                @if (_errorCoordenadas is not null)
+                {
+                    <div class="alert alert-danger py-2">@_errorCoordenadas</div>
+                }
             </div>
         }
     </div>
@@ -461,6 +483,43 @@
 
     private string? _avisoUbicacion;
 
+    // El texto se guarda aparte de _entity en vez de calcularse al vuelo: si lo tecleado no
+    // se puede leer, tiene que quedar a la vista junto al error. Un getter derivado de
+    // _entity lo borraria en el siguiente render.
+    private string? _coordenadasTexto;
+    private string? _errorCoordenadas;
+
+    private void SincronizarCoordenadas() =>
+        _coordenadasTexto = _entity.LatitudEntrega is decimal la && _entity.LongitudEntrega is decimal lo
+            ? UbicacionCompartida.Formatear(la, lo)
+            : null;
+
+    private void LeerCoordenadas()
+    {
+        _errorCoordenadas = null;
+
+        // Vaciar el campo borra el punto. Las dos juntas: ck_pedido_coordenada no admite
+        // media coordenada.
+        if (string.IsNullOrWhiteSpace(_coordenadasTexto))
+        {
+            _entity.LatitudEntrega = null;
+            _entity.LongitudEntrega = null;
+            return;
+        }
+
+        if (UbicacionCompartida.TryExtraer(_coordenadasTexto, out var lat, out var lng))
+        {
+            _entity.LatitudEntrega = lat;
+            _entity.LongitudEntrega = lng;
+            // Se reescribe normalizado: lo pegado puede traer parentesis o espacios de mas.
+            _coordenadasTexto = UbicacionCompartida.Formatear(lat, lng);
+            return;
+        }
+
+        _errorCoordenadas = "Eso no parece un par de coordenadas. Se espera algo como "
+                          + "-17.763701, -63.199920.";
+    }
+
     // Corre al salir del campo, no en cada tecla: pegar un enlace largo dispararia el parser
     // decenas de veces sin necesidad.
     private void LeerUbicacion()
@@ -474,6 +533,8 @@
         {
             _entity.LatitudEntrega = lat;
             _entity.LongitudEntrega = lng;
+            SincronizarCoordenadas();
+            _errorCoordenadas = null;
             return;
         }
 
@@ -534,7 +595,15 @@
         else
         {
             _entity.IdMesero = await CurrentUsuarioIdAsync() ?? (_meseros.Count > 0 ? _meseros[0].Id : 0);
+
+            // Arranca en el local. No es la direccion de entrega de nadie: es un punto de
+            // partida para mover. Por eso EsReferenciaPorDefecto sigue tratando al pedido
+            // como "sin direccion" mientras nadie lo haya movido.
+            _entity.LatitudEntrega = UbicacionCompartida.LatitudPorDefecto;
+            _entity.LongitudEntrega = UbicacionCompartida.LongitudPorDefecto;
         }
+
+        SincronizarCoordenadas();
 
         if (_platosHabilitadosHoy.Count > 0) _selectedPlatoId = _platosHabilitadosHoy[0].Id;
         _selectedMesaId = _mesaPorDefecto;

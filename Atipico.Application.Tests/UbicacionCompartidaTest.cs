@@ -1,4 +1,5 @@
 using Atipico.Application.Common;
+using System.Globalization;
 
 namespace Atipico.Application.Tests
 {
@@ -96,6 +97,125 @@ namespace Atipico.Application.Tests
             var enlace = UbicacionCompartida.EnlaceMapa(-17.783241m, -63.182140m);
 
             Assert.Equal("https://www.google.com/maps?q=-17.783241,-63.182140", enlace);
+        }
+
+        // Google Maps copia quince decimales; la columna guarda seis. Se redondea al leer y no
+        // al guardar, para que la pantalla no muestre un valor que la base va a cambiar: eso
+        // se lee como que la aplicación perdió datos.
+        [Theory]
+        [InlineData("-17.763152976587406, -63.19892908691274", -17.763153, -63.198929)]
+        [InlineData("-17.7631535, -63.1989285", -17.763154, -63.198929)]   // AwayFromZero, como Postgres
+        [InlineData("-17.783241, -63.182140", -17.783241, -63.182140)]     // ya venía en seis
+        public void RedondeaALosSeisDecimalesDeLaColumna(string texto, double esperadoLat, double esperadoLng)
+        {
+            Assert.True(UbicacionCompartida.TryExtraer(texto, out var lat, out var lng));
+            Assert.Equal((decimal)esperadoLat, lat);
+            Assert.Equal((decimal)esperadoLng, lng);
+        }
+
+        // Lo que se muestra tiene que ser exactamente lo que va a la base: si volver a leer
+        // el texto formateado diera otro número, el campo cambiaría solo al recargar.
+        [Fact]
+        public void LoQueSeMuestraEsLoQueSeGuarda()
+        {
+            UbicacionCompartida.TryExtraer("-17.763152976587406, -63.19892908691274", out var lat, out var lng);
+            var texto = UbicacionCompartida.Formatear(lat, lng);
+
+            Assert.True(UbicacionCompartida.TryExtraer(texto, out var lat2, out var lng2));
+            Assert.Equal(lat, lat2);
+            Assert.Equal(lng, lng2);
+        }
+
+        // El punto de referencia se pega en un solo campo y tiene que volver a leerse igual:
+        // si Formatear y TryExtraer no cierran, el valor por defecto se corrompe al primer
+        // guardado.
+        [Fact]
+        public void ElPuntoPorDefectoSobreviveIdaYVuelta()
+        {
+            var texto = UbicacionCompartida.Formatear(
+                UbicacionCompartida.LatitudPorDefecto, UbicacionCompartida.LongitudPorDefecto);
+
+            Assert.True(UbicacionCompartida.TryExtraer(texto, out var lat, out var lng));
+            Assert.Equal(UbicacionCompartida.LatitudPorDefecto, lat);
+            Assert.Equal(UbicacionCompartida.LongitudPorDefecto, lng);
+        }
+
+        // Seis decimales, los que admite numeric(9,6). Con mas, Postgres redondea y la
+        // comparacion por igualdad de EsReferenciaPorDefecto deja de dar.
+        [Fact]
+        public void ElPuntoPorDefectoTieneLaPrecisionDeLaColumna()
+        {
+            Assert.Equal(6, decimal.GetBits(UbicacionCompartida.LatitudPorDefecto)[3] >> 16 & 0xFF);
+            Assert.Equal(6, decimal.GetBits(UbicacionCompartida.LongitudPorDefecto)[3] >> 16 & 0xFF);
+        }
+
+        [Theory]
+        [InlineData(-17.763701, -63.199920, true)]
+        [InlineData(-17.783241, -63.182140, false)]
+        [InlineData(-17.763701, -63.182140, false)]   // solo una coincide
+        public void ReconoceSiElPuntoSigueSiendoElDeReferencia(double lat, double lng, bool esperado)
+        {
+            Assert.Equal(esperado, UbicacionCompartida.EsReferenciaPorDefecto((decimal)lat, (decimal)lng));
+        }
+
+        [Fact]
+        public void UnPedidoSinPuntoNoEsElDeReferencia()
+        {
+            Assert.False(UbicacionCompartida.EsReferenciaPorDefecto(null, null));
+        }
+
+        // El error de docs/mapa-entrega.md §3.1: bbox va longitud primero y marker latitud
+        // primero. Invertirlos dibuja un mapa impecable de otro lugar, que a ojo no se
+        // distingue de uno bien. Por eso se fija la URL entera y no solo "que contenga".
+        [Fact]
+        public void ElEmbedRespetaElOrdenDeCadaParametro()
+        {
+            var embed = UbicacionCompartida.EmbedMapa(-17.783241m, -63.182140m);
+
+            Assert.Equal(
+                "https://www.openstreetmap.org/export/embed.html"
+                + "?bbox=-63.183640,-17.784741,-63.180640,-17.781741"
+                + "&layer=mapnik&marker=-17.783241,-63.182140",
+                embed);
+        }
+
+        // La caja mide el doble del margen por lado. Si alguien cambia la constante, esta
+        // prueba avisa cuánto quedó en metros antes de que el mapa salga inservible.
+        [Fact]
+        public void LaCajaDelEmbedRondaLosTrescientosMetros()
+        {
+            var embed = UbicacionCompartida.EmbedMapa(-17.783241m, -63.182140m);
+
+            var bbox = embed.Split("bbox=")[1].Split('&')[0].Split(',');
+            var ladoEnGrados = decimal.Parse(bbox[3], CultureInfo.InvariantCulture)
+                             - decimal.Parse(bbox[1], CultureInfo.InvariantCulture);
+
+            // 1 grado de latitud ~ 111 km.
+            var ladoEnMetros = ladoEnGrados * 111_000m;
+
+            Assert.InRange(ladoEnMetros, 250m, 450m);
+        }
+
+        // Con una cultura de coma decimal, "-17.78" saldria "-17,78" y el bbox — que separa
+        // sus valores con coma — quedaria con siete campos en vez de cuatro.
+        [Fact]
+        public void ElEmbedNoSeRompeConUnaCulturaDeComaDecimal()
+        {
+            var anterior = CultureInfo.CurrentCulture;
+            try
+            {
+                CultureInfo.CurrentCulture = new CultureInfo("es-BO");
+                var embed = UbicacionCompartida.EmbedMapa(-17.783241m, -63.182140m);
+
+                var bbox = embed.Split("bbox=")[1].Split('&')[0];
+
+                Assert.Equal(4, bbox.Split(',').Length);
+                Assert.DoesNotContain("=-17,", embed);
+            }
+            finally
+            {
+                CultureInfo.CurrentCulture = anterior;
+            }
         }
     }
 }
