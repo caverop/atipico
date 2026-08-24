@@ -1,4 +1,8 @@
 <Solution>
+  <Folder Name="/aspire/">
+    <Project Path="Atipico.Aspire.AppHost/Atipico.Aspire.AppHost.csproj" Id="1a1e0956-3f15-4a3e-b4cf-a3b940bb5b22" />
+    <Project Path="Atipico.Aspire.ServiceDefaults/Atipico.Aspire.ServiceDefaults.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="Atipico.Api/Atipico.Api.csproj" Id="bda24492-3a37-4cdd-a46d-7fbfb4777e16" />
     <Project Path="Atipico.Application/Atipico.Application.csproj" />

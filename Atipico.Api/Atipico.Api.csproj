@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Atipico.Application\Atipico.Application.csproj" />
+    <ProjectReference Include="..\Atipico.Aspire.ServiceDefaults\Atipico.Aspire.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Atipico.Infraestructure\Atipico.Infraestructure.csproj" />
   </ItemGroup>
 

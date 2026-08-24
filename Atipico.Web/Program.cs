@@ -10,6 +10,8 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
@@ -34,6 +36,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // página de login. Cada página protegida lleva su propio [Authorize] explícito en su lugar.
 builder.Services.AddAuthorization();
 
+// De donde sale ApiBaseUrl, en orden de precedencia real:
+//   - Aspire: lo inyecta el AppHost con el endpoint concreto de atipico-api (ver AppHost.cs).
+//   - docker-compose: variable de entorno, http://api:10000.
+//   - dotnet run suelto: ninguno de los dos, y cae en este default.
+// A proposito NO vive en appsettings: si ahi se fija el nombre del recurso de Aspire, correr
+// Atipico.Web sin el AppHost se rompe con "Host desconocido" y cuesta ver por que.
 var apiBaseUrl = builder.Configuration["ApiBaseUrl"] ?? "http://localhost:5197";
 builder.Services.AddTransient<JwtForwardingHandler>();
 builder.Services.AddHttpClient("AtipicoApi", client =>
@@ -81,6 +89,8 @@ builder.Services.AddScoped<ComprobanteApiClient>();
 builder.Services.AddScoped<IComprobanteApiClient, ComprobanteApiClientConProgreso>();
 
 var app = builder.Build();
+
+app.MapDefaultEndpoints();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
