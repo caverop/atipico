@@ -364,3 +364,4 @@ FodyWeavers.xsd
 
 # docker compose local secrets (connection strings, JWT key) — ver .env.example
 .env
+.azure

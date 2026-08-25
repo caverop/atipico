@@ -1,6 +1,7 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var api = builder.AddProject<Projects.Atipico_Api>("atipico-api");
+var api = builder.AddProject<Projects.Atipico_Api>("atipico-api")
+                 .WithExternalHttpEndpoints();
 
 builder.AddProject<Projects.Atipico_Web>("atipico-web")
     // WithReference publica services__atipico-api__* en Atipico.Web, que es lo que el service
