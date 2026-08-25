@@ -41,6 +41,18 @@ var api = builder.AddProject<Projects.Atipico_Api>("atipico-api")
 
 builder.AddProject<Projects.Atipico_Web>("atipico-web")
     .WithExternalHttpEndpoints()
+    // El llavero de Data Protection. El default del codigo es /var/atipico/keys, que sirve en
+    // docker-compose porque ahi hay un volumen montado; en Container Apps no hay nada montado
+    // y el contenedor no corre como root, asi que ni siquiera puede crear el directorio y
+    // Blazor se cae en el primer render (prerenderiza el estado de los componentes con
+    // Protect, no solo la cookie). /tmp si es escribible.
+    //
+    // PROVISIONAL: las claves viven en el contenedor, o sea que se pierden en cada revision
+    // (todos los usuarios vuelven a loguearse tras cada deploy) y cada replica tiene las
+    // suyas (maxReplicas esta en 10). Por eso WithReplicas(1): con una sola replica el
+    // llavero es consistente mientras dura. El arreglo de verdad es persistirlo afuera.
+    .WithEnvironment("DataProtection__KeysPath", "/tmp/atipico-keys")
+    .WithReplicas(1)
     // WithReference publica services__atipico-api__* en Atipico.Web, que es lo que el service
     // discovery necesita para resolver el nombre del recurso. Sin esto, "atipico-api" se le
     // pasa tal cual a DNS y sale "Host desconocido (atipico-api:80)" despues de ~22s de
