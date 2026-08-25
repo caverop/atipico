@@ -1,4 +1,4 @@
-
+﻿
 using Atipico.Application.Common.Interfaces;
 using Atipico.Application.Interfaces.Services;
 using Atipico.Application.Services;
@@ -9,6 +9,9 @@ using Atipico.Infraestructure.Storage;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
+using OpenTelemetry.Metrics;
+using OpenTelemetry.Trace;
 using Scalar.AspNetCore;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -16,6 +19,24 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
+
+// Instrumentacion de PostgreSQL: cada comando SQL emite un span anidado bajo la peticion HTTP
+// que lo origino (ver docs/telemetria-postgres.md). Va aca y no en ServiceDefaults a
+// proposito: el paquete arrastra Npgsql, y ServiceDefaults lo comparte con Atipico.Web, que
+// no toca la base y no tiene por que enterarse de que existe PostgreSQL.
+//
+// ConfigureOpenTelemetry* agrega sobre el proveedor que ya armo AddServiceDefaults(); no lo
+// reemplaza. Por eso tiene que ir DESPUES: antes no hay proveedor que configurar.
+//
+// Ojo con los using: hacen falta TRES y ninguno es evidente por el error que dan.
+//   Npgsql               -> AddNpgsql() y AddNpgsqlInstrumentation(), que NO estan en
+//                           OpenTelemetry.Trace como el resto de las instrumentaciones.
+//   OpenTelemetry.Trace  -> ConfigureOpenTelemetryTracerProvider
+//   OpenTelemetry.Metrics-> ConfigureOpenTelemetryMeterProvider
+builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddNpgsql());
+// Contadores del pool de conexiones. Con Neon del otro lado, quedarse corto de conexiones se
+// nota tarde y mal; esto lo hace visible antes.
+builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddNpgsqlInstrumentation());
 
 // Add services to the container.
 
