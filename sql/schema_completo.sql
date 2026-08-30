@@ -18,6 +18,18 @@
 -- Es un atajo de un solo archivo para levantar un ambiente nuevo (o
 -- resetear uno local) sin tener que correr cinco archivos en secuencia.
 --
+-- ⚠ DESACTUALIZADO — NO SIRVE HOY PARA LEVANTAR UN AMBIENTE NUEVO.
+-- Este snapshot llega hasta 005_plato_habilitado_hasta.sql. Desde entonces se
+-- agregaron 006_comprobante_pago, 007_comprobante_monto_opcional,
+-- 008_pedido_tipo, 009_pedido_direccion_entrega, 010_turno_caja,
+-- 011_turno_cierre_cuentas y 012_pedido_unicidad_por_turno, y nada de eso está
+-- acá: una base creada con este archivo no tiene turno_caja, así que el primer
+-- INSERT en pedido falla por una columna que no existe.
+--
+-- Hasta que se regenere, el camino correcto para un ambiente nuevo es correr
+-- script_inicial.sql y después las migraciones numeradas en orden. Esa
+-- secuencia sí está verificada de punta a punta sobre PostgreSQL 17.
+--
 -- PASO PREVIO: crear la base. CREATE DATABASE no puede ir dentro de una
 -- transacción, así que se ejecuta aparte:
 --

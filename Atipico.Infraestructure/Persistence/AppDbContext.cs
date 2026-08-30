@@ -31,6 +31,9 @@ namespace Atipico.Infraestructure.Persistence
         public DbSet<TipoPlato> TipoPlatos => Set<TipoPlato>();
         public DbSet<Plato> Platos => Set<Plato>();
         public DbSet<Mesa> Mesas => Set<Mesa>();
+        // Una fila por apertura de caja; es el contador del correlativo de pedidos y el
+        // periodo al que pertenecen (sql/010_turno_caja.sql, docs/numero-pedido.md).
+        public DbSet<TurnoCaja> TurnosCaja => Set<TurnoCaja>();
         public DbSet<Pedido> Pedidos => Set<Pedido>();
         public DbSet<PedidoMesa> PedidoMesas => Set<PedidoMesa>();
         public DbSet<PedidoPlato> PedidoPlatos => Set<PedidoPlato>();

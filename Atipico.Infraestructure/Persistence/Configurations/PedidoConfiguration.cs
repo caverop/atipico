@@ -2,6 +2,7 @@ using Atipico.Domain.Entities;
 using Atipico.Domain.Enums;
 using Atipico.Infraestructure.Persistence.Converters;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Atipico.Infraestructure.Persistence.Configurations
@@ -15,11 +16,50 @@ namespace Atipico.Infraestructure.Persistence.Configurations
             builder.HasKey(p => p.Id);
             builder.Property(p => p.Id).HasColumnName("id").UseIdentityAlwaysColumn();
 
+            // Turno de caja (sql/010_turno_caja.sql, docs/numero-pedido.md §6.3). Las dos
+            // columnas las asigna tg_pedido_numero_turno en el INSERT, asi que van como
+            // generadas por la base: Npgsql las excluye del INSERT y las trae de vuelta con
+            // RETURNING.
+            //
+            // Los dos SaveBehavior no son adorno; sin ellos RN-8 se rompe de dos maneras
+            // distintas, y ninguna de las dos se ve al compilar:
+            //
+            //   BeforeSave = Ignore  ValueGeneratedOnAdd por si solo significa "la base pone
+            //                        un valor SI la aplicacion no puso ninguno". Un POST con
+            //                        {"numeroTurno": 77} tiene valor, asi que EF lo manda y
+            //                        deja de pedir RETURNING para esa columna. El trigger igual
+            //                        lo pisa —verificado, la fila queda con el correlativo
+            //                        correcto— pero la entidad en memoria se queda con 77 y esa
+            //                        es la que se devuelve en el 201. El cliente se lleva un
+            //                        numero que no existe. Con Ignore, EF nunca manda el valor.
+            //   AfterSave  = Ignore  cierra el otro lado: un PUT con otro numero no se propaga.
+            //                        El numero es inmutable (RN-4).
+            builder.Property(p => p.NumeroTurno).HasColumnName("numero_turno").ValueGeneratedOnAdd();
+            builder.Property(p => p.NumeroTurno).Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Ignore);
+            builder.Property(p => p.NumeroTurno).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
+
+            builder.Property(p => p.IdTurnoCaja).HasColumnName("id_turno_caja").ValueGeneratedOnAdd();
+            builder.Property(p => p.IdTurnoCaja).Metadata.SetBeforeSaveBehavior(PropertySaveBehavior.Ignore);
+            builder.Property(p => p.IdTurnoCaja).Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
+
+            builder.HasOne(p => p.TurnoCaja).WithMany(t => t.Pedidos)
+                .HasForeignKey(p => p.IdTurnoCaja)
+                .HasConstraintName("fk_pedido_turno_caja")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // uk_pedido_numero_turno: el par es unico, no el numero solo — cada turno
+            // reinicia en 1.
+            builder.HasIndex(p => new { p.IdTurnoCaja, p.NumeroTurno })
+                .IsUnique()
+                .HasDatabaseName("uk_pedido_numero_turno");
+
             builder.Property(p => p.Comensal).HasColumnName("comensal").HasMaxLength(120);
 
-            // uk_pedido_comensal_activo (sql/003_pedido_comensal_unico.sql): dos pedidos
-            // Abierto/EnPreparacion no pueden compartir comensal.
-            builder.HasIndex(p => p.Comensal)
+            // uk_pedido_comensal_activo (sql/003_pedido_comensal_unico.sql, reemplazado por
+            // sql/012_pedido_unicidad_por_turno.sql): dentro de UN TURNO, dos pedidos
+            // Abierto/EnPreparacion no pueden compartir comensal. El mismo nombre vuelve a
+            // estar libre en el turno siguiente.
+            builder.HasIndex(p => new { p.IdTurnoCaja, p.Comensal })
                 .IsUnique()
                 .HasDatabaseName("uk_pedido_comensal_activo")
                 .HasFilter("estado IN ('ABIERTO', 'EN_PREPARACION')");

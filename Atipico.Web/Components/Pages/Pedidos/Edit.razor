@@ -20,11 +20,15 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 
-<PageTitle>@(Id is null ? "Nuevo pedido" : "Editar pedido")</PageTitle>
+<PageTitle>@Titulo</PageTitle>
 
 <a href="/pedidos" class="btn btn-link ps-0 mb-2">&larr; Volver a pedidos</a>
 
-<h3>@(Id is null ? "Nuevo pedido" : $"Editar pedido #{Id}")</h3>
+@* El pedido se nombra como se lo nombra en el salon: por su numero de turno y por
+   quien lo pidio. El id sigue estando en la URL —es la clave con la que se navega y es
+   unica entre turnos, cosa que el correlativo no es— pero no se muestra: para el mesero
+   no significa nada. *@
+<h3>@Titulo</h3>
 
 @if (_error is not null)
 {
@@ -277,19 +281,29 @@
                     }
                     @if (_puedeAsociarMesa)
                     {
-                        @if (_mesasDisponibles.Count > 0)
+                        @* Las ocupadas se listan pero no se pueden elegir. Antes se ofrecian
+                           con un aviso al lado y se dejaban asociar igual; desde
+                           sql/012_pedido_unicidad_por_turno.sql la base las rechaza, asi que
+                           ofrecerlas seria prometer algo que la API niega. Se muestran, en vez
+                           de esconderlas, para que el mesero vea que la mesa existe y por que
+                           no la puede tomar. *@
+                        @if (_mesasLibres.Count > 0)
                         {
                             <div class="input-group mb-4">
                                 <select class="form-select" @bind="_selectedMesaId">
                                     @foreach (var mesa in _mesasDisponibles)
                                     {
-                                        <option value="@mesa.Id">
-                                            Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ya ocupada por otro pedido" : "")
+                                        <option value="@mesa.Id" disabled="@(mesa.Estado == EstadoMesa.Ocupada)">
+                                            Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ocupada por otro pedido" : "")
                                         </option>
                                     }
                                 </select>
                                 <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
                             </div>
+                        }
+                        else if (_mesasDisponibles.Count > 0)
+                        {
+                            <p class="text-muted"><em>Todas las mesas están ocupadas por otros pedidos de este turno.</em></p>
                         }
                         else
                         {
@@ -427,6 +441,27 @@
 
     [Parameter] public long? Id { get; set; }
     private Pedido _entity = new();
+
+    // Como se llama este pedido en pantalla. Antes era "Editar pedido #12", el id de la
+    // tabla; ahora es "Pedido 012 · Juan", que es lo que se canta en el salon.
+    //
+    // Se calcula fuera del @if (_loaded) porque el encabezado se dibuja antes de que
+    // termine la carga: hasta entonces no hay numero que mostrar y decir "Pedido" solo es
+    // mejor que mostrar un 000 que no existe.
+    private string Titulo
+    {
+        get
+        {
+            if (Id is null)
+                return "Nuevo pedido";
+
+            if (!_loaded)
+                return "Pedido";
+
+            var numero = _entity.NumeroTurno.ToString("D3");
+            return string.IsNullOrWhiteSpace(_entity.Comensal) ? $"Pedido {numero}" : $"Pedido {numero} · {_entity.Comensal}";
+        }
+    }
     private List<Usuario> _meseros = [];
     private List<Plato> _platos = [];
     private List<PedidoPlato> _pedidoPlatos = [];
@@ -491,8 +526,15 @@
     // Se preselecciona una mesa Libre para evitar elegir por accidente una que ya esta
     // compartida; si no queda ninguna Libre, se cae a la primera disponible (Ocupada) en vez
     // de dejar el selector vacio.
-    private long _mesaPorDefecto =>
-        (_mesasDisponibles.FirstOrDefault(m => m.Estado == EstadoMesa.Libre) ?? _mesasDisponibles.FirstOrDefault())?.Id ?? 0;
+    // Las que se pueden tomar de verdad. Una mesa Ocupada la rechaza tg_pedido_mesa_ocupada,
+    // asi que no sirve ni como opcion ni como valor por defecto.
+    private List<Mesa> _mesasLibres =>
+        _mesasDisponibles.Where(m => m.Estado != EstadoMesa.Ocupada).ToList();
+
+    // Sin fallback a una ocupada: antes, con todas las mesas tomadas, el select arrancaba
+    // sobre una que el servidor iba a rechazar. Ahora arranca en 0 y HandleAddMesa no hace
+    // nada, que es lo correcto cuando no hay nada que asociar.
+    private long _mesaPorDefecto => _mesasLibres.FirstOrDefault()?.Id ?? 0;
 
     // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
     // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
@@ -1013,7 +1055,7 @@
     {
         if (Id is null) return;
 
-        var confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Anular el pedido #{Id}?");
+        var confirmado = await JS.InvokeAsync<bool>("confirm", $"¿Anular el {Titulo.ToLowerInvariant()}?");
         if (!confirmado) return;
 
         var actualizado = new Pedido

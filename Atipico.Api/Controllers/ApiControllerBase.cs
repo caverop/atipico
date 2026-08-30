@@ -64,7 +64,9 @@ namespace Atipico.Api.Controllers
             "uk_mesa_numero" => "Ya existe una mesa con ese número.",
             "uk_usuario_nombre_usuario" => "Ya existe un usuario con ese nombre de usuario.",
             "uk_pedido_mesa" => "Esa mesa ya está asociada a este pedido.",
-            "uk_pedido_comensal_activo" => "Ya hay un pedido abierto o en preparación para ese comensal.",
+            // La mesa tomada por OTRO pedido del turno la rechaza tg_pedido_mesa_ocupada
+            // (sql/012), que levanta P0001 con su propio mensaje: no pasa por aca.
+            "uk_pedido_comensal_activo" => "Ya hay un pedido abierto o en preparación para ese comensal en este turno.",
             "uk_detalle_pedido_plato" => "Ese plato del pedido ya fue facturado; no se puede facturar dos veces.",
             "ck_pedido_plato_servido" => "No se puede marcar como Servido sin la fecha de servido.",
             "ck_pedido_cierre" => "No se puede cerrar el pedido sin la fecha de cierre.",
@@ -87,6 +89,11 @@ namespace Atipico.Api.Controllers
             "ck_comprobante_reemplazo" => "Para reemplazar un comprobante se debe indicar el motivo.",
             // Tipo de pedido (sql/008_pedido_tipo.sql).
             "ck_pedido_tipo" => "El tipo de pedido no es válido.",
+            // Turno de caja (sql/010_turno_caja.sql).
+            "uk_turno_caja_abierto" => "Ya hay un turno de caja abierto. Cerralo antes de abrir otro.",
+            "uk_pedido_numero_turno" => "Ese número de pedido ya existe en este turno.",
+            "ck_turno_caja_nombre" => "El turno necesita un nombre.",
+            "ck_turno_caja_cierre" => "La fecha de cierre del turno no puede ser anterior a la de apertura.",
             // Direccion de entrega (sql/009_pedido_direccion_entrega.sql).
             "ck_pedido_coordenada" => "La ubicación de entrega necesita latitud y longitud, o ninguna de las dos.",
             "ck_pedido_latitud" => "La latitud de entrega está fuera de rango (-90 a 90).",

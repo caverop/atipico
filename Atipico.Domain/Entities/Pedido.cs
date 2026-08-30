@@ -1,4 +1,4 @@
-﻿using Atipico.Domain.Enums;
+using Atipico.Domain.Enums;
 using Atipico.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -9,6 +9,20 @@ namespace Atipico.Domain.Entities
     public class Pedido : IEntity
     {
         public long Id { get; set; }
+
+        // Numero de pedido por turno (sql/010_turno_caja.sql, docs/numero-pedido.md).
+        // Las dos las asigna tg_pedido_numero_turno en el INSERT: la aplicacion NUNCA las
+        // envia (RN-8). Se llama NumeroTurno y no Numero porque mesa.numero ya existe y son
+        // cosas distintas.
+
+        /// <summary>Correlativo dentro del turno, unico por (IdTurnoCaja, NumeroTurno). Lo asigna la base.</summary>
+        public int NumeroTurno { get; set; }
+
+        /// <summary>Turno de caja en el que se registro el pedido. Lo asigna la base.</summary>
+        public long IdTurnoCaja { get; set; }
+
+        public TurnoCaja TurnoCaja { get; set; } = null!;
+
         public string? Comensal { get; set; }
         public EstadoPedido Estado { get; set; } = EstadoPedido.Abierto;
 

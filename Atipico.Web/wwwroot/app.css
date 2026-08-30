@@ -294,6 +294,20 @@ h1:focus {
     opacity: 0.6;
 }
 
+/* El numero de pedido del turno, al frente de la fila. Cifras tabulares y ancho
+   minimo para tres digitos: sin eso 009 y 010 ocupan distinto y la columna de
+   numeros se mueve de fila en fila. min-width y no width, para que un turno que
+   pase de 999 desborde sin romper. Ver docs/numero-pedido.md §8.9. */
+.panel-fila-numero {
+    flex: none;
+    min-width: 2.5ch;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    opacity: 0.55;
+}
+
 /* --- Panel ---------------------------------------------------------------- */
 .panel-saludo {
     line-height: 1.15;
@@ -435,4 +449,138 @@ h1:focus {
 /* El subtotal cierra la lista de platos: mismo item, distinto peso. */
 .pedido-subtotal {
     background-color: rgba(28, 23, 18, 0.03);
+}
+
+/* --- Turno de caja --------------------------------------------------------
+   Ver docs/numero-pedido.md §8.4 y §8.5. Con la grilla acotada a un turno, este
+   encabezado es el unico contexto que le queda al usuario: las filas ya no
+   llevan ni fecha ni turno. */
+.turno-encabezado,
+.turno-aviso,
+.turno-abrir,
+.turno-elegir {
+    border: 2px solid var(--atipico-ink);
+    border-radius: 0.75rem;
+    background-color: var(--atipico-surface);
+    padding: 0.75rem 1rem;
+}
+
+.turno-encabezado,
+.turno-aviso {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.turno-nombre {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin-right: 0.5rem;
+}
+
+.turno-meta {
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+    /* Los datos se separan con un punto medio puesto por CSS: asi el marcado es una lista
+       de <span> y agregar o quitar uno no deja un separador colgando. */
+    .turno-meta span + span::before {
+        content: " · ";
+    }
+
+.turno-cerrado {
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* El turno que quedo abierto de un dia para el otro. La numeracion sigue subiendo sobre
+   el dia anterior y no hay ninguna otra senal en pantalla de que eso este pasando. */
+.turno-encabezado.otro-dia {
+    border-color: var(--atipico-accent);
+    box-shadow: inset 0 0 0 1px var(--atipico-accent);
+}
+
+.turno-alerta {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--atipico-accent);
+}
+
+.turno-aviso-detalle {
+    font-size: 0.9rem;
+    opacity: 0.75;
+}
+
+.turno-acciones {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.turno-abrir-fila {
+    display: flex;
+    gap: 0.5rem;
+}
+
+    .turno-abrir-fila .form-control {
+        flex: 1;
+        min-width: 0;
+    }
+
+.turno-abrir-nota {
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    opacity: 0.75;
+}
+
+.turno-bloqueantes {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+}
+
+    .turno-bloqueantes strong {
+        font-variant-numeric: tabular-nums;
+        margin-right: 0.35rem;
+    }
+
+/* N° es la primera columna, y solo en esta grilla: acotado con .grilla-pedidos para no
+   alcanzar a las otras ocho pantallas que usan EntityTable. Cifras tabulares para que 009
+   y 010 ocupen exactamente lo mismo y la columna no baile al recargar. */
+.grilla-pedidos .table th:first-child,
+.grilla-pedidos .table td:first-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+    /* El <th> ordenable es un boton dentro de la celda; alinear la celda no lo mueve. */
+    .grilla-pedidos .table th:first-child .entity-table-orden {
+        justify-content: flex-end;
+        width: 100%;
+    }
+
+.grilla-pedidos .entity-card-dato:first-child {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+}
+
+@media (max-width: 640.98px) {
+    .turno-encabezado,
+    .turno-aviso {
+        align-items: flex-start;
+    }
+
+    .turno-abrir-fila {
+        flex-wrap: wrap;
+    }
+
+        .turno-abrir-fila .form-control {
+            flex-basis: 100%;
+        }
 }

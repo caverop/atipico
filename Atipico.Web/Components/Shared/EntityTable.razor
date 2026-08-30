@@ -42,9 +42,12 @@
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h3 class="mb-0">@Title</h3>
-    <AuthorizeView Roles="@RolesCsv">
-        <Authorized><a class="btn btn-primary" href="@CreateUrl">+ Nuevo</a></Authorized>
-    </AuthorizeView>
+    @if (ShowCreate)
+    {
+        <AuthorizeView Roles="@RolesCsv">
+            <Authorized><a class="btn btn-primary" href="@CreateUrl">+ Nuevo</a></Authorized>
+        </AuthorizeView>
+    }
 </div>
 
 @if (Items is null)
@@ -241,6 +244,11 @@ else
     // Algunas pantallas (p.ej. Pedidos) sacan esta accion de la grilla a proposito: solo se
     // puede anular entrando a editar el registro, no desde la lista.
     [Parameter] public bool ShowDelete { get; set; } = true;
+
+    // Igual que ShowDelete, pero para "+ Nuevo". Lo necesita Pedidos: mirando un turno que no
+    // es el abierto, el boton mentiria — el pedido nuevo caeria en el turno abierto, no en el
+    // que se esta viendo. Y sin ningun turno abierto, la base lo rechaza de plano (RN-6).
+    [Parameter] public bool ShowCreate { get; set; } = true;
 
     // Roles que pueden crear/editar/eliminar en esta pantalla. La API vuelve a
     // validar esto por acción (Create/Update/Delete pueden diferir); esto solo

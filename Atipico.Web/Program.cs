@@ -88,6 +88,11 @@ builder.Services.AddScoped(typeof(IEntityApiClient<>), typeof(EntityApiClientCon
 builder.Services.AddScoped<ComprobanteApiClient>();
 builder.Services.AddScoped<IComprobanteApiClient, ComprobanteApiClientConProgreso>();
 
+// Turnos de caja: abrir/cerrar no son CRUD, y la grilla de pedidos ahora viene acotada al
+// turno. Mismo registro en dos pasos que los otros dos, por el mismo motivo (ver CLAUDE.md).
+builder.Services.AddScoped<TurnoApiClient>();
+builder.Services.AddScoped<ITurnoApiClient, TurnoApiClientConProgreso>();
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();

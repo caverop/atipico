@@ -2,7 +2,7 @@
 @attribute [Authorize]
 @using System.Security.Claims
 @using Atipico.Application.Common
-@inject IEntityApiClient<Pedido> PedidoApi
+@inject ITurnoApiClient TurnoApi
 
 <PageTitle>Panel - Atipico</PageTitle>
 
@@ -10,15 +10,31 @@
    PedidoMesa, PedidoPlato, Cuenta, DetalleCuenta) una detras de otra, y las usaba
    solo para poner un numero en cada tarjeta. En el telefono eso son nueve viajes
    antes de ver nada. Ahora se pide una sola lista, la que de verdad se mira al
-   entrar: los pedidos en curso. Los atajos no llevan conteo. *@
+   entrar: los pedidos en curso. Los atajos no llevan conteo.
+
+   Y esa lista viene acotada al turno abierto, no es GetAllAsync(). No es solo por
+   volumen: un "012" solo significa algo junto a su turno, y aca no hay encabezado
+   de turno donde decirlo (§8.5), asi que la unica forma de que el numero no mienta
+   es que la lista no pueda contener dos turnos. Ver docs/numero-pedido.md §8.9. *@
 
 <h1 class="panel-saludo">@Saludo,<br />@_nombre</h1>
 <p class="text-muted panel-fecha">@Fecha</p>
 
 @if (_error is not null)
 {
+    @* Se distinguen los dos casos: la API que no responde es un problema de
+       infraestructura, y la que responde con un error no lo es. Decirle "confirmá que
+       Atipico.Api esté corriendo" a alguien que recibio un 403 lo manda a mirar al
+       lugar equivocado. *@
     <div class="alert alert-danger">
-        No se pudo conectar con la API (@_error). Confirmá que Atipico.Api esté corriendo.
+        @if (_sinConexion)
+        {
+            <text>No se pudo conectar con la API (@_error). Confirmá que Atipico.Api esté corriendo.</text>
+        }
+        else
+        {
+            <text>@_error</text>
+        }
     </div>
 }
 
@@ -49,8 +65,14 @@
                 @foreach (var pedido in _activos)
                 {
                     <a class="panel-fila" href="@($"/pedidos/{pedido.Id}")">
+                        @* Mismo formato que la columna N° de la grilla: tres digitos y cifras
+                           tabulares, para que la columna de numeros no baile entre filas. *@
+                        <span class="panel-fila-numero">@pedido.NumeroTurno.ToString("D3")</span>
                         <span class="panel-fila-datos">
-                            <span class="panel-fila-titulo d-block">@(string.IsNullOrWhiteSpace(pedido.Comensal) ? $"Pedido #{pedido.Id}" : pedido.Comensal)</span>
+                            @* Sin comensal, el titulo caia en "Pedido #12" — la clave de la
+                               tabla, justo lo que §8.7 saco de las demas pantallas. Con el
+                               numero al frente el hueco ya no necesita rellenarse. *@
+                            <span class="panel-fila-titulo d-block">@(string.IsNullOrWhiteSpace(pedido.Comensal) ? "Sin comensal" : pedido.Comensal)</span>
                             <span class="panel-fila-meta">@pedido.Tipo.Etiqueta() · @pedido.CreadoEn.ToBoliviaTime().ToString("t", _cultura)</span>
                         </span>
                         <span class="estado-pill @pedido.Estado.ClasePill()">@pedido.Estado.Etiqueta()</span>
@@ -106,6 +128,7 @@
 
     private List<Pedido>? _pedidos;
     private string? _error;
+    private bool _sinConexion;
     private string _nombre = "";
     private long? _idUsuario;
     private bool _soloMios;
@@ -152,11 +175,18 @@
 
         try
         {
-            _pedidos = await PedidoApi.GetAllAsync();
+            // Sin turno abierto viene la lista vacia, y el panel muestra "Ningun pedido en
+            // curso ahora mismo.", que es exactamente lo cierto.
+            _pedidos = (await TurnoApi.GetGrillaAbiertaAsync()).Pedidos.ToList();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
         }
         catch (HttpRequestException ex)
         {
             _error = ex.Message;
+            _sinConexion = true;
         }
     }
 }

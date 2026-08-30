@@ -1,0 +1,85 @@
+@page "/turnos"
+@using Atipico.Application.Models
+@attribute [Authorize(Roles = "Admin,Cajero")]
+@inject ITurnoApiClient TurnoApi
+
+<PageTitle>Turnos de caja</PageTitle>
+
+<h3>Turnos de caja</h3>
+<p class="text-muted">
+    Cada apertura de caja es un turno, y dentro de cada uno la numeración de pedidos
+    vuelve a empezar en 001.
+    <Ayuda Texto="El reinicio es manual, a criterio del cajero: no hay horarios de jornada. Abrir y cerrar se hace desde la pantalla de Pedidos, que es donde el cajero ya está mirando." />
+</p>
+
+@if (_error is not null)
+{
+    <div class="alert alert-danger">@_error</div>
+}
+else if (_turnos is null)
+{
+    <p><em>Cargando...</em></p>
+}
+else if (_turnos.Count == 0)
+{
+    <div class="alert alert-info">Todavía no se abrió ningún turno de caja.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Turno</th>
+                    <th>Cajero</th>
+                    <th>Apertura</th>
+                    <th>Cierre</th>
+                    <th class="text-end">Pedidos</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in _turnos)
+                {
+                    <tr>
+                        <td>
+                            @t.Nombre
+                            @if (t.CerradoEn is null)
+                            {
+                                <span class="estado-pill llena ms-2">Abierto</span>
+                            }
+                        </td>
+                        <td>@(t.CajeroNombre ?? "-")</td>
+                        <td>@t.AbiertoEn.ToBoliviaTime().ToString("g")</td>
+                        <td>@(t.CerradoEn?.ToBoliviaTime().ToString("g") ?? "-")</td>
+                        <td class="text-end">@t.TotalPedidos</td>
+                        @* Lleva a la grilla ya acotada a ese turno; no hay ficha de edicion de
+                           un turno porque no hay nada editable en el. *@
+                        <td><a class="btn btn-sm btn-outline-secondary" href="/pedidos">Ver pedidos</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<TurnoDto>? _turnos;
+    private string? _error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _turnos = await TurnoApi.GetHistoricoAsync();
+        }
+        catch (ApiException ex)
+        {
+            _error = ex.Message;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "No se pudo conectar con el servidor.";
+        }
+    }
+}

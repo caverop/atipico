@@ -57,6 +57,9 @@ namespace Atipico.Web.Services
             ]),
             new("Caja",
             [
+                // Historico de turnos. Abrir y cerrar NO viven aca: estan en la grilla de
+                // pedidos, que es donde el cajero ya esta mirando cuando le toca hacerlo.
+                new("Turnos de caja", "turnos", Admin, Cajero),
                 new("Cuentas", "cuentas", Admin, Cajero),
                 // Ojo: el comentario original decia "el mesero tambien", pero el link
                 // siempre estuvo bajo Admin,Cajero. Se conserva tal cual para no ampliar

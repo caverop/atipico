@@ -23,7 +23,9 @@
             <InputSelect class="form-select" @bind-Value="_entity.IdPedido">
                 @foreach (var pedido in _pedidos)
                 {
-                    <option value="@pedido.Id">#@pedido.Id - @(pedido.Comensal ?? "sin nombre")</option>
+                    @* Mismo criterio que Pedidos/Edit: el pedido se nombra por su correlativo
+                       de turno y su comensal, no por la clave de la tabla. *@
+                    <option value="@pedido.Id">@pedido.NumeroTurno.ToString("D3") - @(pedido.Comensal ?? "sin nombre")</option>
                 }
             </InputSelect>
         </div>

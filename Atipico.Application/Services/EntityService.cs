@@ -1,6 +1,7 @@
 using Atipico.Application.Common.Interfaces;
 using Atipico.Application.Interfaces.Services;
 using Atipico.Domain.Interfaces.Repositories;
+using System.Linq.Expressions;
 
 namespace Atipico.Application.Services
 {
@@ -23,6 +24,11 @@ namespace Atipico.Application.Services
         public Task<IEnumerable<TEntity>> GetAllAsync()
         {
             return _repository.GetAllAsync();
+        }
+
+        public Task<IEnumerable<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
+        {
+            return _repository.FindAsync(predicate);
         }
 
         public async Task<TEntity> AddAsync(TEntity entity)

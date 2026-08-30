@@ -1,4 +1,5 @@
 using Atipico.Application.Interfaces.Services;
+using Atipico.Application.Models;
 using Atipico.Domain.Entities;
 using Atipico.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
@@ -16,6 +17,8 @@ namespace Atipico.Api.Controllers
         private readonly IEntityService<Plato> _platoService;
         private readonly IEntityService<Cuenta> _cuentaService;
         private readonly IEntityService<DetalleCuenta> _detalleCuentaService;
+        private readonly IEntityService<TurnoCaja> _turnoService;
+        private readonly IEntityService<Usuario> _usuarioService;
 
         public PedidosController(
             IEntityService<Pedido> service,
@@ -25,7 +28,9 @@ namespace Atipico.Api.Controllers
             IEntityService<PedidoPlato> pedidoPlatoService,
             IEntityService<Plato> platoService,
             IEntityService<Cuenta> cuentaService,
-            IEntityService<DetalleCuenta> detalleCuentaService)
+            IEntityService<DetalleCuenta> detalleCuentaService,
+            IEntityService<TurnoCaja> turnoService,
+            IEntityService<Usuario> usuarioService)
             : base(service)
         {
             _sinCobrarService = sinCobrarService;
@@ -35,11 +40,67 @@ namespace Atipico.Api.Controllers
             _platoService = platoService;
             _cuentaService = cuentaService;
             _detalleCuentaService = detalleCuentaService;
+            _turnoService = turnoService;
+            _usuarioService = usuarioService;
         }
 
         protected override string[] CreateRoles => ["Admin", "Mesero"];
         protected override string[] UpdateRoles => ["Admin", "Mesero"];
         protected override string[] DeleteRoles => ["Admin", "Mesero"];
+
+        // Quien puede mirar un turno que no es el abierto. El mesero no esta, y no es un
+        // detalle de maquetado: para el que canta "el 12" en el salon, el numero tiene que
+        // ser inequivoco, y deja de serlo apenas la lista abarca dos turnos (RN-12).
+        // La grilla ya se lo esconde; esto lo hace cierto tambien si alguien llama a la ruta
+        // a mano.
+        private static readonly string[] RolesQueAmplian = ["Admin", "Cajero", "Cocinero"];
+
+        /// <summary>
+        /// Los pedidos del turno abierto, con el turno en el sobre. Reemplaza al GET api/pedidos
+        /// de la grilla, que traia todos los pedidos que existieron para descartarlos en
+        /// memoria. Ver docs/numero-pedido.md §7.3.
+        /// </summary>
+        [HttpGet("turno-abierto")]
+        public async Task<ActionResult<GrillaPedidosDto>> GetDelTurnoAbierto()
+        {
+            var turno = (await _turnoService.FindAsync(t => t.CerradoEn == null)).FirstOrDefault();
+
+            // Sin turno abierto no hay grilla que mostrar, y tampoco es un error: es el estado
+            // en que queda la base recien migrada y al terminar la jornada. El sobre lo dice
+            // con Turno en null y la pantalla ofrece abrir uno (§8.4).
+            if (turno is null)
+                return Ok(new GrillaPedidosDto(null, []));
+
+            return Ok(await ArmarGrillaAsync(turno));
+        }
+
+        /// <summary>Los pedidos de un turno cualquiera. Solo para los roles que pueden ampliar.</summary>
+        [HttpGet("turno/{idTurno:long}")]
+        public async Task<ActionResult<GrillaPedidosDto>> GetDelTurno(long idTurno)
+        {
+            if (!HasAnyRole(RolesQueAmplian))
+                return Forbid();
+
+            var turno = await _turnoService.GetByIdAsync(idTurno);
+            if (turno is null)
+                return NotFound();
+
+            return Ok(await ArmarGrillaAsync(turno));
+        }
+
+        private async Task<GrillaPedidosDto> ArmarGrillaAsync(TurnoCaja turno)
+        {
+            var pedidos = (await _service.FindAsync(p => p.IdTurnoCaja == turno.Id)).ToList();
+
+            string? cajero = null;
+            if (turno.IdCajero is not null)
+                cajero = (await _usuarioService.GetByIdAsync(turno.IdCajero.Value))?.Nombre;
+
+            // TotalPedidos sale de la lista que ya se trajo, no de un COUNT aparte.
+            return new GrillaPedidosDto(
+                new TurnoDto(turno.Id, turno.Nombre, turno.AbiertoEn, turno.CerradoEn, cajero, pedidos.Count),
+                pedidos);
+        }
 
         // CerradoEn no llega del cliente: el navegador arma un DateTimeOffset con su propio
         // huso horario, y Npgsql solo acepta offset 0 (UTC) para timestamptz. Se calcula aca,
