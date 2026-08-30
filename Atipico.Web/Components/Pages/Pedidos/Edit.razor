@@ -62,42 +62,9 @@
             </div>
         }
 
-        @if (Id is null)
-        {
-            <button type="submit" class="btn btn-primary" disabled="@_procesando">Continuar</button>
-        }
-        @if (_pedidoActivo)
-        {
-            <div class="mb-3">
-                <label class="form-label">Método de pago</label>
-                <select class="form-select" @bind="_metodoPagoSeleccionado">
-                    <option value="">-- Selecciona un método --</option>
-                    @foreach (var metodo in Enum.GetValues<MetodoPago>())
-                    {
-                        <option value="@metodo">@metodo</option>
-                    }
-                </select>
-            </div>
-            @* La mas lenta de la aplicacion: guarda los platos pendientes, factura creando
-               la cuenta y su detalle, y sube a R2 los comprobantes preparados. La barra
-               global la cubre, pero son 3px arriba del todo mientras la vista esta aqui, en
-               el boton recien pulsado; la espera se leia como que no habia pasado nada. *@
-            <button type="button" class="btn btn-primary"
-                    disabled="@(_metodoPagoSeleccionado is null || _procesando)"
-                    @onclick="@(() => EjecutarAsync(HandleCerrarPedido, "Facturando el pedido y subiendo los comprobantes…"))">
-                En Preparación
-            </button>
-        }
-        @if (_puedeMarcarServido)
-        {
-            <button type="button" class="btn btn-success" disabled="@_procesando"
-                    @onclick="@(() => EjecutarAsync(HandleMarcarServido, "Marcando como servido…"))">Servido</button>
-        }
-        @if (_puedeAnular)
-        {
-            <button type="button" class="btn btn-outline-secondary" disabled="@_procesando"
-                    @onclick="@(() => EjecutarAsync(HandleAnularPedido, "Anulando el pedido…"))">Anular</button>
-        }
+        @* Las acciones NO estan aca: viven en la barra fija del final (ver mas abajo y
+           docs/barra-acciones-pedido.md). OnValidSubmit se mantiene conectado igual, porque
+           sin boton de submit el Enter en un campo de texto sigue enviando el formulario. *@
     </EditForm>
 
     <hr class="my-4" />
@@ -434,6 +401,77 @@
                                PuedeEditar="@(cuenta.Estado != EstadoCuenta.Anulada)" />
         }
     }
+
+    @* --- Barra de acciones ---------------------------------------------------
+       Fija al pie, siempre visible. Antes este bloque estaba arriba de todo y debajo
+       quedaban tres pantallas de formulario: el mesero adjuntaba el comprobante abajo
+       y el boton que factura estaba tres pantallas arriba.
+
+       Se declara al FINAL y no dentro del EditForm —position: fixed no depende de donde
+       se declare— para que el orden del DOM coincida con el visual, que es lo que leen
+       el lector de pantalla y el tabulador. Ver docs/barra-acciones-pedido.md §5.
+
+       Sin acciones disponibles (Cerrado, Anulado) no se dibuja nada: ni barra ni
+       espaciador, asi que no queda un hueco blanco sin motivo. *@
+    @if (HayAcciones)
+    {
+        @* En el flujo normal, reservando el alto de la barra. No se toca el
+           padding-bottom de .content: eso alcanza a todas las pantallas y solo esta
+           tiene barra.
+
+           Dos alturas porque la barra tiene dos: en movil el select de metodo de pago
+           toma el ancho completo y empuja los botones a una segunda fila. Medido a
+           320px: 122px con select, 66px sin el. Un solo valor dejaria 70px de hueco
+           en blanco en los otros tres estados. Ver docs/barra-acciones-pedido.md §6.2. *@
+        <div class="pedido-barra-espaciador @(BarraConMetodo ? "con-metodo" : "")"></div>
+
+        <div class="pedido-barra-acciones">
+            <div class="pedido-barra-interior">
+                @if (Id is null)
+                {
+                    @* type="button" y no submit: la barra vive fuera del EditForm. Es
+                       equivalente porque el formulario no tiene DataAnnotationsValidator,
+                       asi que OnValidSubmit nunca filtro nada. *@
+                    <button type="button" class="btn btn-primary" disabled="@_procesando"
+                            @onclick="@(() => EjecutarAsync(HandleSave, "Guardando el pedido…"))">
+                        Continuar
+                    </button>
+                }
+                @if (BarraConMetodo)
+                {
+                    @* El select viaja con el boton a proposito: sin el, la barra mostraria un
+                       boton gris sin ninguna pista de que lo desbloquea y con el control fuera
+                       de pantalla. Eso es peor que no tener barra. *@
+                    <select class="form-select pedido-barra-metodo" @bind="_metodoPagoSeleccionado"
+                            aria-label="Método de pago">
+                        <option value="">-- Método de pago --</option>
+                        @foreach (var metodo in Enum.GetValues<MetodoPago>())
+                        {
+                            <option value="@metodo">@metodo</option>
+                        }
+                    </select>
+                    @* La accion mas lenta de la aplicacion: guarda los platos pendientes,
+                       factura creando la cuenta y su detalle, y sube a R2 los comprobantes
+                       preparados. Por eso va con overlay y no solo con la barra de progreso. *@
+                    <button type="button" class="btn btn-primary"
+                            disabled="@(_metodoPagoSeleccionado is null || _procesando)"
+                            @onclick="@(() => EjecutarAsync(HandleCerrarPedido, "Facturando el pedido y subiendo los comprobantes…"))">
+                        En Preparación
+                    </button>
+                }
+                @if (_puedeMarcarServido)
+                {
+                    <button type="button" class="btn btn-success" disabled="@_procesando"
+                            @onclick="@(() => EjecutarAsync(HandleMarcarServido, "Marcando como servido…"))">Servido</button>
+                }
+                @if (_puedeAnular)
+                {
+                    <button type="button" class="btn btn-outline-secondary" disabled="@_procesando"
+                            @onclick="@(() => EjecutarAsync(HandleAnularPedido, "Anulando el pedido…"))">Anular</button>
+                }
+            </div>
+        </div>
+    }
 }
 
 @code {
@@ -650,6 +688,17 @@
     // A diferencia de "En Preparación" (solo desde Abierto), un pedido se puede anular en
     // cualquier momento antes de Cerrado/Anulado; por eso "Anular" se saco de la grilla de
     // Pedidos/Index.razor y solo se ofrece entrando a editar el pedido.
+    // Union de las cuatro condiciones de la barra, declarada una sola vez para que la
+    // barra y su espaciador no puedan discrepar. Si discreparan, un pedido Cerrado
+    // dejaria un hueco blanco al final sin nada que lo explique.
+    private bool HayAcciones => Id is null || _pedidoActivo || _puedeMarcarServido || _puedeAnular;
+
+    // Si la barra lleva el select de metodo de pago. Lo consultan el propio select y la
+    // clase del espaciador: en movil el select ocupa una fila entera, asi que decide el
+    // alto de la barra. Declarado una sola vez porque discrepar por defecto de menos
+    // taparia el ultimo bloque del formulario, que es lo que el espaciador evita.
+    private bool BarraConMetodo => _pedidoActivo;
+
     private bool _puedeAnular =>
         Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
 

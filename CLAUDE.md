@@ -158,6 +158,14 @@ same breakpoint, not a Bootstrap one (`sm`/`md` don't line up with it).
   the bottom and was being covered exactly when it needed reading. `Ayuda`'s tooltip
   (`1080`), `BarraProgreso` (`2000`) and `Bloqueo` (`2100`) stay above all of it. `.content`
   reserves `--atipico-tabbar` of bottom padding so the last row of any list stays reachable.
+  One page adds to this stack: `Pedidos/Edit.razor` has an action bar
+  (`.pedido-barra-acciones`) at **`1020`** — deliberately the lowest fixed layer, so the tab
+  bar, the "Más" sheet and above all `#blazor-error-ui` still cover it. On mobile it sits
+  *on top of* the tab bar (`bottom: calc(var(--atipico-tabbar) + env(safe-area-inset-bottom, 0px))`)
+  rather than over it. Anything new that pins itself to the bottom belongs in this list, and
+  below `1040`. It reserves its own room with a spacer in the page, **not** with more
+  `.content` padding — `.content` is every screen and only this one has a bar. See
+  `docs/barra-acciones-pedido.md`.
 - **The panel does one API call, not nine.** `Home.razor` used to load all nine entity
   lists in sequence purely to put a count on each card. It now loads `Pedido` only and shows
   the orders in progress; the shortcut cards carry no counts. When adding to the dashboard,

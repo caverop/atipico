@@ -584,3 +584,93 @@ h1:focus {
             flex-basis: 100%;
         }
 }
+
+/* --- Barra de acciones del pedido ----------------------------------------
+   Ver docs/barra-acciones-pedido.md. Las acciones del pedido vivian arriba de
+   todo y debajo quedaban tres pantallas de formulario; ahora estan siempre a la
+   vista, al pie.
+
+   z-index 1020, y el numero importa: por debajo de BarraInferior (1030) y de la
+   hoja "Mas" (1035/1036), que tienen que taparla, y sobre todo por debajo de
+   #blazor-error-ui (1040), que tambien esta anclado abajo y tiene que poder
+   leerse por encima — fue lo que motivo subirlo a 1040 en su momento. */
+.pedido-barra-acciones {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1020;
+    background-color: var(--atipico-surface);
+    border-top: 2px solid var(--atipico-ink);
+    padding: 0.625rem 1rem;
+    /* La sombra despega la barra del contenido que pasa por debajo al scrollear.
+       Sin ella, en una lista larga los dos planos se confunden. */
+    box-shadow: 0 -6px 16px rgba(28, 23, 18, 0.10);
+}
+
+/* Alineada con el contenido: la barra ocupa todo el ancho para que el borde
+   superior corte la pantalla entera, pero los controles no se van a los extremos
+   en un monitor grande. */
+.pedido-barra-interior {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.pedido-barra-metodo {
+    flex: 0 1 14rem;
+    min-width: 0;
+}
+
+/* Reserva el alto de la barra al final del formulario. Se dibuja bajo la misma
+   condicion que ella, asi que un pedido Cerrado no queda con un hueco al final.
+
+   Arriba del punto de corte la barra mide 60px en los cuatro estados y 5rem alcanza
+   siempre; .con-metodo no hace nada aca. */
+.pedido-barra-espaciador {
+    height: 5rem;
+}
+
+@media (max-width: 640.98px) {
+    /* Debajo del punto de corte existe BarraInferior. La barra de acciones no la
+       tapa: se sienta encima. El env(safe-area-inset-bottom) es el mismo que usa la
+       hoja "Mas" — sin el, en un iPhone con notch la barra queda debajo del
+       indicador de inicio. */
+    .pedido-barra-acciones {
+        bottom: calc(var(--atipico-tabbar) + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* En el telefono los controles no entran en una fila: el select toma el ancho
+       completo y los botones se reparten la de abajo. */
+    .pedido-barra-metodo {
+        flex: 1 0 100%;
+    }
+
+    /* Mitades exactas, no proporcionales a la etiqueta: con "flex: 1 1 auto" el
+       reparto seguia el largo del texto y a 320px "En Preparación" se llevaba el 59%
+       contra el 38% de "Anular". El que queda chico es siempre el secundario, que es
+       donde el pulgar tiene menos precision.
+
+       Con un solo boton, "1 1 0" le da el ancho completo — que es lo que se quiere
+       para Continuar y para Anular cuando van solos.
+
+       min-width: 0 hace falta: por defecto un elemento flexible no baja de su ancho
+       de contenido, y sin esto "En Preparación" no achicaria de 142px. Verificado a
+       320px: cada mitad queda en 140px y la etiqueta entra en una linea, sin truncar
+       ni partirse — si se partiera, la barra creceria y el espaciador quedaria corto. */
+    .pedido-barra-interior > .btn {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    /* Aca la barra tiene dos alturas y el espaciador tambien. Con el select son dos
+       filas (122px medidos a 320px); sin el, una sola (66px). Reservar 8.5rem siempre
+       dejaria 70px de hueco en blanco en los otros tres estados. */
+    .pedido-barra-espaciador.con-metodo {
+        height: 8.5rem;
+    }
+}
