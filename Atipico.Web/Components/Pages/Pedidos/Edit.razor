@@ -194,8 +194,13 @@
                                     <label class="form-label">Imagen del comprobante</label>
                                     @* multiple: un comensal puede pagar con varios QR (saldo insuficiente,
                                        monto mal digitado). Cada archivo entra como un comprobante aparte. *@
-                                    <InputFile class="form-control" OnChange="PrepararComprobantesAsync"
-                                               accept="image/*" multiple @key="_claveInputComprobante" />
+                                    @* El @ref es el destino del salto al elegir Qr: el select
+                                       vive en la barra fija del pie y esta zona esta arriba, asi
+                                       que sin el salto la zona aparece fuera de pantalla. Ver
+                                       docs/comprobantes-qr.md §8.1.1. *@
+                                    <InputFile class="form-control comprobante-archivo" OnChange="PrepararComprobantesAsync"
+                                               accept="image/*" multiple @key="_claveInputComprobante"
+                                               @ref="_inputComprobante" />
                                     <div class="form-text">
                                         Opcional — solo la imagen
                                         <Ayuda Texto="El monto se extraerá automáticamente de la imagen. Si no adjuntas nada, el pedido se factura igual y la cuenta aparecerá en el reporte de evidencia de pagos QR." />
@@ -443,7 +448,7 @@
                        boton gris sin ninguna pista de que lo desbloquea y con el control fuera
                        de pantalla. Eso es peor que no tener barra. *@
                     <select class="form-select pedido-barra-metodo" @bind="_metodoPagoSeleccionado"
-                            aria-label="Método de pago">
+                            @bind:after="AlElegirMetodoPago" aria-label="Método de pago">
                         <option value="">-- Método de pago --</option>
                         @foreach (var metodo in Enum.GetValues<MetodoPago>())
                         {
@@ -479,6 +484,43 @@
 
     [Parameter] public long? Id { get; set; }
     private Pedido _entity = new();
+
+    // Destino del salto al elegir Qr, y bandera que lo pide.
+    //
+    // El select de metodo de pago se mudo a la barra fija del pie; la zona de comprobantes
+    // sigue arriba, en la columna de platos. Antes el select estaba justo encima de ella y
+    // elegir Qr la hacia aparecer debajo del cursor; ahora se elige abajo y la zona nace
+    // fuera de pantalla. Ver docs/comprobantes-qr.md §8.1.1.
+    private InputFile? _inputComprobante;
+    private bool _irAComprobantes;
+
+    // Solo en la TRANSICION a Qr. Abrir un pedido que ya lo tenia elegido no mueve nada:
+    // no es una eleccion del usuario, y correrle la pantalla sin que haya tocado nada es
+    // peor que no hacer nada.
+    private void AlElegirMetodoPago()
+    {
+        if (_metodoPagoSeleccionado == MetodoPago.Qr)
+            _irAComprobantes = true;
+    }
+
+    // El salto se ejecuta aca y no en AlElegirMetodoPago porque la zona no existe hasta que
+    // Blazor vuelve a dibujar con el metodo ya elegido: enfocarla en el mismo instante del
+    // cambio apuntaria a un elemento que todavia no esta en el DOM.
+    //
+    // FocusAsync y no un scrollIntoView por interop: enfocar ya desplaza, el campo de
+    // archivo es exactamente lo siguiente que se toca, y el proyecto no tiene ningun archivo
+    // JavaScript propio — un scroll no justifica ser el primero.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!_irAComprobantes)
+            return;
+
+        _irAComprobantes = false;
+
+        var input = _inputComprobante?.Element;
+        if (input is not null)
+            await input.Value.FocusAsync();
+    }
 
     // Como se llama este pedido en pantalla. Antes era "Editar pedido #12", el id de la
     // tabla; ahora es "Pedido 012 · Juan", que es lo que se canta en el salon.

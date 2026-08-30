@@ -503,6 +503,55 @@ Va **debajo de la lista de platos** a propósito: el mesero primero ve qué est�
 recién después adjunta el comprobante que lo respalda. Queda dentro de la columna de platos,
 no al final de la pantalla, para que siga a la vista sin tener que bajar.
 
+### 8.1.1 Elegir Qr lleva el foco al adjunto
+
+> Agregado después de mover las acciones a una barra fija al pie
+> (`docs/barra-acciones-pedido.md`).
+
+Arriba se dice que la zona queda dentro de la columna de platos «para que siga a la vista
+sin tener que bajar». **Esa premisa se rompió**, y no por esta pantalla: el select de método
+de pago se mudó a la barra de acciones, que está fija **al pie**. Antes estaba justo encima
+de la zona de comprobantes, así que elegir Qr la hacía aparecer debajo del cursor. Ahora se
+elige abajo y la zona aparece arriba, fuera de pantalla.
+
+Al elegir **Qr**, entonces, la pantalla salta al campo de archivo.
+
+**Salta y además lo enfoca**, con `ElementReference.FocusAsync()`. No es un `scrollIntoView`
+por interop: enfocar ya desplaza, y el campo de archivo es exactamente lo siguiente que el
+mesero toca, así que dejar el foco ahí es correcto y no un efecto colateral. Importa además
+que este proyecto **no tiene ningún archivo JavaScript propio** —solo `blazor.web.js`, y toda
+la interop usa builtins del navegador (`confirm`, `prompt`)—: un scroll no justifica ser la
+primera pieza de JS del repo.
+
+**El salto necesita `scroll-margin-bottom`.** `focus()` desplaza lo mínimo para que el
+elemento entre en pantalla, y el navegador no sabe que hay una barra fija tapando el pie:
+sin margen, dejaría el campo justo debajo de ella. `scroll-margin-bottom` es la forma
+declarativa de reservar ese despeje, y lleva los mismos valores que el espaciador de la
+barra.
+
+**Solo en la transición a Qr**, y **después del re-render**: la zona no existe hasta que
+Blazor vuelve a dibujar con el método ya elegido, así que el salto se pide en el `@bind:after`
+del select y se ejecuta en `OnAfterRenderAsync`. Pedirlo en el mismo instante del cambio
+apuntaría a un elemento que todavía no está en el DOM.
+
+No salta al abrir un pedido que ya tenía Qr elegido: eso no es una elección del usuario y
+moverle la pantalla sin que haya tocado nada es peor que no hacer nada.
+
+**Verificado** con el `app.css` real, replicando el recorrido de verdad —partir del pie,
+donde está el select, y saltar hacia arriba—:
+
+| | 375×812 | 1200×800 |
+|---|---|---|
+| Scroll | 1657 → 840 | 1521 → 797 |
+| Campo tapado por la barra | no | no |
+| Campo tapado por la franja superior | no | — |
+| Tarjeta QR entera visible | sí | sí |
+| Foco | en el campo de archivo | en el campo de archivo |
+
+Lo que queda sin ejercitar es el disparo desde Blazor: que `@bind:after` marque la bandera
+y que `OnAfterRenderAsync` encuentre el `ElementReference` ya montado. Eso necesita la
+aplicación corriendo.
+
 **Adjuntar es opcional y nunca bloquea.** Si no se preparó ningún archivo, el pedido se
 factura igual y la cuenta se crea igual. Si la subida falla después de creada la cuenta, la
 cuenta **no se revierte**: el dinero entró y el registro debe reflejarlo. Se avisa del fallo

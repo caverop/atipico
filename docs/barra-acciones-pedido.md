@@ -77,6 +77,13 @@ desbloquea y con el control fuera de pantalla — peor que no tener la barra.
 Por eso el select entra en la barra. La acción queda autosuficiente: todo lo que
 hace falta para ejecutarla está en el mismo lugar.
 
+**Y eso rompió algo en la pantalla de al lado.** La zona de comprobantes QR aparece al
+elegir Qr, y está arriba, en la columna de platos. Con el select arriba, aparecía debajo
+del cursor; con el select en la barra, se elige abajo y la zona queda fuera de pantalla.
+Se resolvió llevando el foco al campo de archivo al elegir Qr — ver
+`docs/comprobantes-qr.md` §8.1.1. Vale como recordatorio de que mover un control cambia
+todo lo que ese control disparaba.
+
 ## 5. Dónde va en el marcado
 
 **Al final del `@if (_loaded)`, fuera del `<EditForm>`**, después de los

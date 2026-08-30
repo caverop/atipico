@@ -674,3 +674,26 @@ h1:focus {
         height: 8.5rem;
     }
 }
+
+/* --- Salto al campo de comprobante ---------------------------------------
+   Al elegir Qr, Pedidos/Edit.razor enfoca este campo y el navegador lo trae a
+   pantalla. Pero focus() desplaza LO MINIMO y no sabe nada de la cromo fija: sin
+   estos margenes deja el campo justo debajo de la barra de acciones, o pegado
+   contra la franja superior. scroll-margin es la forma declarativa de pedir el
+   despeje. Ver docs/comprobantes-qr.md §8.1.1.
+
+   Abajo: el alto de la barra mas aire. En este caso la barra SIEMPRE lleva el
+   select —solo se llega aca con Qr elegido, y el select es parte del mismo
+   bloque—, asi que el valor sigue al espaciador "con-metodo". */
+.comprobante-archivo {
+    scroll-margin-top: 4.5rem;   /* la franja superior (3.5rem) es sticky */
+    scroll-margin-bottom: 6.5rem;
+}
+
+@media (max-width: 640.98px) {
+    /* Aca la barra son dos filas (122px) y ademas esta apoyada sobre las pestañas
+       (58px): el despeje necesario es bastante mayor que en escritorio. */
+    .comprobante-archivo {
+        scroll-margin-bottom: 12rem;
+    }
+}
