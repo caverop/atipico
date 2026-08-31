@@ -36,3 +36,9 @@ empíricamente. Es el registro de la tarea, no un documento que se tira.
   falla por diseño. Se anula, no se borra.
 - Las migraciones numeradas aplicadas no se editan: los cambios van en una nueva.
 - No edites `.claude/settings.json`. Si ves algo mal ahí, reportalo.
+
+## Tu memoria
+
+Escribí en tu memoria lo que descubras y no esté en `CLAUDE.md` ni en los specs:
+trampas del entorno, dónde vive cada cosa, decisiones que costó reconstruir.
+Notas cortas, con el dónde. Es lo que te va a evitar redescubrirlo la próxima vez.

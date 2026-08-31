@@ -1,6 +1,5 @@
 {
   "agent": "atipico",
-  "memory": "project",
   "permissions": {    
     "allow": [
       "Bash(dotnet build *)",
