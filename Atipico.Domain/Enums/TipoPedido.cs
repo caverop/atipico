@@ -14,7 +14,7 @@ namespace Atipico.Domain.Enums
         EnSalon,
         ParaLlevar,
         /// <summary>Por ahora solo una etiqueta: no hay direccion, telefono ni costo
-        /// de envio. Ver docs/tipo-pedido.md §7.</summary>
+        /// de envio. Ver specs/tipo-pedido.md §7.</summary>
         Delivery
     }
 }

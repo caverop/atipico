@@ -506,7 +506,7 @@ no al final de la pantalla, para que siga a la vista sin tener que bajar.
 ### 8.1.1 Elegir Qr lleva el foco al adjunto
 
 > Agregado después de mover las acciones a una barra fija al pie
-> (`docs/barra-acciones-pedido.md`).
+> ([`barra-acciones-pedido.md`](barra-acciones-pedido.md)).
 
 Arriba se dice que la zona queda dentro de la columna de platos «para que siga a la vista
 sin tener que bajar». **Esa premisa se rompió**, y no por esta pantalla: el select de método

@@ -10,7 +10,7 @@ namespace Atipico.Domain.Entities
     {
         public long Id { get; set; }
 
-        // Numero de pedido por turno (sql/010_turno_caja.sql, docs/numero-pedido.md).
+        // Numero de pedido por turno (sql/010_turno_caja.sql, specs/numero-pedido.md).
         // Las dos las asigna tg_pedido_numero_turno en el INSERT: la aplicacion NUNCA las
         // envia (RN-8). Se llama NumeroTurno y no Numero porque mesa.numero ya existe y son
         // cosas distintas.
@@ -26,11 +26,11 @@ namespace Atipico.Domain.Entities
         public string? Comensal { get; set; }
         public EstadoPedido Estado { get; set; } = EstadoPedido.Abierto;
 
-        /// <summary>Donde se consume. ck_pedido_tipo. Ver docs/tipo-pedido.md.</summary>
+        /// <summary>Donde se consume. ck_pedido_tipo. Ver specs/tipo-pedido.md.</summary>
         public TipoPedido Tipo { get; set; } = TipoPedido.EnSalon;
 
         // Entrega. Solo se usan cuando Tipo es Delivery; las cuatro son anulables porque un
-        // pedido puede nacer sin ellas. Ver docs/direccion-entrega.md.
+        // pedido puede nacer sin ellas. Ver specs/direccion-entrega.md.
 
         /// <summary>La referencia escrita: "casa verde, media cuadra del surtidor".</summary>
         public string? DireccionEntrega { get; set; }

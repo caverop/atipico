@@ -8,7 +8,7 @@ namespace Atipico.Web
         // tipo = 'EN_RESTAURANTE' dentro de la base de un restaurante no aporta nada, pero
         // "En el restaurante" es la palabra que usa el personal. La traduccion vive aca, en
         // un solo lugar, para que Pedidos/Index y Pedidos/Edit no se desincronicen.
-        // Ver docs/tipo-pedido.md §3.1.
+        // Ver specs/tipo-pedido.md §3.1.
         public static string Etiqueta(this TipoPedido tipo) => tipo switch
         {
             TipoPedido.EnSalon => "En el restaurante",

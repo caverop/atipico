@@ -1,7 +1,7 @@
 -- =====================================================================
 -- 012_pedido_unicidad_por_turno.sql — comensal y mesa, únicos por turno
 -- Requiere haber corrido antes 010_turno_caja.sql.
--- Ver docs/numero-pedido.md §4.10
+-- Ver specs/numero-pedido.md §4.10
 -- =====================================================================
 --
 -- Dos reglas hermanas, con la misma forma: dentro de un turno, ni el nombre

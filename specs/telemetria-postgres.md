@@ -87,7 +87,7 @@ Inmediatamente después de `builder.AddServiceDefaults();`:
 ```csharp
 // Instrumentacion de PostgreSQL. Va aca y no en ServiceDefaults a proposito: el paquete
 // arrastra Npgsql, y ServiceDefaults lo comparte con Atipico.Web, que no toca la base y no
-// tiene por que enterarse de que existe PostgreSQL (ver docs/telemetria-postgres.md §3).
+// tiene por que enterarse de que existe PostgreSQL (ver specs/telemetria-postgres.md §3).
 //
 // ConfigureOpenTelemetry* agrega sobre el proveedor que ya armo AddServiceDefaults(); no lo
 // reemplaza. Si se usara AddOpenTelemetry().WithTracing(...) el resultado seria el mismo,

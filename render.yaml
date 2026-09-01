@@ -17,7 +17,7 @@ services:
         sync: false
       - key: Jwt__ExpiryMinutes
         sync: false
-      # Comprobantes de pago QR (ver docs/comprobantes-qr.md). Bucket de produccion:
+      # Comprobantes de pago QR (ver specs/comprobantes-qr.md). Bucket de produccion:
       # atipico-comprobantes. Los valores se cargan en el dashboard, no aca.
       - key: R2__AccountId
         sync: false

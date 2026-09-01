@@ -38,4 +38,7 @@ ASPNETCORE_ENVIRONMENT=Production test` y curl al endpoint real.
 MSYS rompe los args tipo `/app/wwwroot` (los convierte a path de Windows). Prefijar
 con `MSYS_NO_PATHCONV=1` al pasar paths POSIX a `docker exec`/`docker run`.
 
+Este hallazgo quedó documentado como decisión en `specs/cicd-github-azure-render.md` §2,
+que advierte contra `--no-restore` como "una mina ya pisada".
+
 Relacionado: [[atipico-docker-port-zombie-gotcha]].

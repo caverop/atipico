@@ -81,7 +81,7 @@ hace falta para ejecutarla está en el mismo lugar.
 elegir Qr, y está arriba, en la columna de platos. Con el select arriba, aparecía debajo
 del cursor; con el select en la barra, se elige abajo y la zona queda fuera de pantalla.
 Se resolvió llevando el foco al campo de archivo al elegir Qr — ver
-`docs/comprobantes-qr.md` §8.1.1. Vale como recordatorio de que mover un control cambia
+[`comprobantes-qr.md`](comprobantes-qr.md) §8.1.1. Vale como recordatorio de que mover un control cambia
 todo lo que ese control disparaba.
 
 ## 5. Dónde va en el marcado

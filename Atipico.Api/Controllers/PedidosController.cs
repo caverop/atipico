@@ -58,7 +58,7 @@ namespace Atipico.Api.Controllers
         /// <summary>
         /// Los pedidos del turno abierto, con el turno en el sobre. Reemplaza al GET api/pedidos
         /// de la grilla, que traia todos los pedidos que existieron para descartarlos en
-        /// memoria. Ver docs/numero-pedido.md §7.3.
+        /// memoria. Ver specs/numero-pedido.md §7.3.
         /// </summary>
         [HttpGet("turno-abierto")]
         public async Task<ActionResult<GrillaPedidosDto>> GetDelTurnoAbierto()

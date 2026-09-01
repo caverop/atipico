@@ -14,7 +14,7 @@ trabaja en él.
 ## El orden no se negocia
 
 spec → plan → aprobación → código. Ante un cambio sobre algo ya implementado, la
-corrección va igual en ese orden: primero `docs/<feature>.md`, después la sección
+corrección va igual en ese orden: primero `specs/<feature>.md`, después la sección
 del plan, después el código. Si el código ya se escribió, decilo plano: el spec
 queda como registro de lo hecho, no como propuesta previa.
 

@@ -32,7 +32,7 @@ namespace Atipico.Infraestructure.Tests
 
             Assert.NotNull(mapeada);
             Assert.Equal(columna, mapeada!.GetColumnName());
-            // Un pedido puede nacer sin nada de esto (docs/direccion-entrega.md §4).
+            // Un pedido puede nacer sin nada de esto (specs/direccion-entrega.md §4).
             Assert.True(mapeada.IsNullable);
         }
 

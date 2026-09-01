@@ -297,7 +297,7 @@ h1:focus {
 /* El numero de pedido del turno, al frente de la fila. Cifras tabulares y ancho
    minimo para tres digitos: sin eso 009 y 010 ocupan distinto y la columna de
    numeros se mueve de fila en fila. min-width y no width, para que un turno que
-   pase de 999 desborde sin romper. Ver docs/numero-pedido.md §8.9. */
+   pase de 999 desborde sin romper. Ver specs/numero-pedido.md §8.9. */
 .panel-fila-numero {
     flex: none;
     min-width: 2.5ch;
@@ -452,7 +452,7 @@ h1:focus {
 }
 
 /* --- Turno de caja --------------------------------------------------------
-   Ver docs/numero-pedido.md §8.4 y §8.5. Con la grilla acotada a un turno, este
+   Ver specs/numero-pedido.md §8.4 y §8.5. Con la grilla acotada a un turno, este
    encabezado es el unico contexto que le queda al usuario: las filas ya no
    llevan ni fecha ni turno. */
 .turno-encabezado,
@@ -586,7 +586,7 @@ h1:focus {
 }
 
 /* --- Barra de acciones del pedido ----------------------------------------
-   Ver docs/barra-acciones-pedido.md. Las acciones del pedido vivian arriba de
+   Ver specs/barra-acciones-pedido.md. Las acciones del pedido vivian arriba de
    todo y debajo quedaban tres pantallas de formulario; ahora estan siempre a la
    vista, al pie.
 
@@ -680,7 +680,7 @@ h1:focus {
    pantalla. Pero focus() desplaza LO MINIMO y no sabe nada de la cromo fija: sin
    estos margenes deja el campo justo debajo de la barra de acciones, o pegado
    contra la franja superior. scroll-margin es la forma declarativa de pedir el
-   despeje. Ver docs/comprobantes-qr.md §8.1.1.
+   despeje. Ver specs/comprobantes-qr.md §8.1.1.
 
    Abajo: el alto de la barra mas aire. En este caso la barra SIEMPRE lleva el
    select —solo se llega aca con Qr elegido, y el select es parte del mismo

@@ -46,7 +46,7 @@
             <label class="form-label">Tipo de pedido</label>
             @* Se sabe antes de tomar el primer plato, por eso va arriba. Deshabilitado en un
                pedido que ya no esta Abierto: no hay boton que persista el cambio y quedaria
-               como una edicion fantasma. Ver docs/tipo-pedido.md §5. *@
+               como una edicion fantasma. Ver specs/tipo-pedido.md §5. *@
             <select class="form-select" @bind="_entity.Tipo" disabled="@(Id is not null && !_pedidoActivo)">
                 @foreach (var tipo in Enum.GetValues<TipoPedido>())
                 {
@@ -63,7 +63,7 @@
         }
 
         @* Las acciones NO estan aca: viven en la barra fija del final (ver mas abajo y
-           docs/barra-acciones-pedido.md). OnValidSubmit se mantiene conectado igual, porque
+           specs/barra-acciones-pedido.md). OnValidSubmit se mantiene conectado igual, porque
            sin boton de submit el Enter en un campo de texto sigue enviando el formulario. *@
     </EditForm>
 
@@ -152,7 +152,7 @@
                    lista de platos: el mesero ve lo que esta cobrando y recien despues adjunta el
                    comprobante. La cuenta todavia no existe (la crea PedidosController al pasar a
                    EnPreparacion), asi que aca no se sube nada: se prepara. La subida real ocurre
-                   en HandleCerrarPedido, ya con el IdCuenta. Ver docs/comprobantes-qr.md §8.1. *@
+                   en HandleCerrarPedido, ya con el IdCuenta. Ver specs/comprobantes-qr.md §8.1. *@
                 @if (_pedidoActivo && _metodoPagoSeleccionado == MetodoPago.Qr)
                 {
                     <div class="card mb-4 border-primary">
@@ -197,7 +197,7 @@
                                     @* El @ref es el destino del salto al elegir Qr: el select
                                        vive en la barra fija del pie y esta zona esta arriba, asi
                                        que sin el salto la zona aparece fuera de pantalla. Ver
-                                       docs/comprobantes-qr.md §8.1.1. *@
+                                       specs/comprobantes-qr.md §8.1.1. *@
                                     <InputFile class="form-control comprobante-archivo" OnChange="PrepararComprobantesAsync"
                                                accept="image/*" multiple @key="_claveInputComprobante"
                                                @ref="_inputComprobante" />
@@ -344,7 +344,7 @@
                 }
                 @* Mapa embebido de OpenStreetMap. Sin libreria ni interop: es un iframe,
                    asi que no hay ciclo de vida que manejar ni nada que liberar al salir
-                   de la pantalla. Ver docs/mapa-entrega.md. *@
+                   de la pantalla. Ver specs/mapa-entrega.md. *@
                 <iframe class="w-100 border rounded mb-2" height="260"
                         loading="lazy" referrerpolicy="no-referrer"
                         title="Ubicación de entrega"
@@ -414,7 +414,7 @@
 
        Se declara al FINAL y no dentro del EditForm —position: fixed no depende de donde
        se declare— para que el orden del DOM coincida con el visual, que es lo que leen
-       el lector de pantalla y el tabulador. Ver docs/barra-acciones-pedido.md §5.
+       el lector de pantalla y el tabulador. Ver specs/barra-acciones-pedido.md §5.
 
        Sin acciones disponibles (Cerrado, Anulado) no se dibuja nada: ni barra ni
        espaciador, asi que no queda un hueco blanco sin motivo. *@
@@ -427,7 +427,7 @@
            Dos alturas porque la barra tiene dos: en movil el select de metodo de pago
            toma el ancho completo y empuja los botones a una segunda fila. Medido a
            320px: 122px con select, 66px sin el. Un solo valor dejaria 70px de hueco
-           en blanco en los otros tres estados. Ver docs/barra-acciones-pedido.md §6.2. *@
+           en blanco en los otros tres estados. Ver specs/barra-acciones-pedido.md §6.2. *@
         <div class="pedido-barra-espaciador @(BarraConMetodo ? "con-metodo" : "")"></div>
 
         <div class="pedido-barra-acciones">
@@ -490,7 +490,7 @@
     // El select de metodo de pago se mudo a la barra fija del pie; la zona de comprobantes
     // sigue arriba, en la columna de platos. Antes el select estaba justo encima de ella y
     // elegir Qr la hacia aparecer debajo del cursor; ahora se elige abajo y la zona nace
-    // fuera de pantalla. Ver docs/comprobantes-qr.md §8.1.1.
+    // fuera de pantalla. Ver specs/comprobantes-qr.md §8.1.1.
     private InputFile? _inputComprobante;
     private bool _irAComprobantes;
 
@@ -563,7 +563,7 @@
     private List<Cuenta> _cuentasQr = [];
 
     // Comprobantes preparados: se leen a memoria al elegirlos y se suben recien cuando
-    // existe la cuenta. Ver docs/comprobantes-qr.md §8.1.
+    // existe la cuenta. Ver specs/comprobantes-qr.md §8.1.
     private readonly List<ComprobantePreparado> _preparados = [];
     private string? _errorComprobante;
     private Guid _claveInputComprobante = Guid.NewGuid();
@@ -682,7 +682,7 @@
 
         // Un maps.app.goo.gl no trae coordenadas: hay que seguir su redirect. Se envuelve en
         // SeguirAsync para que la barra global acompañe la espera, como a cualquier otra
-        // llamada. Ver docs/enlace-corto-ubicacion.md.
+        // llamada. Ver specs/enlace-corto-ubicacion.md.
         var resolucion = await EstadoOperaciones.SeguirAsync(
             () => ResolvedorEnlace.ResolverAsync(_entity.UbicacionCompartida));
 

@@ -23,7 +23,7 @@
 -- Las dos validaciones de cierre viven en fn_turno_cierre, así que ese UPDATE
 -- se rechaza solo si quedan pedidos sin cerrar o cuentas sin cobrar.
 --
--- Ver docs/numero-pedido.md §4.6.
+-- Ver specs/numero-pedido.md §4.6.
 -- =====================================================================
 
 \set ON_ERROR_STOP on

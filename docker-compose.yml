@@ -12,7 +12,7 @@ services:
       Jwt__Issuer: ${JWT_ISSUER:-Atipico.Api}
       Jwt__Audience: ${JWT_AUDIENCE:-Atipico.Clients}
       Jwt__ExpiryMinutes: ${JWT_EXPIRY_MINUTES:-480}
-      # Comprobantes de pago QR (ver docs/comprobantes-qr.md). Los valores salen de .env,
+      # Comprobantes de pago QR (ver specs/comprobantes-qr.md). Los valores salen de .env,
       # que no se commitea. Solo la API habla con R2: el Web le pide la URL firmada.
       R2__AccountId: ${R2__AccountId}
       R2__AccessKeyId: ${R2__AccessKeyId}

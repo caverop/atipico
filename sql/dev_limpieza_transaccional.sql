@@ -14,7 +14,7 @@
 -- un turno de caja a los pedidos que ya existen. Fabricar turnos que nunca
 -- ocurrieron sería el único lugar del sistema donde se inventa historia
 -- operativa, en un esquema construido sobre lo contrario.
--- Ver docs/numero-pedido.md §9.
+-- Ver specs/numero-pedido.md §9.
 -- =====================================================================
 
 BEGIN;

@@ -1,7 +1,7 @@
 # Memory Index
 
 ## Cómo trabaja el usuario
-- [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; formato de `docs/<feature>.md` y las frases con que lo pide.
+- [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; formato de `specs/<feature>.md` y las frases con que lo pide.
 - [Él hace las pruebas](atipico-user-tests-himself.md) — verificar con build, no levantar servidores ni Playwright salvo pedido.
 - [Bin bloqueado → Release](atipico-locked-bin-release-build.md) — con la API corriendo, `-c Release`; nunca matarle el proceso.
 - [No editar .claude/settings.json](atipico-dont-edit-claude-settings.md) — rechazó la edición aun con contraseñas filtradas; reportar, no tocar.

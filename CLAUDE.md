@@ -165,7 +165,7 @@ same breakpoint, not a Bootstrap one (`sm`/`md` don't line up with it).
   rather than over it. Anything new that pins itself to the bottom belongs in this list, and
   below `1040`. It reserves its own room with a spacer in the page, **not** with more
   `.content` padding — `.content` is every screen and only this one has a bar. See
-  `docs/barra-acciones-pedido.md`.
+  `specs/barra-acciones-pedido.md`.
 - **The panel does one API call, not nine.** `Home.razor` used to load all nine entity
   lists in sequence purely to put a count on each card. It now loads `Pedido` only and shows
   the orders in progress; the shortcut cards carry no counts. When adding to the dashboard,

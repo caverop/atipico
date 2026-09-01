@@ -7,7 +7,7 @@ namespace Atipico.Application.Common
     /// Extrae un punto GPS de lo que el comensal comparte por WhatsApp y el mesero pega.
     ///
     /// Vive en Application y no en la pantalla a proposito: es logica pura, sin base ni HTTP,
-    /// y el agente de WhatsApp (docs/direccion-entrega.md §7) la va a necesitar. Una regla de
+    /// y el agente de WhatsApp (specs/direccion-entrega.md §7) la va a necesitar. Una regla de
     /// negocio metida en un .razor solo puede terminar reimplementada distinto.
     /// </summary>
     public static class UbicacionCompartida
@@ -71,7 +71,7 @@ namespace Atipico.Application.Common
         }
 
         // ---- Enlaces cortos ---------------------------------------------------------
-        // Ver docs/enlace-corto-ubicacion.md. Aca vive solo la DECISION (¿esta URL vale la
+        // Ver specs/enlace-corto-ubicacion.md. Aca vive solo la DECISION (¿esta URL vale la
         // pena resolverla?), que es logica pura y se puede probar. La peticion HTTP la hace
         // Atipico.Web/Services/ResolvedorEnlaceUbicacion.cs, porque Atipico.Web no tiene
         // proyecto de pruebas y conviene que ahi quede lo menos posible.

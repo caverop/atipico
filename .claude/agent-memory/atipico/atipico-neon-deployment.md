@@ -51,4 +51,6 @@ Verificado end-to-end: login vía `POST /api/auth/login` como `test.admin` contr
 API local apuntando a Neon, JWT válido, y `/api/platos` + `/api/mesas` respondieron.
 
 Relacionado: [[atipico-local-postgres-tooling]] (el Postgres local sigue instalado,
-pero ya no es la base de dev), [[atipico-dont-edit-claude-settings]].
+pero ya no es la base de dev), [[atipico-dont-edit-claude-settings]]. El spec
+`specs/cicd-github-azure-render.md` decide que QA y producción comparten la misma base
+de Neon, y que los buckets se separan junto con la base y no antes.

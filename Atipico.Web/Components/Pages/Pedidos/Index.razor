@@ -438,7 +438,7 @@
             ("Comensal", p => p.Comensal),
             ("Estado", p => p.Estado.Etiqueta()),
             // Se reporta, no se bloquea: un delivery sin dirección se factura igual, pero
-            // tiene que verse en la lista. Ver docs/direccion-entrega.md §4.
+            // tiene que verse en la lista. Ver specs/direccion-entrega.md §4.
             ("Tipo", p => p.Tipo == TipoPedido.Delivery && SinDondeEntregar(p)
                 ? "Delivery · sin dirección"
                 : p.Tipo.Etiqueta()),

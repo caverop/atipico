@@ -425,7 +425,7 @@ namespace Atipico.Domain.Entities
 {
     /// <summary>
     /// Una fila por apertura de caja. Contiene el correlativo de pedidos del
-    /// turno. Ver docs/numero-pedido.md.
+    /// turno. Ver specs/numero-pedido.md.
     /// </summary>
     public class TurnoCaja : IEntity
     {
@@ -449,7 +449,7 @@ namespace Atipico.Domain.Entities
 ### 6.2 Cambios en `Pedido`
 
 ```csharp
-/// <summary>Correlativo dentro del turno. Lo asigna la base. Ver docs/numero-pedido.md.</summary>
+/// <summary>Correlativo dentro del turno. Lo asigna la base. Ver specs/numero-pedido.md.</summary>
 public int NumeroTurno { get; set; }
 
 public long IdTurnoCaja { get; set; }
