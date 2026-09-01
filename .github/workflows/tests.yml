@@ -1,0 +1,40 @@
+# Corre la suite en cada push y PR a las ramas vivas.
+#
+# Deliberadamente separado de azure-dev.yml: ese workflow despliega, necesita
+# credenciales federadas de Azure y se dispara solo en la rama de release. Las pruebas
+# tienen que correr en toda rama y no necesitan ningun secreto — los tests que tocan
+# EF usan un DbContext apuntado a una cadena que nunca se conecta.
+name: Tests
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.x
+
+      # Sin --no-restore: ver el comentario de los Dockerfile sobre static web assets.
+      # Acá no aplica (no hay publish), pero no vale la pena ahorrar segundos con el
+      # flag que ya causó un bug silencioso en este repo.
+      - name: Test
+        run: dotnet test Atipico.slnx -c Release --logger "trx;LogFileName=test-results.trx"
+
+      - name: Publicar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: '**/test-results.trx'
+          if-no-files-found: ignore
