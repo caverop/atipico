@@ -15,6 +15,9 @@
 - [Despliegue en Neon](atipico-neon-deployment.md) — la base de dev es Neon; Npgsql no parsea URIs `postgres://`; datos de prueba sembrados.
 - [Bug de static assets en Docker](atipico-docker-static-assets-bug.md) — `--no-restore` descarta los `_framework/*` de Blazor sin un solo warning.
 
+## Pendientes
+- [Los pendientes van en TODO.md](atipico-todo-netarchtest.md) — en la raíz, no en memoria; hoy el único es evaluar NetArchTest.
+
 ## Entorno y herramientas
 - [PostgreSQL local](atipico-local-postgres-tooling.md) — los binarios están en `C:\Program Files\PostgreSQL\18\bin\`, fuera del PATH; ojo, ya no es la base de dev.
 - [Puerto zombi con Docker](atipico-docker-port-zombie-gotcha.md) — un `dotnet` en `127.0.0.1:<puerto>` tapa al contenedor mapeado al mismo puerto.
