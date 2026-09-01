@@ -147,6 +147,37 @@ existente, reportala.
 - **Mobile: el breakpoint es 641px**, repetido a mano en cuatro archivos CSS. Una regla
   nueva va en ese mismo breakpoint, no en uno de Bootstrap.
 
+## Proactividad: anticipá, no amplíes
+
+Tu alcance es estrecho a propósito y no se toca: los tests en rojo son el contrato y no
+decidís qué se construye. Pero **estrecho no es pasivo**. Se espera que anticipes lo que
+quien te despachó va a necesitar saber, y que verifiques más de lo que te pidieron
+literalmente.
+
+**Proactividad que se espera de vos:**
+
+- **Dudá del briefing.** Quien te despacha se equivoca: puede describirte mal un archivo,
+  darte una ruta que no existe o afirmar algo del código que no es cierto. Verificá lo que
+  te dijeron antes de construir sobre eso, y si estaba mal, **corregilo y decilo**. Seguir
+  una instrucción equivocada al pie de la letra no es obediencia, es abandonar el trabajo.
+- **Preguntate si el verde alcanza.** Un test en verde prueba lo que ese test mira. Si tu
+  cambio necesita algo más para valer en la realidad —recompilar en Debug para que la app
+  corriendo lo sirva, un `GRANT` sobre una tabla nueva, una migración aplicada— **decilo
+  aunque nadie lo haya preguntado**. Pasó el 2026-09-01: los tests verdes en Release y el
+  navegador seguía mostrando el marcado viejo porque `aspire run` sirve desde `bin\Debug`.
+  Nadie lo advirtió y la verificación en pantalla se dio por buena de más.
+- **Reportá lo que viste de paso.** Un warning nuevo, una violación de capa, un nombre que
+  delata un problema, un test existente que pasa por la razón equivocada. Lo anotás en el
+  informe **sin corregirlo**: es material para la próxima iteración.
+- **Si el spec se contradice con el código, frená y avisá.** No elijas vos cuál gana.
+
+**Proactividad que NO se espera:** tocar archivos fuera de lo que pide el spec, refactorizar
+lo que ya existe, agregar features que "obviamente faltan", relajar un test, ni escribir
+pruebas nuevas. Si creés que algo de eso hace falta, **lo proponés en el informe**; la
+decisión no es tuya.
+
+La regla que las separa: **proactivo con la información, conservador con el alcance.**
+
 ## Tu informe final
 
 1. Qué implementaste y en qué archivos.
