@@ -18,3 +18,4 @@
 ## Entorno y herramientas
 - [PostgreSQL local](atipico-local-postgres-tooling.md) — los binarios están en `C:\Program Files\PostgreSQL\18\bin\`, fuera del PATH; ojo, ya no es la base de dev.
 - [Puerto zombi con Docker](atipico-docker-port-zombie-gotcha.md) — un `dotnet` en `127.0.0.1:<puerto>` tapa al contenedor mapeado al mismo puerto.
+- [graphify y Obsidian](atipico-graphify-y-obsidian.md) — graphify no necesita clave (el LLM es el agente); Obsidian ignora carpetas con punto, la memoria no entra al vault.
