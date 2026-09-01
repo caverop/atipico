@@ -376,3 +376,6 @@ graphify-out/
 # Excluido tambien del corpus de graphify: si se re-extrajera, el grafo
 # se alimentaria de su propia salida.
 specs/grafo/
+
+# Artefactos de verificacion con Playwright (snapshots, capturas, logs de consola)
+.playwright-mcp/
