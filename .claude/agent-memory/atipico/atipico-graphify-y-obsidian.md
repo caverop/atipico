@@ -19,11 +19,14 @@ y perfiles de shell — la extracción semántica la hace el agente anfitrión d
 subagentes. Solo lee las de Gemini; no lee `ANTHROPIC_API_KEY` ni `OPENAI_API_KEY`,
 aunque el mensaje de error del CLI sugiera lo contrario.
 
-**La trampa:** correr el binario suelto en la terminal (`graphify specs --update`)
-falla con *"no LLM API key found"*, porque ahí no hay agente que haga la parte
-semántica. Me pasó el 2026-08-31 y lo reporté como bloqueador real cuando no lo era.
-El corpus es 100% markdown, así que **no hay parte estructural que salve la corrida**:
-código sí se extrae con AST local y sin clave, prosa no.
+**El binario suelto no hace la parte semántica, pero tampoco falla.** Verificado el
+2026-09-01 con backup: `graphify update specs` termina con exit 0 y anuncia *"no LLM
+needed"*. Lo que hace es una extracción **estructural del markdown por encabezados**, que
+no es lo mismo: dio 248 nodos superficiales contra los 123 semánticos del grafo real. Y
+los escribe en **`specs/graphify-out/`**, no en el `graphify-out/` de la raíz que es el
+canónico — te quedan dos grafos distintos sin avisarte. No lo uses para actualizar.
+(Antes esta nota decía que fallaba con *"no LLM API key found"*; eso era de una versión
+anterior y ya no es cierto — el modo silencioso es peor que el error.)
 
 **Consecuencia:** la automatización desatendida es imposible sin clave de Gemini. Un
 hook de git corre sin agente, así que un `post-commit` que dispare graphify sobre
@@ -52,6 +55,32 @@ GitHub, que renderiza los wikilinks como texto literal; un enlace relativo
 2026-08-31 hay 8 enlaces y 2 specs aislados: `numero-pedido.md` (el más grande, 60 KB)
 y `deploy-azure-aspire.md`.
 
+## El export a Obsidian y su bucle de realimentación (2026-09-01)
+
+`graphify export obsidian` escribe **una nota por nodo** (136 archivos: 123 nodos + 13
+comunidades) más un `graph.canvas`. Se corrió por primera vez el 2026-09-01 y vive en
+**`specs/grafo/`**, un subdirectorio del vault: así se ve en la misma ventana de Obsidian
+que los specs, sin mezclarse con los 10 archivos reales de arriba.
+
+**No hay colisión de nombres** con los specs (las notas se llaman por su etiqueta y las de
+comunidad llevan prefijo `_COMMUNITY_`), pero **el export trae su propio `.obsidian/`** que
+pisaría la configuración del vault. Al copiarlo hay que excluirlo: copiar solo `*.md` y
+`graph.canvas`, nunca la carpeta entera.
+
+**La trampa que importa: el grafo se come su propia salida.** El corpus de graphify es
+`specs/`, así que apenas se copian las notas ahí, el siguiente `--update` las detecta como
+136 documentos nuevos y extrae un grafo de su propio export. Verificado empíricamente el
+2026-09-01: `detect_incremental` pasó de 0 a 136. La solución fue una entrada
+`specs/grafo/` en el `.gitignore` de la raíz — graphify lee `.gitignore` y
+`.graphifyignore` de toda la cadena de ancestros, así que una sola línea sirve para las dos
+cosas (no entra al repo y no se re-extrae). Confirmado: volvió a 0.
+
+**Cómo regenerarlo** cuando cambien los specs: exportar a un directorio de descarte,
+inspeccionar, y copiar solo los `.md` y el canvas a `specs/grafo/`. El export lleva
+`[[wikilinks]]`, que el repo prohíbe en los specs escritos a mano porque GitHub los
+renderiza literales; en las notas generadas no molesta porque están gitignoreadas y nunca
+llegan a GitHub.
+
 ## El costo de mover la carpeta de specs
 
 Los specs están citados desde el código: al renombrar `docs/` → `specs/` hubo que
@@ -63,14 +92,13 @@ patrón `docs/<nombre>.md` y excluir `wwwroot/lib/`.
 
 ## Trampas de la corrida incremental (2026-08-31)
 
-**Los ids del grafo quedaron partidos en dos formatos por el rename `docs/` → `specs/`.**
-Al 2026-08-31, 35 nodos conservan ids con prefijo `docs_` (p. ej.
-`docs_direccion_entrega_columna_en_dos_lugares`): son los de los 5 specs que **no**
-cambiaron desde la corrida anterior. Los 5 re-extraídos ya tienen ids con el stem nuevo.
-No hay aristas colgantes hoy, pero cuando esos 5 se re-extraigan van a **duplicar** en vez
-de reemplazar, porque el merge empareja por id. La corrección que indica la propia skill es
-`graphify extract --force` (reconstrucción completa). **Aún no se corrió** — decisión
-pendiente del usuario.
+**Los ids `docs_*` ya se limpiaron (2026-09-01).** Durante un tiempo el grafo tuvo dos
+formatos de id conviviendo, por el rename `docs/` → `specs/`: 35 nodos con prefijo `docs_`
+y el resto sin él. Se corrigió renombrando en `graph.json` —quitando el prefijo, **no**
+cambiándolo por `specs_`: la raíz de escaneo *es* `specs/`, así que el stem no la
+incluye—. Fue seguro: 0 colisiones, 123 nodos y 155 aristas intactos, 0 aristas colgantes.
+El caché nunca estuvo contaminado (tiene solo entradas con ids nuevos), así que no hizo
+falta ningún `extract --force`.
 
 **Efecto colateral ya visible:** `direccion-entrega.md` §5.5 cita explícitamente a
 `tipo-pedido.md` §5.1, pero su nodo quedó con **grado 0**. La arista `cites` nunca se creó

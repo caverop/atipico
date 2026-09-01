@@ -35,6 +35,15 @@ Types.InCurrentDomain().That().ResideInNamespace("Atipico.Domain")
 
 Va con spec antes que con código, como todo acá.
 
+---
+
+## ~~Unificar los ids del grafo de graphify~~ — hecho el 2026-09-01
+
+Los 35 nodos que conservaban el prefijo `docs_` del layout anterior se renombraron en
+`graphify-out/graph.json`. Sin re-extracción: 0 colisiones, 123 nodos y 155 aristas
+intactos. Queda anotado acá porque el diagnóstico original decía que hacía falta un
+`graphify extract --force`, y no hizo falta.
+
 **Relacionado, ya hecho:** los umbrales de calidad de código (tamaño, complejidad,
 nombres, manejo de errores) están en `.claude/agents/dev.md`. El agente `dev` ya tiene la
 instrucción de reportar las violaciones de capa que encuentre, sin corregirlas — eso
