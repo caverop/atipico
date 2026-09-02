@@ -2,7 +2,7 @@
 -- 010_turno_caja.sql — correlativo de pedido por turno de caja
 -- Requiere haber corrido antes script_inicial.sql y 002..009, más
 -- dev_limpieza_transaccional.sql (la tabla pedido debe estar vacía).
--- Ver docs/numero-pedido.md
+-- Ver specs/numero-pedido.md
 -- =====================================================================
 
 BEGIN;

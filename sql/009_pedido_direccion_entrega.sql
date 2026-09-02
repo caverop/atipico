@@ -1,7 +1,7 @@
 -- =====================================================================
 -- 009_pedido_direccion_entrega.sql — a donde va un pedido DELIVERY
 -- Requiere haber corrido antes script_inicial.sql y 008_pedido_tipo.sql
--- Ver docs/direccion-entrega.md
+-- Ver specs/direccion-entrega.md
 -- =====================================================================
 
 BEGIN;

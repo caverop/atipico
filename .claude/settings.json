@@ -1,5 +1,6 @@
 {
-  "permissions": {
+  "agent": "atipico",
+  "permissions": {    
     "allow": [
       "Bash(dotnet build *)",
       "Bash(tasklist //FI \"IMAGENAME eq dotnet.exe\" //FI \"PID eq 6076\")",

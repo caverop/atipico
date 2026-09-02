@@ -365,3 +365,17 @@ FodyWeavers.xsd
 # docker compose local secrets (connection strings, JWT key) — ver .env.example
 .env
 .azure
+
+.obsidian/
+
+# Graphify — grafo generado, se reconstruye con /graphify
+graphify-out/
+
+# Vault generado por graphify (notas por nodo). Se regenera con:
+#   graphify export obsidian --dir <tmp>  y se copia a specs/grafo/
+# Excluido tambien del corpus de graphify: si se re-extrajera, el grafo
+# se alimentaria de su propia salida.
+specs/grafo/
+
+# Artefactos de verificacion con Playwright (snapshots, capturas, logs de consola)
+.playwright-mcp/

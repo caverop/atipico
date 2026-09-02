@@ -4,7 +4,7 @@ using Atipico.Domain.Enums;
 namespace Atipico.Application.Models
 {
     /// <summary>
-    /// Un turno de caja tal como lo ve la interfaz. Ver docs/numero-pedido.md §7.1.
+    /// Un turno de caja tal como lo ve la interfaz. Ver specs/numero-pedido.md §7.1.
     /// </summary>
     public sealed record TurnoDto(
         long Id,

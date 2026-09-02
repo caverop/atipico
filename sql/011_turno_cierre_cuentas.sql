@@ -1,7 +1,7 @@
 -- =====================================================================
 -- 011_turno_cierre_cuentas.sql — cerrar turno exige cuentas cobradas
 -- Requiere haber corrido antes 010_turno_caja.sql.
--- Ver docs/numero-pedido.md §4.7
+-- Ver specs/numero-pedido.md §4.7
 -- =====================================================================
 --
 -- 010 dejaba cerrar el turno con todos los pedidos en CERRADO aunque sus

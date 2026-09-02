@@ -23,7 +23,7 @@ namespace Atipico.Web.Services
 
     /// <summary>
     /// Sigue el redirect de un enlace corto de Google Maps hasta encontrar las coordenadas.
-    /// Ver docs/enlace-corto-ubicacion.md.
+    /// Ver specs/enlace-corto-ubicacion.md.
     /// </summary>
     public interface IResolvedorEnlaceUbicacion
     {

@@ -10,7 +10,7 @@ namespace Atipico.Api.Controllers
     // No extiende EntityControllerBase<TurnoCaja> a proposito: abrir y cerrar no son un POST
     // y un PUT sobre un registro cualquiera, y DELETE no tiene sentido sobre un turno. Es un
     // controlador propio, como AuthController y ComprobantesController.
-    // Ver docs/numero-pedido.md §7.2.
+    // Ver specs/numero-pedido.md §7.2.
     [Route("api/turnos")]
     public class TurnosController : ApiControllerBase
     {

@@ -10,7 +10,7 @@ using System.Security.Claims;
 
 namespace Atipico.Api.Tests
 {
-    // Las rutas de pedidos acotadas al turno. Ver docs/numero-pedido.md §7.3 y §8.0.
+    // Las rutas de pedidos acotadas al turno. Ver specs/numero-pedido.md §7.3 y §8.0.
     public class PedidosControllerTurnoTests
     {
         private readonly Mock<IEntityService<Pedido>> _pedidos = new();

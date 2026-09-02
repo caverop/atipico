@@ -13,7 +13,7 @@ using System.Security.Claims;
 
 namespace Atipico.Api.Tests
 {
-    // Ver docs/numero-pedido.md §7.2. Lo que se prueba aca es la parte que vive en C#: quien
+    // Ver specs/numero-pedido.md §7.2. Lo que se prueba aca es la parte que vive en C#: quien
     // puede abrir y cerrar, que el turno vigente NO se cierre si la apertura va a fallar, y
     // que el rechazo por pedidos vivos traiga la lista y concuerde en numero.
     //

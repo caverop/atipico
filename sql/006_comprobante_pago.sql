@@ -10,7 +10,7 @@
 -- Por que una tabla y no una columna en cuenta: fn_cuenta_inmutable
 -- rechaza todo UPDATE sobre una cuenta que ya no este ABIERTA, y una
 -- columna tampoco sostendria varios comprobantes. Las dos razones son
--- independientes; ver docs/comprobantes-qr.md.
+-- independientes; ver specs/comprobantes-qr.md.
 --
 -- Requiere haber corrido antes script_inicial.sql (BLOQUE 1 y 2).
 -- =====================================================================
