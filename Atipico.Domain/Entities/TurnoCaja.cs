@@ -7,7 +7,7 @@ namespace Atipico.Domain.Entities
     /// periodo al que pertenecen: por eso reiniciar la numeracion es INSERTAR una fila y no
     /// poner en cero un contador unico. Sin una fila que represente el periodo no hay clave
     /// contra la cual imponer UNIQUE, y despues de un reinicio no quedaria forma de saber
-    /// que pedidos eran de que turno. Ver docs/numero-pedido.md §2.1.
+    /// que pedidos eran de que turno. Ver specs/numero-pedido.md §2.1.
     ///
     /// No hay horarios: el reinicio es manual, a criterio del cajero. No existe corte de
     /// jornada, ni ventana de turno, ni el problema de los turnos que cruzan la medianoche.

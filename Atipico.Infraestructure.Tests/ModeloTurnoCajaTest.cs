@@ -14,7 +14,7 @@ namespace Atipico.Infraestructure.Tests
     // Lo que NO se puede verificar aca es el comportamiento en ejecucion: que el trigger
     // asigne el correlativo sin huecos bajo concurrencia, que el cierre se bloquee, que
     // RETURNING traiga los valores. Eso necesita una base real y esta verificado a mano
-    // contra PostgreSQL 17 (docs/numero-pedido.md §10, CA-1 a CA-20).
+    // contra PostgreSQL 17 (specs/numero-pedido.md §10, CA-1 a CA-20).
     public class ModeloTurnoCajaTest
     {
         private static AppDbContext CrearContexto()

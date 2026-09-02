@@ -69,7 +69,7 @@ builder.Services.AddDataProtection()
 
 builder.Services.AddScoped<EstadoOperaciones>();
 
-// Resolver enlaces cortos de Google Maps (docs/enlace-corto-ubicacion.md). Cliente aparte del
+// Resolver enlaces cortos de Google Maps (specs/enlace-corto-ubicacion.md). Cliente aparte del
 // de la API: no lleva el token del usuario, y sobre todo NO sigue redirects solo — cada salto
 // se valida antes de seguirlo. El timeout corto no es prudencia teorica: el cajero espera con
 // el comensal enfrente.

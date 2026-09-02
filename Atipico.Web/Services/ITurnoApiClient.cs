@@ -4,7 +4,7 @@ namespace Atipico.Web.Services
 {
     /// <summary>
     /// Todo lo que la interfaz necesita saber de los turnos de caja, incluida la grilla de
-    /// pedidos acotada a uno. Ver docs/numero-pedido.md §7.
+    /// pedidos acotada a uno. Ver specs/numero-pedido.md §7.
     ///
     /// No pasa por <see cref="IEntityApiClient{TEntity}"/> y no puede: ese contrato es el CRUD
     /// generico (GET/GET id/POST/PUT/DELETE sobre una entidad), y aca las operaciones son

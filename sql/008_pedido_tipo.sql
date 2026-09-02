@@ -2,7 +2,7 @@
 -- 008_pedido_tipo.sql — clasifica el pedido segun donde se consume:
 -- en el salon, para llevar o por delivery
 -- Requiere haber corrido antes script_inicial.sql
--- Ver docs/tipo-pedido.md
+-- Ver specs/tipo-pedido.md
 -- =====================================================================
 
 BEGIN;

@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Atipico.Infraestructure.Persistence.Configurations
 {
-    // sql/010_turno_caja.sql. Ver docs/numero-pedido.md §6.3.
+    // sql/010_turno_caja.sql. Ver specs/numero-pedido.md §6.3.
     public class TurnoCajaConfiguration : IEntityTypeConfiguration<TurnoCaja>
     {
         public void Configure(EntityTypeBuilder<TurnoCaja> builder)

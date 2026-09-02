@@ -16,7 +16,7 @@ namespace Atipico.Infraestructure.Persistence.Configurations
             builder.HasKey(p => p.Id);
             builder.Property(p => p.Id).HasColumnName("id").UseIdentityAlwaysColumn();
 
-            // Turno de caja (sql/010_turno_caja.sql, docs/numero-pedido.md §6.3). Las dos
+            // Turno de caja (sql/010_turno_caja.sql, specs/numero-pedido.md §6.3). Las dos
             // columnas las asigna tg_pedido_numero_turno en el INSERT, asi que van como
             // generadas por la base: Npgsql las excluye del INSERT y las trae de vuelta con
             // RETURNING.

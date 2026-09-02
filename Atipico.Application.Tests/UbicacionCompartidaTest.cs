@@ -7,7 +7,7 @@ namespace Atipico.Application.Tests
     // verdad: el resto son columnas anulables. Es logica pura, asi que se prueba entera.
     public class UbicacionCompartidaTest
     {
-        // Los formatos de docs/direccion-entrega.md §1, que son los que produce WhatsApp
+        // Los formatos de specs/direccion-entrega.md §1, que son los que produce WhatsApp
         // segun por donde abra el mesero la tarjeta de ubicacion.
         [Theory]
         [InlineData("https://maps.google.com/maps?q=-17.783241,-63.182140")]
@@ -153,7 +153,7 @@ namespace Atipico.Application.Tests
             Assert.Equal(lng, lng2);
         }
 
-        // ---- Enlaces cortos (docs/enlace-corto-ubicacion.md) ----
+        // ---- Enlaces cortos (specs/enlace-corto-ubicacion.md) ----
 
         [Theory]
         [InlineData("https://maps.app.goo.gl/gYQEJD9DL87Sk9WZA")]
@@ -237,7 +237,7 @@ namespace Atipico.Application.Tests
             Assert.False(UbicacionCompartida.EsReferenciaPorDefecto(null, null));
         }
 
-        // El error de docs/mapa-entrega.md §3.1: bbox va longitud primero y marker latitud
+        // El error de specs/mapa-entrega.md §3.1: bbox va longitud primero y marker latitud
         // primero. Invertirlos dibuja un mapa impecable de otro lugar, que a ojo no se
         // distingue de uno bien. Por eso se fija la URL entera y no solo "que contenga".
         [Fact]
