@@ -20,6 +20,28 @@ var r2AccessKeyId = builder.AddParameter("r2-access-key-id", secret: true);
 var r2SecretAccessKey = builder.AddParameter("r2-secret-access-key", secret: true);
 var r2Bucket = builder.AddParameter("r2-bucket");
 
+// El dominio publico y el nombre del certificado administrado que lo respalda. Van como
+// parametros por la misma razon que las credenciales: cambian entre entornos, y `prod` (§5.3
+// de specs/deploy-azure-aspire.md) va a tener los suyos. Ninguno es secreto.
+//
+// `certificate-name` es el NOMBRE DEL RECURSO del certificado en el Container Apps
+// Environment, no el subject ni la huella: hoy "atipico.com.bo-rg-atipi-260902203532".
+var dominioPersonalizado = builder.AddParameter("custom-domain");
+var nombreCertificado = builder.AddParameter("certificate-name");
+
+// Usar PublishAsAzureContainerApp obliga a declarar el entorno de Container Apps aca: sin
+// esto el AppHost aborta con "there are no 'AzureContainerAppEnvironmentResource' resources".
+// Hasta ahora el entorno lo generaba azd de forma implicita y el AppHost ni se enteraba.
+//
+// WithAzdResourceNaming NO es opcional ni cosmetico. Aspire nombra los recursos con su propia
+// convencion, distinta de la de azd, y la documentacion avisa que al migrar un despliegue que
+// ya venia de azd "podes ver recursos duplicados". Con azd naming, los nombres generados
+// vuelven a ser cae-/acr/law-/mi- + el token del entorno, que es exactamente lo que ya existe
+// en rg-Atipico (cae-bsn3xi2hasatq y companiia). O sea: adopta lo desplegado en vez de
+// levantar un entorno paralelo al lado, con otro FQDN y otro certificado.
+builder.AddAzureContainerAppEnvironment("aca")
+    .WithAzdResourceNaming();
+
 var api = builder.AddProject<Projects.Atipico_Api>("atipico-api")
     // Doble guion bajo y no dos puntos: es como el proveedor de variables de entorno de .NET
     // expresa una seccion anidada. "Jwt:Key" no es un nombre de variable valido en Linux, y
@@ -64,6 +86,22 @@ builder.AddProject<Projects.Atipico_Web>("atipico-web")
     .WithEnvironment("ApiBaseUrl", api.GetEndpoint("https"))
     // Que la Web no atienda antes de que la Api este arriba: si no, el primer login que entre
     // durante el arranque falla por una carrera y no por un problema real.
-    .WaitFor(api);
+    .WaitFor(api)
+    // El dominio personalizado tiene que declararse ACA y no atarse a mano por el portal.
+    // En Container Apps el certificado cuelga del Environment pero la vinculacion del hostname
+    // cuelga del Container App, dentro de ingress.customDomains. Como la infraestructura de
+    // atipico-web la genera azd desde este archivo (no hay bicep en el repo), cada
+    // `azd provision` aplica un template donde ingress no declaraba customDomains, y ARM no
+    // fusiona: reemplaza. Por eso el certificado sobrevivia y la vinculacion no, y el sitio
+    // devolvia 525 -- Cloudflare abre TLS con SNI atipico.com.bo contra un origen que ya no
+    // tenia certificado para ese nombre. Declarado aca, el provision lo mantiene.
+    //
+    // Ojo: `azd deploy` nunca rompio nada. Los dominios son del Container App y no de la
+    // revision, asi que publicar una imagen los respeta. El unico que los pisa es el provision.
+    // Ver specs/dominio-personalizado-azure.md.
+    .PublishAsAzureContainerApp((infra, app) =>
+    {
+        app.ConfigureCustomDomain(dominioPersonalizado, nombreCertificado);
+    });
 
 builder.Build().Run();
