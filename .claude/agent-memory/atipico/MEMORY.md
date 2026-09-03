@@ -12,6 +12,7 @@
 
 ## Historia del proyecto
 - [Plan de mejoras (completado)](atipico-improvement-plan.md) — el radio de impacto de `app_restaurante`, los botones "Quitar" que ya no pueden funcionar, y por qué se dejaron así.
+- [azd provision pisa el portal](atipico-azd-provision-pisa-portal.md) — lo que no está en `AppHost.cs` se borra en cada deploy; `azd deploy` no, solo `provision`.
 - [Despliegue en Neon](atipico-neon-deployment.md) — la base de dev es Neon; Npgsql no parsea URIs `postgres://`; datos de prueba sembrados.
 - [Bug de static assets en Docker](atipico-docker-static-assets-bug.md) — `--no-restore` descarta los `_framework/*` de Blazor sin un solo warning.
 
