@@ -16,6 +16,6 @@ public class LoginTests : BunitContext
 
         var encabezado = cut.Find("h1");
 
-        Assert.Equal("ATIPICO4", encabezado.TextContent);
+        Assert.Equal("ATIPICO", encabezado.TextContent);
     }
 }
