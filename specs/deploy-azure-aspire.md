@@ -170,6 +170,13 @@ consola.
 
 ## 5. Pendientes
 
+> **Un quinto problema apareció después** y tiene spec propio:
+> [dominio-personalizado-azure.md](dominio-personalizado-azure.md). El dominio
+> `atipico.com.bo` se perdía en cada `azd provision`, porque estaba atado a mano por el
+> portal y la infraestructura se genera desde `AppHost.cs`. Es el mismo mecanismo que
+> describe el encabezado de este spec, visto desde el otro lado: lo que no está en
+> `AppHost.cs` no sobrevive un provision.
+
 ### 5.1 Rotar `Jwt:Key` — prioridad alta
 
 `Atipico.Api/appsettings.Development.json` está **commiteado** y contiene una clave real,

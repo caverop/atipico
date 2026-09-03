@@ -14,4 +14,8 @@
     <ProjectReference Include="..\Atipico.Web\Atipico.Web.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.Azure.AppContainers" Version="13.5.2" />
+  </ItemGroup>
+
 </Project>

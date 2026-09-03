@@ -24,6 +24,14 @@ jobs:
       AZURE_LOCATION: ${{ vars.AZURE_LOCATION }}
       AZURE_R2_BUCKET: ${{ vars.AZURE_R2_BUCKET }}
       AZURE_ENV_NAME: ${{ vars.AZURE_ENV_NAME }}
+      # Dominio publico y nombre del certificado administrado que lo respalda. Van como vars y
+      # no como secrets porque no son secretos. .azure esta en .gitignore, asi que el runner no
+      # tiene el config.json con los valores locales: azd los toma de aca. Si faltan,
+      # `azd provision --no-prompt` falla por parametro ausente -- ruidoso, que es lo que se
+      # quiere: el fallo anterior era silencioso y se llevaba el dominio puesto.
+      # Ver specs/dominio-personalizado-azure.md.
+      AZURE_CUSTOM_DOMAIN: ${{ vars.AZURE_CUSTOM_DOMAIN }}
+      AZURE_CERTIFICATE_NAME: ${{ vars.AZURE_CERTIFICATE_NAME }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
