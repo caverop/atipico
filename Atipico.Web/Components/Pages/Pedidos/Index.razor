@@ -338,9 +338,9 @@
         return int.TryParse(_filtroNumero.Trim(), out var buscado) && p.NumeroTurno == buscado;
     }
 
-    // Orden por defecto: primero Creado, luego Estado, por ultimo Comensal.
-    private string _ordenColumna = "Creado";
-    private bool _ordenDesc = true;
+    // Orden por defecto: primero N° (SCRUM-18), luego Creado, Estado y por ultimo Comensal.
+    private string _ordenColumna = "N°";
+    private bool _ordenDesc = false;
 
     // Creado se ordena por DIA, no por instante. Si se ordenara por el timestamp completo los
     // otros dos criterios no llegarian a aplicarse nunca (cada pedido tiene su microsegundo),
@@ -414,8 +414,10 @@
         IEnumerable<Pedido> fuente, Func<Pedido, TClave> clave, IComparer<TClave>? comparador = null) =>
         _ordenDesc ? fuente.OrderByDescending(clave, comparador) : fuente.OrderBy(clave, comparador);
 
-    // Misma columna: invierte. Otra columna: arranca ascendente, salvo Creado y N°, donde lo
-    // que se quiere ver primero es siempre lo mas reciente.
+    // Misma columna: invierte. Otra columna: arranca ascendente, salvo Creado, donde lo que se
+    // quiere ver primero es siempre lo mas reciente. N° ya no es una excepcion: el orden con el
+    // que la grilla abre (§2.2, SCRUM-18) es justamente N° ascendente, asi que volver a el a
+    // mano arranca igual, no al reves.
     private void Ordenar(string columna)
     {
         if (_ordenColumna == columna)
@@ -425,7 +427,7 @@
         }
 
         _ordenColumna = columna;
-        _ordenDesc = columna is "Creado" or "N°";
+        _ordenDesc = columna is "Creado";
     }
 
     // Solo los meseros que efectivamente tienen pedidos, no todos los usuarios: evita opciones

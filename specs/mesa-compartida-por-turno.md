@@ -5,7 +5,8 @@ mesa sea ocupada en mas de un pedido en un mismo turno". Documento de referencia
 implementación: recoge las decisiones tomadas y su porqué, para no volver a discutirlas al
 escribir el código.
 
-- **Estado:** **propuesto**. Sin código todavía.
+- **Estado:** **en producción**. `sql/013_mesa_compartida_por_turno.sql` corrido contra la
+  base real y confirmado por el usuario; pruebas en verde (§8).
 - **Origen:** [SCRUM-17](https://caverop.atlassian.net/browse/SCRUM-17), tipo Task, sin
   descripción ni criterios de aceptación en el ticket — el alcance de este documento es la
   interpretación de lo pedido, hecha al analizarlo.
@@ -250,3 +251,8 @@ Casos nuevos a agregar:
   verificó que `Mesa.Estado` y los controladores ya estaban escritos de forma genérica para N
   pedidos por mesa, así que el cambio se acota a SQL (`DROP TRIGGER`/`DROP FUNCTION`) más UI.
   Pendiente de aprobación antes de tocar código.
+
+- **2026-09-05.** QA escribió los tests en rojo (§8); dev implementó `sql/013` y los cambios
+  de `Pedidos/Edit.razor` (§5) hasta ponerlos en verde — 180 tests, 0 fallos, verificados de
+  forma independiente. El usuario corrió la migración contra la base real y confirmó que queda
+  todo en orden: verificación manual de §8.3/§9 dada por cumplida.

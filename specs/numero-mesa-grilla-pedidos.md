@@ -4,7 +4,7 @@ Especificación funcional y técnica para SCRUM-16 (Jira, proyecto `atipico`): "
 de mesa en grilla pedidos". Documento de referencia previo a la implementación: recoge las
 decisiones tomadas y su porqué, para no volver a discutirlas al escribir el código.
 
-- **Estado:** **propuesto**. Sin código todavía.
+- **Estado:** **en producción**. Confirmado por el usuario; pruebas en verde (§6).
 - **Origen:** [SCRUM-16](https://caverop.atlassian.net/browse/SCRUM-16), tipo Task, sin
   descripción ni criterios de aceptación en el ticket — el alcance de este documento es la
   interpretación de lo pedido, hecha al analizarlo.
@@ -254,3 +254,7 @@ revienta con `NullReferenceException`. Hace falta:
   lado), y se decidió resolver el cruce en el servidor dentro de `ArmarGrillaAsync` en vez de
   agregar llamadas nuevas desde `Pedidos/Index.razor`, según el criterio ya sentado por
   `TotalPedidos` en el mismo DTO. Pendiente de aprobación antes de tocar código.
+
+- **2026-09-05.** QA escribió los tests en rojo (§6); dev implementó `MesasPorPedido` en el
+  DTO, `ArmarGrillaAsync` y la columna/orden en `Pedidos/Index.razor` hasta ponerlos en
+  verde — 178 tests, 0 fallos, verificados de forma independiente. Confirmado por el usuario.
