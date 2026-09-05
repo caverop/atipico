@@ -253,29 +253,29 @@
                     }
                     @if (_puedeAsociarMesa)
                     {
-                        @* Las ocupadas se listan pero no se pueden elegir. Antes se ofrecian
-                           con un aviso al lado y se dejaban asociar igual; desde
-                           sql/012_pedido_unicidad_por_turno.sql la base las rechaza, asi que
-                           ofrecerlas seria prometer algo que la API niega. Se muestran, en vez
-                           de esconderlas, para que el mesero vea que la mesa existe y por que
-                           no la puede tomar. *@
-                        @if (_mesasLibres.Count > 0)
+                        @* SCRUM-17 (specs/mesa-compartida-por-turno.md §5): una mesa Ocupada es
+                           una opcion valida de nuevo — sql/013_mesa_compartida_por_turno.sql
+                           elimino tg_pedido_mesa_ocupada, asi que la API ya no la rechaza. El
+                           texto "- ocupada por otro pedido" se mantiene, pero ahora informa
+                           (el mesero la va a compartir a sabiendas) en vez de acompañar una
+                           opcion deshabilitada. *@
+                        @if (_mesasDisponibles.Count > 0)
                         {
+                            @if (_mesasLibres.Count == 0)
+                            {
+                                <p class="text-muted"><em>Todas las mesas están ocupadas por otros pedidos de este turno; se pueden compartir.</em></p>
+                            }
                             <div class="input-group mb-4">
                                 <select class="form-select" @bind="_selectedMesaId">
                                     @foreach (var mesa in _mesasDisponibles)
                                     {
-                                        <option value="@mesa.Id" disabled="@(mesa.Estado == EstadoMesa.Ocupada)">
+                                        <option value="@mesa.Id">
                                             Mesa @mesa.Numero (cap. @mesa.Capacidad)@(mesa.Estado == EstadoMesa.Ocupada ? " - ocupada por otro pedido" : "")
                                         </option>
                                     }
                                 </select>
                                 <button type="button" class="btn btn-outline-primary" @onclick="HandleAddMesa">Agregar mesa</button>
                             </div>
-                        }
-                        else if (_mesasDisponibles.Count > 0)
-                        {
-                            <p class="text-muted"><em>Todas las mesas están ocupadas por otros pedidos de este turno.</em></p>
                         }
                         else
                         {
@@ -604,17 +604,15 @@
     }
 
     // Se preselecciona una mesa Libre para evitar elegir por accidente una que ya esta
-    // compartida; si no queda ninguna Libre, se cae a la primera disponible (Ocupada) en vez
-    // de dejar el selector vacio.
-    // Las que se pueden tomar de verdad. Una mesa Ocupada la rechaza tg_pedido_mesa_ocupada,
-    // asi que no sirve ni como opcion ni como valor por defecto.
+    // compartida. Solo decide el orden de preferencia del valor por defecto (_mesaPorDefecto);
+    // ya no filtra las opciones del <select> — SCRUM-17 las volvio a todas elegibles.
     private List<Mesa> _mesasLibres =>
         _mesasDisponibles.Where(m => m.Estado != EstadoMesa.Ocupada).ToList();
 
-    // Sin fallback a una ocupada: antes, con todas las mesas tomadas, el select arrancaba
-    // sobre una que el servidor iba a rechazar. Ahora arranca en 0 y HandleAddMesa no hace
-    // nada, que es lo correcto cuando no hay nada que asociar.
-    private long _mesaPorDefecto => _mesasLibres.FirstOrDefault()?.Id ?? 0;
+    // SCRUM-17 (specs/mesa-compartida-por-turno.md §5): con todas las mesas Ocupadas, el valor
+    // por defecto cae a la primera de _mesasDisponibles en vez de 0 — sql/013 elimino el
+    // trigger que la hubiera rechazado, asi que ya no hace falta dejar el selector "vacio".
+    private long _mesaPorDefecto => _mesasLibres.FirstOrDefault()?.Id ?? _mesasDisponibles.FirstOrDefault()?.Id ?? 0;
 
     // "Cerrar pedido" solo es valido mientras el pedido esta Abierto (tomando el pedido); una
     // vez que pasa a En Preparacion queda en manos de cocina y ya no se edita desde aca.
