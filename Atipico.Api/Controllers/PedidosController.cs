@@ -69,7 +69,7 @@ namespace Atipico.Api.Controllers
             // en que queda la base recien migrada y al terminar la jornada. El sobre lo dice
             // con Turno en null y la pantalla ofrece abrir uno (§8.4).
             if (turno is null)
-                return Ok(new GrillaPedidosDto(null, []));
+                return Ok(new GrillaPedidosDto(null, [], new Dictionary<long, IReadOnlyList<int>>()));
 
             return Ok(await ArmarGrillaAsync(turno));
         }
@@ -96,10 +96,35 @@ namespace Atipico.Api.Controllers
             if (turno.IdCajero is not null)
                 cajero = (await _usuarioService.GetByIdAsync(turno.IdCajero.Value))?.Nombre;
 
+            var mesasPorPedido = await MesasPorPedidoAsync(pedidos.Select(p => p.Id));
+
             // TotalPedidos sale de la lista que ya se trajo, no de un COUNT aparte.
             return new GrillaPedidosDto(
                 new TurnoDto(turno.Id, turno.Nombre, turno.AbiertoEn, turno.CerradoEn, cajero, pedidos.Count),
-                pedidos);
+                pedidos,
+                mesasPorPedido);
+        }
+
+        // Una sola pasada por pedido_mesa, filtrada por los pedidos del turno (no toda la
+        // tabla: FindAsync se traduce a SQL, a diferencia de traer GetAllAsync y filtrar en
+        // memoria). Mesa si se trae entera - es una tabla chica que no crece con el tiempo,
+        // igual criterio que ya usa Pedidos/Edit.razor con MesaApi.GetAllAsync().
+        private async Task<IReadOnlyDictionary<long, IReadOnlyList<int>>> MesasPorPedidoAsync(IEnumerable<long> idsPedido)
+        {
+            var idsPedidoSet = idsPedido.ToHashSet();
+            if (idsPedidoSet.Count == 0)
+                return new Dictionary<long, IReadOnlyList<int>>();
+
+            var pedidoMesas = await _pedidoMesaService.FindAsync(pm => idsPedidoSet.Contains(pm.IdPedido));
+            var numerosMesa = (await _mesaService.GetAllAsync()).ToDictionary(m => m.Id, m => m.Numero);
+
+            return pedidoMesas
+                .GroupBy(pm => pm.IdPedido)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (IReadOnlyList<int>)g.Select(pm => numerosMesa.GetValueOrDefault(pm.IdMesa))
+                                              .OrderBy(n => n)
+                                              .ToList());
         }
 
         // CerradoEn no llega del cliente: el navegador arma un DateTimeOffset con su propio

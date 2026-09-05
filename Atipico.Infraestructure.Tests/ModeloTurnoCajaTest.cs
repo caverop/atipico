@@ -174,6 +174,24 @@ namespace Atipico.Infraestructure.Tests
             Assert.DoesNotContain("ERRCODE", sql);
         }
 
+        // SCRUM-17 (specs/mesa-compartida-por-turno.md §4 y §8.1): revierte la mitad de 012
+        // sobre mesa (RN-14) sin editar 012 — 012 sigue describiendo lo que la base hacia en
+        // ese momento de su historia (ver el test de arriba, que no cambia). Simetrico a
+        // LaMesaOcupadaLaRechazaUnTriggerEnInsertYEnUpdate, pero leyendo el script que lo
+        // revierte en vez del que lo creo.
+        //
+        // Este test esta en rojo por archivo faltante hasta que 013_mesa_compartida_por_turno.sql
+        // exista (spec §8.1: "por eso este test va a estar en rojo, por archivo faltante, hasta
+        // que dev lo cree").
+        [Fact]
+        public void LaMesaCompartidaEliminaElTriggerYSuFuncionEn013()
+        {
+            var sql = SinComentarios(Script("013_mesa_compartida_por_turno.sql"));
+
+            Assert.Contains("DROP TRIGGER tg_pedido_mesa_ocupada", sql);
+            Assert.Contains("DROP FUNCTION fn_pedido_mesa_ocupada", sql);
+        }
+
         // El correlativo lo asigna un trigger, no un DEFAULT ni una secuencia. Si alguien
         // quitara el trigger del script, todo lo demas seguiria compilando y las columnas
         // entrarian en 0 sin que nada avise.
