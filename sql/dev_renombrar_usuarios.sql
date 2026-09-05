@@ -12,9 +12,13 @@
 -- BCryptPasswordHasher.Hash() en Atipico.Infraestructure) y verificados con
 -- BCrypt.Verify() en el mismo proceso que los generó, antes de escribirlos
 -- acá. No son valores de ejemplo.
+--
+-- SQL PURO: sin \set de psql. Pegable tal cual en cualquier cliente
+-- (pgAdmin, DBeaver, la consola web de Neon, psql). No necesita una
+-- compuerta de confirmación como el script de limpieza transaccional:
+-- esto es un UPDATE reversible (basta con volver a correrlo al revés),
+-- no un TRUNCATE.
 -- =====================================================================
-
-\set ON_ERROR_STOP on
 
 BEGIN;
 

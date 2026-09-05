@@ -73,19 +73,40 @@ script original.
 
 ### 3.2 Por qué una compuerta de confirmación, y no confiar en "ya lo pensé"
 
-`dev_abrir_turno.sql` ya usa el patrón `\set`/`\if`/`RAISE EXCEPTION` para plantarse
-sin tocar nada si algo no está en orden; acá corresponde el mismo idioma, subido un
-escalón: el script exige un parámetro con una frase exacta, no solo un flag en cero o
-uno, para que ejecutarlo por descuido (`psql -f sql/dev_limpieza_qa_confirmada.sql`
-sin el parámetro) sea imposible, y para que copiarlo y pegarlo sin leer el `-v`
-tampoco alcance.
+**Primera versión, descartada.** `dev_abrir_turno.sql` usa `\set`/`\if`/`\gset` de
+`psql` para plantarse sin tocar nada si algo no está en orden, y la primera versión
+de este script copió ese idioma con un parámetro `-v confirmo=...`. Se probó contra
+la conexión real y funcionaba — pero asumía que quien lo corre usa `psql` por línea
+de comandos. **No era el caso**: se corrió desde otra herramienta (un cliente SQL
+sin soporte de metacomandos de `psql`), y `\set`/`\if` no son SQL — son exclusivos
+del cliente `psql`, cualquier otro los rechaza o los ignora con errores confusos
+("invalid command \set"). La compuerta de seguridad más importante del script
+dependía de una herramienta que no se estaba usando.
 
-```
--v confirmo=SI_VERIFIQUE_QUE_ES_TODO_PRUEBA
+**Versión final: SQL puro**, pegable en cualquier cliente (`psql`, pgAdmin, DBeaver,
+la consola web de Neon). La confirmación es un bloque `DO $$...$$` con un valor que
+hay que **editar a mano en el archivo** antes de correrlo:
+
+```sql
+DECLARE
+    v_confirmo text := 'PEGAR_AQUI_LA_FRASE_DE_CONFIRMACION';
 ```
 
-Sin ese parámetro, o con cualquier otro valor, el script aborta con `RAISE EXCEPTION`
-antes del `BEGIN` — código de salida 3, nada tocado.
+Sin editar esa línea, el bloque hace `RAISE EXCEPTION` y aborta.
+
+**Por qué esto frena en cualquier cliente, no solo en `psql`.** El bloque `DO` vive
+como la primera sentencia **dentro** de la misma transacción que el `TRUNCATE` — no
+antes, no aparte. Si aborta, Postgres marca la transacción como fallida y rechaza
+automáticamente *cualquier* sentencia posterior que llegue en ese mismo `BEGIN…COMMIT`,
+sin que la herramienta tenga que "darse cuenta" del error y detenerse por su cuenta.
+Es una propiedad de Postgres, no del cliente — funciona igual en un lote enviado por
+`psql`, por pgAdmin o por la consola de Neon.
+
+> ✅ **Verificado** contra la conexión real, en los dos sentidos: sin editar la línea,
+> el `DO` aborta y tanto el `TRUNCATE` como el `UPDATE mesa` de más abajo se rechazan
+> con *"current transaction is aborted, commands ignored"* — cero filas tocadas. Con
+> la frase correcta, el bloque no lanza nada (probado aislado, sin llegar a ejecutar
+> el `TRUNCATE` real).
 
 ### 3.3 Las mesas necesitan un `UPDATE` explícito, y no es solo por hoy
 
@@ -109,7 +130,7 @@ UPDATE mesa SET estado = 'LIBRE' WHERE estado <> 'LIBRE';
 ```sql
 -- =====================================================================
 -- dev_limpieza_qa_confirmada.sql — vacía los datos de prueba de la base
--- compartida entre QA y producción (specs/cicd-github-azure-render.md §3.1).
+-- compartida entre QA y producción (specs/limpieza-datos-prueba.md).
 --
 -- SIN NUMERAR A PROPÓSITO, igual que dev_limpieza_transaccional.sql: no es
 -- historia de migración, es una herramienta de una sola vez.
@@ -121,48 +142,43 @@ UPDATE mesa SET estado = 'LIBRE' WHERE estado <> 'LIBRE';
 -- specs/limpieza-datos-prueba.md §2 — léela antes de correr esto de nuevo
 -- con datos distintos a los que ahí se verificaron.
 --
--- Requiere SUPERUSUARIO, igual que el script original: app_restaurante no
--- tiene TRUNCATE ni DELETE sobre ninguna de estas tablas.
+-- Requiere SUPERUSUARIO (el dueño de las tablas, ej. neondb_owner):
+-- app_restaurante no tiene TRUNCATE ni DELETE sobre ninguna de estas tablas.
+--
+-- SQL PURO — sin \set/\if/\gset de psql. Pensado para pegarse tal cual en
+-- cualquier cliente (pgAdmin, DBeaver, la consola web de Neon, psql), sin
+-- parámetros de línea de comandos.
+--
+-- CÓMO CONFIRMAR: antes de correrlo, editá la línea marcada más abajo
+-- (v_confirmo) y reemplazá el texto por la frase exacta indicada ahí mismo.
+-- Sin ese cambio, el script se planta en la primera sentencia y no llega a
+-- tocar ninguna tabla — funciona así en cualquier cliente porque la
+-- compuerta vive DENTRO de la misma transacción que el TRUNCATE: si aborta,
+-- Postgres rechaza automáticamente todo lo que venga después en ese mismo
+-- BEGIN/COMMIT, sin depender de que la herramienta pare al primer error.
 -- =====================================================================
 
-\set ON_ERROR_STOP on
+BEGIN;
 
--- Compuerta: exige la frase exacta, no un simple 0/1. Mismo idioma que
--- dev_abrir_turno.sql (\set / \if / RAISE EXCEPTION), un escalón más estricto
--- porque acá el costo de un descuido es mayor: esta base sirve QA y
--- producción, no un sandbox de desarrollo.
-\if :{?confirmo}
-\else
-    \set confirmo ''
-\endif
-
--- \if no admite comparaciones de igualdad directamente (probado: con
--- ":{'var'} = 'literal'" psql tira "se esperaba booleano" SIEMPRE, coincida o
--- no el valor -- una version anterior de este script tenia exactamente ese
--- error). El patron correcto, ya usado en dev_abrir_turno.sql, es resolver la
--- comparacion con un SELECT y recien testear el booleano resultante.
-SELECT :'confirmo' = 'SI_VERIFIQUE_QUE_ES_TODO_PRUEBA' AS confirmado
-\gset
-
-\if :confirmado
-\else
-    \warn 'Este script vacía datos en la base COMPARTIDA de QA y producción.'
-    \warn 'Antes de correrlo, repetí la auditoría de specs/limpieza-datos-prueba.md #2'
-    \warn 'contra el estado ACTUAL de la base -- no contra esta fecha.'
-    \warn 'Si sigue siendo 100% prueba, corre con:'
-    \warn '  -v confirmo=SI_VERIFIQUE_QUE_ES_TODO_PRUEBA'
-    DO $$ BEGIN RAISE EXCEPTION 'Confirmacion faltante o incorrecta. Nada fue modificado.'; END $$;
-\endif
+DO $$
+DECLARE
+    -- <<< EDITÁ ESTA LÍNEA >>> reemplazá el texto de la derecha por:
+    --     SI_VERIFIQUE_QUE_ES_TODO_PRUEBA
+    -- Repetí antes la auditoría de specs/limpieza-datos-prueba.md §2 contra
+    -- el estado ACTUAL de la base — no confíes en la fecha del documento.
+    v_confirmo text := 'PEGAR_AQUI_LA_FRASE_DE_CONFIRMACION';
+BEGIN
+    IF v_confirmo <> 'SI_VERIFIQUE_QUE_ES_TODO_PRUEBA' THEN
+        RAISE EXCEPTION 'Confirmación faltante o incorrecta. Editá v_confirmo en este archivo. Nada fue modificado.';
+    END IF;
+END $$;
 
 
 -- ---------------------------------------------------------------------
 -- 1. Vaciar lo transaccional
 -- ---------------------------------------------------------------------
--- Mismo mecanismo y misma lista que dev_limpieza_transaccional.sql: TRUNCATE
--- no dispara fn_detalle_inmutable ni fn_cuenta_inmutable, que rechazarian
--- cualquier DELETE. RESTART IDENTITY: los id vuelven a 1.
-BEGIN;
-
+-- TRUNCATE no dispara fn_detalle_inmutable ni fn_cuenta_inmutable, que
+-- rechazarían cualquier DELETE. RESTART IDENTITY: los id vuelven a 1.
 TRUNCATE
     comprobante_pago,
     detalle_cuenta,
@@ -174,27 +190,24 @@ TRUNCATE
     RESTART IDENTITY CASCADE;
 
 -- mesa no tiene trigger propio y no depende de pedido_mesa por cascada
--- (ver especificacion, seccion 3.3): sin este UPDATE, una mesa que quedo
--- OCUPADA por una prueba sigue OCUPADA para siempre, sin ningun pedido que
+-- (specs/limpieza-datos-prueba.md §3.3): sin este UPDATE, una mesa que quedó
+-- OCUPADA por una prueba sigue OCUPADA para siempre, sin ningún pedido que
 -- la explique.
 UPDATE mesa SET estado = 'LIBRE' WHERE estado <> 'LIBRE';
 
 COMMIT;
 
--- Los catalogos NO se tocan: usuario, plato, tipo_plato y las filas de mesa
--- quedan intactos. Ver specs/limpieza-datos-prueba.md, seccion 5 -- es una
--- decision que se dejo explicita y abierta, no un descuido.
+-- Los catálogos NO se tocan: usuario, plato, tipo_plato y las filas de mesa
+-- quedan intactos. Ver specs/limpieza-datos-prueba.md §5.
 --
 -- comprobante_pago.storage_key apunta a archivos en el bucket de R2
--- compartido (atipico-comprobantes, specs/cicd-github-azure-render.md 3.3):
--- este TRUNCATE no los borra. Capturalos ANTES de correr esto -- ver
--- specs/limpieza-datos-prueba.md, seccion 6.
+-- compartido (atipico-comprobantes): este TRUNCATE no los borra. Capturalos
+-- ANTES de correr esto si todavía no lo hiciste — specs/limpieza-datos-prueba.md §6.
 
-\echo ''
-\echo 'Listo. Verifica con:'
-\echo '  SELECT (SELECT count(*) FROM pedido) AS pedidos, (SELECT count(*) FROM cuenta) AS cuentas,'
-\echo '         (SELECT count(*) FROM mesa WHERE estado <> ''LIBRE'') AS mesas_no_libres;'
-\echo 'Las tres columnas deben dar 0.'
+-- Verificación — correr aparte, después del COMMIT de arriba:
+--   SELECT (SELECT count(*) FROM pedido) AS pedidos, (SELECT count(*) FROM cuenta) AS cuentas,
+--          (SELECT count(*) FROM mesa WHERE estado <> 'LIBRE') AS mesas_no_libres;
+-- Las tres columnas deben dar 0.
 ```
 
 ## 5. Catálogos — decisión tomada para `usuario`
@@ -352,7 +365,7 @@ orden que el usuario ya definió (primero limpiar, después separar los entornos
 - [x] §5 decidido: renombrar `usuario` (admin/mesera/delivery/cocinera), rol preservado.
 - [ ] `sql/dev_renombrar_usuarios.sql` corrido y verificado (§5.1).
 - [ ] Las claves de R2 de §6 quedaron guardadas antes del `TRUNCATE`.
-- [ ] `sql/dev_limpieza_qa_confirmada.sql` corrido con el parámetro `-v confirmo=...` exacto.
+- [ ] `sql/dev_limpieza_qa_confirmada.sql` corrido con `v_confirmo` editado a la frase exacta.
 - [ ] Post-verificación: `pedido`, `cuenta`, `detalle_cuenta`, `comprobante_pago`, `pedido_plato`, `pedido_mesa`, `turno_caja` en 0 filas.
 - [ ] Las 4 mesas en `LIBRE`.
 - [ ] La aplicación abre sin turno de caja activo — es el estado esperado (`specs/numero-pedido.md` §8.4), no un error: hay que abrir un turno antes de cargar el primer pedido nuevo.
