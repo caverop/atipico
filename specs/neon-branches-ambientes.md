@@ -152,6 +152,20 @@ Lo que seguía pendiente, todo cerrado el 2026-09-05:
       verificado con `dotnet user-secrets list`. Si `Atipico.Api` ya estaba corriendo, sigue
       con la cadena vieja hasta que se reinicie — no se lo forzó, por la regla de no matar
       el proceso.
+- [x] **`Atipico.Aspire.AppHost` tiene sus PROPIOS user secrets, separados de los de
+      `Atipico.Api`, y son los que ganan al correr `aspire run`/F5.** `AppHost.cs` inyecta
+      la cadena como variable de entorno (`ConnectionStrings__DefaultConnection`) desde su
+      propio parámetro `db-connection-string` (`builder.AddParameter("db-connection-string",
+      secret: true)`) — y una variable de entorno pisa al user secret del proyecto hijo en el
+      orden de configuración de .NET. Cambiar el secret de `Atipico.Api` **no alcanza** si se
+      corre con Aspire: hay que cambiar el de `Atipico.Aspire.AppHost` también
+      (`UserSecretsId dc79db80-141b-43ad-8631-c7f600a6a983`, clave
+      `Parameters:db-connection-string`). Se descubrió porque una modificación corrida con
+      `aspire run` se reflejó en producción pese a que el secret de `Atipico.Api` ya apuntaba
+      a `dev` — corregido el 2026-09-05, verificado con
+      `dotnet user-secrets list --project Atipico.Aspire.AppHost`. Ya existía el mismo patrón
+      para R2 (`r2-bucket = atipico-comprobantes-dev`, distinto del de producción) — la
+      cadena de conexión no lo había seguido hasta ahora.
 
 Los tres ambientes quedan completamente separados y en uso.
 
