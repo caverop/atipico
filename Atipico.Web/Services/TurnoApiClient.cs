@@ -60,10 +60,10 @@ namespace Atipico.Web.Services
             // 204 no lo devuelve ninguna de las dos rutas de grilla (sin turno abierto viene
             // un 200 con Turno en null), pero un cuerpo vacio no debe reventar la pantalla.
             if (response.StatusCode == HttpStatusCode.NoContent)
-                return new GrillaPedidosDto(null, []);
+                return new GrillaPedidosDto(null, [], new Dictionary<long, IReadOnlyList<int>>());
 
             return await response.Content.ReadFromJsonAsync<GrillaPedidosDto>(JsonOptions)
-                   ?? new GrillaPedidosDto(null, []);
+                   ?? new GrillaPedidosDto(null, [], new Dictionary<long, IReadOnlyList<int>>());
         }
 
         /// <summary>

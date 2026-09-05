@@ -392,6 +392,14 @@ corta.
 > el `UPDATE` que mueve la fila a una mesa tomada, rechazado; y ambos liberados al
 > rotar de turno. El trigger levanta `SQLSTATE = P0001`.
 
+> ⚠️ **Relajado (SCRUM-17).** La mitad de esto sobre la MESA se revirtió a propósito:
+> `sql/013_mesa_compartida_por_turno.sql` elimina `fn_pedido_mesa_ocupada`/
+> `tg_pedido_mesa_ocupada`, así que una mesa **sí** puede volver a estar en dos pedidos vivos
+> del mismo turno a la vez. La mitad sobre el COMENSAL (`uk_pedido_comensal_activo`) sigue
+> vigente sin cambios. Detalle y motivo en `specs/mesa-compartida-por-turno.md`. Lo de arriba
+> queda como registro de lo que se decidió y se verificó en su momento, no como el
+> comportamiento actual de la mesa.
+
 ## 5. Reglas de negocio
 
 | # | Regla |
@@ -409,7 +417,7 @@ corta.
 | RN-11 | La grilla muestra los pedidos del turno **cualquiera sea su estado**: pagados, sin pagar, servidos o anulados. |
 | RN-12 | Un `Mesero` no puede salir del turno abierto en la grilla (§8.0). |
 | RN-13 | Dentro de un turno, dos pedidos **activos** no comparten comensal. En otro turno el mismo nombre vuelve a estar libre (§4.10). |
-| RN-14 | Dentro de un turno, una mesa no está en dos pedidos **vivos** a la vez. `SERVIDO` la mantiene ocupada; `CERRADO` y `ANULADO` la liberan (§4.10). |
+| RN-14 | ~~Dentro de un turno, una mesa no está en dos pedidos **vivos** a la vez.~~ **Relajada por SCRUM-17** — ver `specs/mesa-compartida-por-turno.md`. `SERVIDO` sigue manteniendo la mesa ocupada; `CERRADO` y `ANULADO` la liberan (§4.10). |
 | RN-15 | En pantalla el pedido se nombra por su `numero_turno` y su comensal, nunca por su `id` (§8.7). |
 
 ## 6. Domain
