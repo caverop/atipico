@@ -16,6 +16,13 @@ namespace Atipico.Api.Tests
         private readonly Mock<IEntityService<Pedido>> _pedidos = new();
         private readonly Mock<IEntityService<TurnoCaja>> _turnos = new();
         private readonly Mock<IEntityService<Usuario>> _usuarios = new();
+        // Spec §6.1 (specs/numero-mesa-grilla-pedidos.md): promovidos desde
+        // `new Mock<...>().Object` inline a campos con Setup por defecto. Sin este Setup,
+        // en cuanto ArmarGrillaAsync los use (MesasPorPedidoAsync), Moq devuelve null en vez
+        // de una lista vacía y la llamada revienta con NullReferenceException antes de llegar
+        // a ninguna aserción — no es el escenario que estos tests quieren cubrir.
+        private readonly Mock<IEntityService<PedidoMesa>> _pedidoMesas = new();
+        private readonly Mock<IEntityService<Mesa>> _mesas = new();
         private readonly PedidosController _controller;
 
         public PedidosControllerTurnoTests()
@@ -23,8 +30,8 @@ namespace Atipico.Api.Tests
             _controller = new PedidosController(
                 _pedidos.Object,
                 new Mock<IEntityService<PedidoPlatoSinCobrar>>().Object,
-                new Mock<IEntityService<PedidoMesa>>().Object,
-                new Mock<IEntityService<Mesa>>().Object,
+                _pedidoMesas.Object,
+                _mesas.Object,
                 new Mock<IEntityService<PedidoPlato>>().Object,
                 new Mock<IEntityService<Plato>>().Object,
                 new Mock<IEntityService<Cuenta>>().Object,
@@ -36,6 +43,9 @@ namespace Atipico.Api.Tests
                 .ReturnsAsync([]);
             _usuarios.Setup(s => s.GetByIdAsync(It.IsAny<long>()))
                 .ReturnsAsync(new Usuario { Id = 7, Nombre = "M. Ríos" });
+            _pedidoMesas.Setup(s => s.FindAsync(It.IsAny<Expression<Func<PedidoMesa, bool>>>()))
+                .ReturnsAsync([]);
+            _mesas.Setup(s => s.GetAllAsync()).ReturnsAsync([]);
 
             ConRol("Admin");
         }
@@ -139,6 +149,107 @@ namespace Atipico.Api.Tests
             _turnos.Setup(s => s.GetByIdAsync(It.IsAny<long>())).ReturnsAsync((TurnoCaja?)null);
 
             Assert.IsType<NotFoundResult>((await _controller.GetDelTurno(99)).Result);
+        }
+
+        // ---- Spec §6.2 numero-mesa-grilla-pedidos.md: MesasPorPedido en el sobre ----------
+        //
+        // Estos tests hoy NO COMPILAN: GrillaPedidosDto todavía tiene dos parámetros
+        // (Turno, Pedidos) — MesasPorPedido se agrega recién en la implementación (spec §3).
+        // Ese es el rojo esperado: un error de compilación en todo el proyecto de test, no
+        // una aserción fallida. Ver informe.
+
+        // Decisión documentada (spec §6.2 la deja abierta): un pedido sin PedidoMesa asociada
+        // NO TIENE ENTRADA en el diccionario, en vez de tener una entrada con lista vacía. Se
+        // elige "sin entrada" porque es el comportamiento natural del algoritmo que ya propone
+        // el spec (§3.1): MesasPorPedidoAsync arma el diccionario agrupando
+        // (`GroupBy`) sobre los PedidoMesa que existen, así que un pedido sin ninguno nunca
+        // genera un grupo ni, por lo tanto, una clave — no hace falta código extra para
+        // "excluirlo a propósito". El consumidor ya está preparado para este caso
+        // (`GetValueOrDefault`, spec §3 y §4.1).
+        [Fact]
+        public async Task GetDelTurnoAbierto_PedidoSinMesaAsociada_NoTraeEntradaEnMesasPorPedido()
+        {
+            ConTurnoAbierto();
+            _pedidos.Setup(s => s.FindAsync(It.IsAny<Expression<Func<Pedido, bool>>>()))
+                .ReturnsAsync([new Pedido { Id = 40, NumeroTurno = 1 }]);
+            // Sin Setup adicional en _pedidoMesas: sigue devolviendo [] (default del ctor).
+
+            var ok = Assert.IsType<OkObjectResult>((await _controller.GetDelTurnoAbierto()).Result);
+            var grilla = Assert.IsType<GrillaPedidosDto>(ok.Value);
+
+            Assert.False(grilla.MesasPorPedido.ContainsKey(40));
+        }
+
+        [Fact]
+        public async Task GetDelTurnoAbierto_PedidoConUnaMesa_TraeElNumeroDeEsaMesa()
+        {
+            ConTurnoAbierto();
+            _pedidos.Setup(s => s.FindAsync(It.IsAny<Expression<Func<Pedido, bool>>>()))
+                .ReturnsAsync([new Pedido { Id = 41, NumeroTurno = 1 }]);
+            _pedidoMesas.Setup(s => s.FindAsync(It.IsAny<Expression<Func<PedidoMesa, bool>>>()))
+                .ReturnsAsync([new PedidoMesa { Id = 1, IdPedido = 41, IdMesa = 100 }]);
+            _mesas.Setup(s => s.GetAllAsync())
+                .ReturnsAsync([new Mesa { Id = 100, Numero = 5 }]);
+
+            var ok = Assert.IsType<OkObjectResult>((await _controller.GetDelTurnoAbierto()).Result);
+            var grilla = Assert.IsType<GrillaPedidosDto>(ok.Value);
+
+            Assert.Equal([5], grilla.MesasPorPedido[41]);
+        }
+
+        // Las PedidoMesa se devuelven a propósito en el orden de inserción "8 antes que 3":
+        // el orden ascendente tiene que salir del cruce con Mesa.Numero, no de heredar el
+        // orden en que FindAsync trajo las filas.
+        [Fact]
+        public async Task GetDelTurnoAbierto_PedidoConDosMesas_VienenOrdenadasAscendentePorNumero()
+        {
+            ConTurnoAbierto();
+            _pedidos.Setup(s => s.FindAsync(It.IsAny<Expression<Func<Pedido, bool>>>()))
+                .ReturnsAsync([new Pedido { Id = 42, NumeroTurno = 1 }]);
+            _pedidoMesas.Setup(s => s.FindAsync(It.IsAny<Expression<Func<PedidoMesa, bool>>>()))
+                .ReturnsAsync([
+                    new PedidoMesa { Id = 1, IdPedido = 42, IdMesa = 200 }, // mesa n° 8, insertada primero
+                    new PedidoMesa { Id = 2, IdPedido = 42, IdMesa = 201 }, // mesa n° 3, insertada después
+                ]);
+            _mesas.Setup(s => s.GetAllAsync())
+                .ReturnsAsync([
+                    new Mesa { Id = 200, Numero = 8 },
+                    new Mesa { Id = 201, Numero = 3 },
+                ]);
+
+            var ok = Assert.IsType<OkObjectResult>((await _controller.GetDelTurnoAbierto()).Result);
+            var grilla = Assert.IsType<GrillaPedidosDto>(ok.Value);
+
+            Assert.Equal([3, 8], grilla.MesasPorPedido[42]);
+        }
+
+        // Dos pedidos del mismo turno, cada uno con su propia mesa: el filtro por
+        // idsPedidoSet (spec §3.1) no puede cruzar los grupos entre sí.
+        [Fact]
+        public async Task GetDelTurnoAbierto_DosPedidosCadaUnoConSuPropiaMesa_NoSeCruzanEntreSi()
+        {
+            ConTurnoAbierto();
+            _pedidos.Setup(s => s.FindAsync(It.IsAny<Expression<Func<Pedido, bool>>>()))
+                .ReturnsAsync([
+                    new Pedido { Id = 43, NumeroTurno = 1 },
+                    new Pedido { Id = 44, NumeroTurno = 2 },
+                ]);
+            _pedidoMesas.Setup(s => s.FindAsync(It.IsAny<Expression<Func<PedidoMesa, bool>>>()))
+                .ReturnsAsync([
+                    new PedidoMesa { Id = 1, IdPedido = 43, IdMesa = 300 },
+                    new PedidoMesa { Id = 2, IdPedido = 44, IdMesa = 301 },
+                ]);
+            _mesas.Setup(s => s.GetAllAsync())
+                .ReturnsAsync([
+                    new Mesa { Id = 300, Numero = 2 },
+                    new Mesa { Id = 301, Numero = 9 },
+                ]);
+
+            var ok = Assert.IsType<OkObjectResult>((await _controller.GetDelTurnoAbierto()).Result);
+            var grilla = Assert.IsType<GrillaPedidosDto>(ok.Value);
+
+            Assert.Equal([2], grilla.MesasPorPedido[43]);
+            Assert.Equal([9], grilla.MesasPorPedido[44]);
         }
     }
 }

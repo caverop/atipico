@@ -264,6 +264,7 @@
     private bool _cargado;
 
     private Dictionary<long, string> _meseroNombres = [];
+    private IReadOnlyDictionary<long, IReadOnlyList<int>> _mesasPorPedido = new Dictionary<long, IReadOnlyList<int>>();
     private List<(string Header, Func<Pedido, object?> Value)> _columns = [];
 
     private long? _idTurno;
@@ -347,6 +348,16 @@
     // como ya trataba a Creado el filtro de esta misma pantalla.
     private static DateOnly DiaCreado(Pedido p) => p.CreadoEn.ToBoliviaDate();
 
+    // "5", "5, 8" para varias, o "—" sin ninguna. El guion y no vacío: una celda en blanco en
+    // una tabla se lee como dato faltante por cargar, no como "no aplica" (spec §4.1).
+    private string FormatearMesas(long idPedido)
+    {
+        var numeros = _mesasPorPedido.GetValueOrDefault(idPedido);
+        return numeros is null || numeros.Count == 0
+            ? "—"
+            : string.Join(", ", numeros);
+    }
+
     // Falta a dónde entregar solo si no hay NINGUNA de las dos: con la referencia escrita
     // alcanza en un barrio conocido, y con el punto solo, el repartidor llega igual.
     //
@@ -379,6 +390,8 @@
                 // cadenas los deja al reves de lo que se espera al pasar de 9 a 10.
                 "N°" => Aplicar(filtrados, p => p.NumeroTurno),
                 "Comensal" => Aplicar(filtrados, p => p.Comensal ?? "", StringComparer.CurrentCultureIgnoreCase),
+                // Mesa menor de cada pedido; sin mesa asociada ordena como 0 (spec §4.2).
+                "Mesa" => Aplicar(filtrados, p => _mesasPorPedido.GetValueOrDefault(p.Id)?.FirstOrDefault() ?? 0),
                 "Estado" => Aplicar(filtrados, p => p.Estado),
                 // Ordena por el valor del enum, no por la etiqueta: el orden de declaracion
                 // (salon, para llevar, delivery) agrupa mejor que el alfabetico.
@@ -436,6 +449,7 @@
             // romper la columna; la alineacion a la derecha vive en app.css.
             ("N°", p => p.NumeroTurno.ToString("D3")),
             ("Comensal", p => p.Comensal),
+            ("Mesa", p => FormatearMesas(p.Id)),
             ("Estado", p => p.Estado.Etiqueta()),
             // Se reporta, no se bloquea: un delivery sin dirección se factura igual, pero
             // tiene que verse en la lista. Ver specs/direccion-entrega.md §4.
@@ -469,6 +483,7 @@
 
             _turno = grilla.Turno;
             _pedidos = grilla.Pedidos.ToList();
+            _mesasPorPedido = grilla.MesasPorPedido;
         }
         catch (ApiException ex)
         {
