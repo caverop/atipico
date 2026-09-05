@@ -227,6 +227,33 @@ Los pasos 4 y 5 no son código y no los puede hacer el agente: van a mano.
   [deploy-azure-aspire.md](deploy-azure-aspire.md)). **`ASPIREACADOMAINS001` no apareció**,
   lo que confirma en este proyecto que la API graduó de experimental en 13.5 y que no hace
   falta la supresión en `.editorconfig`.
+- **2026-09-03** — **`PublishAsAzureContainerApp` obliga a declarar el entorno.** El primer
+  `azd provision` abortó antes de tocar Azure: *"Resource 'atipico-web' is configured to
+  publish as an Azure Container App, but there are no 'AzureContainerAppEnvironmentResource'
+  resources"*. Hasta ahora el entorno lo generaba azd de forma implícita. Se agregó
+  `builder.AddAzureContainerAppEnvironment("aca").WithAzdResourceNaming()`.
+  **`WithAzdResourceNaming` no es cosmético**: Aspire nombra con otra convención y la doc
+  avisa que al migrar desde azd "podés ver recursos duplicados". Con él, el what-if
+  (`azd provision --preview`) confirmó que adopta `cae-bsn3xi2hasatq`, `acrbsn3xi2hasatq` y
+  `law-bsn3xi2hasatq` en vez de crear un entorno paralelo. **Esto no estaba previsto en §5 y
+  agranda el alcance**: el AppHost ahora modela también el entorno, no solo las dos apps.
+- **2026-09-03** — `azd provision` corrido y exitoso (2 min 10 s). Resultado parcial:
+  `ingress.customDomains` pasó de `null` a `[{name: atipico.com.bo, bindingType: "Disabled"}]`.
+  **El dominio ya sobrevive al provision** — el arreglo de fondo funciona. Pero `Disabled`
+  significa sin certificado, así que `curl https://atipico.com.bo/` sigue dando **525**. Se
+  descartó que fuera un problema de parámetros: `az deployment sub show` confirma que el
+  template recibió `certificate_name = atipico.com.bo-rg-atipi-260902203532` y
+  `custom_domain = atipico.com.bo`, ambos correctos. También se confirmó que `config.json` no
+  los tiene, o sea que azd los resolvió desde las variables de entorno: la convención de §3.2
+  queda probada en la práctica.
+- **2026-09-03** — **Duda abierta sobre §2, sin resolver.** El provision desplegó solo los
+  módulos `aca` y `aca-acr`; **no hay un deployment de `atipico-web`** en el grupo. Eso
+  sugiere que las container apps las escribe `azd deploy` y no `provision`, lo que
+  contradice la afirmación de §2 de que "`azd deploy` no rompe nada". Contra eso juega que
+  este mismo provision **sí** cambió `customDomains` (de `null` a la entrada), probablemente
+  porque azd toca las container apps por API en vez de por deployment con nombre. Hasta
+  medirlo, **no dar por buena ninguna de las dos versiones**. Lo que sí está verificado es
+  que el dominio ahora se declara desde `AppHost.cs` y sobrevivió un provision completo.
 - **2026-09-03** — **Error propio, corregido.** El paso 4 de §5 decía
   `azd env set custom-domain …`, usando el nombre del parámetro. `azd env set` escribe un
   dotenv y el guión lo invalida: dejó `.azure/Atipico/.env` corrupto y **todo** comando de azd
