@@ -183,7 +183,7 @@
                     <input class="form-control" inputmode="numeric" placeholder="012"
                            @bind="_filtroNumero" @bind:event="oninput" />
                 </div>
-                <AuthorizeView Roles="Mesero">
+                <AuthorizeView Roles="Mesero,Delivery">
                     <NotAuthorized>
                         <div class="col-12 col-md-3">
                             <label class="form-label">Turno</label>
@@ -210,7 +210,7 @@
                         }
                     </select>
                 </div>
-                <AuthorizeView Roles="Mesero">
+                <AuthorizeView Roles="Mesero,Delivery">
                     <NotAuthorized>
                         <div class="col-6 col-md-3">
                             <label class="form-label">Mesero</label>
@@ -468,7 +468,7 @@
         if (AuthStateTask is not null)
         {
             var user = (await AuthStateTask).User;
-            if (!user.IsInRole("Mesero") || user.IsInRole("Admin"))
+            if ((!user.IsInRole("Mesero") && !user.IsInRole("Delivery")) || user.IsInRole("Admin"))
                 await CargarTurnosAsync();
         }
 

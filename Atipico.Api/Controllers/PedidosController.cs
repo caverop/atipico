@@ -55,6 +55,46 @@ namespace Atipico.Api.Controllers
         // a mano.
         private static readonly string[] RolesQueAmplian = ["Admin", "Cajero", "Cocinero"];
 
+        // Delivery es el unico rol con una restriccion de LECTURA (SCRUM-13): solo ve los
+        // pedidos listos para repartir. Es la UNICA restriccion de este rol — no tiene
+        // CreateRoles, UpdateRoles ni DeleteRoles propios en ningun controlador, asi que para
+        // todo lo demas (que hoy es "nada": no puede escribir en ninguna entidad) se comporta
+        // como cualquier usuario autenticado sin rol elevado.
+        //
+        // Se escribe como "el usuario no tiene ningun rol mas amplio" y no como "el usuario ES
+        // Delivery", por el mismo motivo que ya separa RolesQueAmplian de una comparacion
+        // directa: el corte es por capacidad, no por identidad (ver
+        // GetDelTurno_MeseroQueTambienEsAdmin_Pasa). Hoy Usuario.Rol es un unico valor por
+        // usuario (JwtTokenGenerator emite un solo Claim de rol), asi que en la practica un
+        // usuario Delivery nunca tiene ademas Admin/Cajero/Cocinero/Mesero — pero el codigo no
+        // depende de esa invariante para ser correcto.
+        private static readonly string[] RolesSinRestriccionDePedidos =
+            ["Admin", "Cajero", "Cocinero", "Mesero"];
+
+        private IEnumerable<Pedido> AplicarRestriccionDelivery(IEnumerable<Pedido> pedidos) =>
+            HasAnyRole(RolesSinRestriccionDePedidos)
+                ? pedidos
+                : pedidos.Where(p => p.Estado == EstadoPedido.Servido && p.Tipo == TipoPedido.Delivery);
+
+        // GetAll/GetById: defensa en profundidad. La UI de Delivery nunca navega a
+        // Pedidos/Edit.razor, pero alguien que llame a la API directamente con un token de
+        // Delivery no deberia poder leer un pedido fuera de su vista.
+        public override async Task<ActionResult<IEnumerable<Pedido>>> GetAll() =>
+            Ok(AplicarRestriccionDelivery(await _service.GetAllAsync()));
+
+        public override async Task<ActionResult<Pedido>> GetById(long id)
+        {
+            var entity = await _service.GetByIdAsync(id);
+            if (entity is null)
+                return NotFound();
+
+            // 404 y no 403: para Delivery, un pedido que no cumple la restriccion no existe en
+            // su vista, igual que ArmarGrillaAsync ya lo excluye de la lista en vez de listarlo
+            // con un candado. Un 403 confirmaria que el id corresponde a un pedido real; un 404
+            // no revela nada.
+            return AplicarRestriccionDelivery([entity]).Any() ? Ok(entity) : NotFound();
+        }
+
         /// <summary>
         /// Los pedidos del turno abierto, con el turno en el sobre. Reemplaza al GET api/pedidos
         /// de la grilla, que traia todos los pedidos que existieron para descartarlos en
@@ -90,7 +130,8 @@ namespace Atipico.Api.Controllers
 
         private async Task<GrillaPedidosDto> ArmarGrillaAsync(TurnoCaja turno)
         {
-            var pedidos = (await _service.FindAsync(p => p.IdTurnoCaja == turno.Id)).ToList();
+            var pedidos = AplicarRestriccionDelivery(
+                await _service.FindAsync(p => p.IdTurnoCaja == turno.Id)).ToList();
 
             string? cajero = null;
             if (turno.IdCajero is not null)

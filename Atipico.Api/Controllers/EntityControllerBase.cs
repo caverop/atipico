@@ -21,13 +21,13 @@ namespace Atipico.Api.Controllers
         protected virtual string[] DeleteRoles => ["Admin"];
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TEntity>>> GetAll()
+        public virtual async Task<ActionResult<IEnumerable<TEntity>>> GetAll()
         {
             return Ok(await _service.GetAllAsync());
         }
 
         [HttpGet("{id:long}")]
-        public async Task<ActionResult<TEntity>> GetById(long id)
+        public virtual async Task<ActionResult<TEntity>> GetById(long id)
         {
             var entity = await _service.GetByIdAsync(id);
             return entity is null ? NotFound() : Ok(entity);

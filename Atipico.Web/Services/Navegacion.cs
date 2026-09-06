@@ -33,6 +33,7 @@ namespace Atipico.Web.Services
         private const string Admin = "Admin";
         private const string Mesero = "Mesero";
         private const string Cajero = "Cajero";
+        private const string Delivery = "Delivery";
 
         public static readonly IReadOnlyList<SeccionNav> Secciones =
         [
@@ -51,7 +52,7 @@ namespace Atipico.Web.Services
             ]),
             new("Pedidos",
             [
-                new("Pedidos", "pedidos", Admin, Mesero),
+                new("Pedidos", "pedidos", Admin, Mesero, Delivery),
                 new("Pedido <-> Mesa", "pedido-mesas", Admin),
                 new("Pedido <-> Plato", "pedido-platos", Admin),
             ]),
@@ -77,7 +78,7 @@ namespace Atipico.Web.Services
         /// </summary>
         public static readonly IReadOnlyList<EnlaceNav> Pestanas =
         [
-            new("Pedidos", "pedidos", Admin, Mesero),
+            new("Pedidos", "pedidos", Admin, Mesero, Delivery),
             new("Caja", "cuentas", Admin, Cajero),
         ];
     }
