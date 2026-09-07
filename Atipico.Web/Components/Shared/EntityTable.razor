@@ -105,11 +105,11 @@ else
         <div class="entity-cards-lista">
             @foreach (var item in Items)
             {
-                <AuthorizeView Roles="@RolesCsv" Context="cardAuth">
+                <AuthorizeView Roles="@DetalleRolesCsv" Context="cardAuth">
                     <Authorized>
                         <div class="entity-card">
-                            @* Con permiso de escritura la fila entera lleva a la ficha: es el
-                               gesto natural en el telefono y evita apuntarle a un boton chico. *@
+                            @* Quien puede abrir la ficha toca la fila entera: es el gesto
+                               natural en el telefono y evita apuntarle a un boton chico. *@
                             <a class="entity-card-link" href="@($"{EditUrlPrefix}/{item.Id}")">
                                 @Resumen(item)
                                 <svg class="entity-card-chevron" viewBox="0 0 20 20" width="16" height="16"
@@ -118,16 +118,21 @@ else
                                     <path d="m7.5 4 6 6-6 6" />
                                 </svg>
                             </a>
-                            @if (ShowDelete)
-                            {
-                                <button type="button" class="btn btn-sm btn-danger entity-card-accion"
-                                        @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
-                            }
+                            @* El boton de borrar sigue atado a WriteRoles: abrir no es escribir. *@
+                            <AuthorizeView Roles="@RolesCsv" Context="cardDeleteAuth">
+                                <Authorized>
+                                    @if (ShowDelete)
+                                    {
+                                        <button type="button" class="btn btn-sm btn-danger entity-card-accion"
+                                                @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
+                                    }
+                                </Authorized>
+                            </AuthorizeView>
                         </div>
                     </Authorized>
                     <NotAuthorized>
-                        @* Sin permiso de escritura la ficha de edicion no es alcanzable, asi
-                           que la fila no es un enlace: seria una promesa que la API rechaza. *@
+                        @* Sin permiso para abrirla, la ficha no es alcanzable, asi que la fila
+                           no es un enlace: seria una promesa que la API rechaza. *@
                         <div class="entity-card entity-card-plana">
                             @Resumen(item)
                         </div>
@@ -187,7 +192,10 @@ else
                             <th>@col.Header</th>
                         }
                     }
-                    <AuthorizeView Roles="@RolesCsv" Context="headerAuth">
+                    @* Este <th> y el <td> de acciones de cada fila TIENEN que mirar el mismo
+                       rol: si uno se mueve y el otro no, la tabla queda con una columna de
+                       diferencia entre encabezado y cuerpo para el rol afectado. *@
+                    <AuthorizeView Roles="@DetalleRolesCsv" Context="headerAuth">
                         <Authorized><th></th></Authorized>
                     </AuthorizeView>
                 </tr>
@@ -200,15 +208,19 @@ else
                         {
                             <td>@col.Value(item)</td>
                         }
-                        <AuthorizeView Roles="@RolesCsv" Context="rowAuth">
+                        <AuthorizeView Roles="@DetalleRolesCsv" Context="rowAuth">
                             <Authorized>
                                 <td class="text-end">
                                     <div class="d-flex flex-wrap justify-content-end gap-1">
-                                        <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">Editar</a>
-                                        @if (ShowDelete)
-                                        {
-                                            <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
-                                        }
+                                        <a class="btn btn-sm btn-outline-secondary" href="@($"{EditUrlPrefix}/{item.Id}")">@DetalleLabel</a>
+                                        <AuthorizeView Roles="@RolesCsv" Context="rowDeleteAuth">
+                                            <Authorized>
+                                                @if (ShowDelete)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-danger" @onclick="() => HandleDelete(item.Id)">@DeleteLabel</button>
+                                                }
+                                            </Authorized>
+                                        </AuthorizeView>
                                     </div>
                                 </td>
                             </Authorized>
@@ -255,6 +267,17 @@ else
     // decide qué botones se muestran.
     [Parameter] public string[] WriteRoles { get; set; } = ["Admin"];
 
+    // Roles que pueden ABRIR la ficha de una fila. Por defecto, los mismos que escriben:
+    // hasta SCRUM-13 "entrar" y "editar" eran lo mismo en las nueve grillas. Delivery es el
+    // primer rol que entra sin escribir (specs/rol-delivery.md §8.2), y meterlo en WriteRoles
+    // habria encendido tambien "+ Nuevo" y el boton de borrar. Las pantallas que no lo
+    // declaran quedan exactamente como estaban.
+    [Parameter] public string[]? DetalleRoles { get; set; }
+
+    // Texto del boton que abre la ficha. La pagina lo cambia a "Ver" para quien no edita: un
+    // boton que dice "Editar" y abre una pantalla de solo lectura es una mentira de interfaz.
+    [Parameter] public string DetalleLabel { get; set; } = "Editar";
+
     // Que columna hace de titulo en la lista movil. Casi todas las pantallas abren con
     // "Id", que es la clave tecnica y no lo que alguien busca de un vistazo: como titulo
     // daria una lista de numeros. Por eso el titulo es la primera columna con significado
@@ -284,6 +307,8 @@ else
     }
 
     private string RolesCsv => string.Join(",", WriteRoles);
+
+    private string DetalleRolesCsv => string.Join(",", DetalleRoles ?? WriteRoles);
 
     // Version movil de pulsar un encabezado. Un <select> no dispara change al reelegir
     // lo ya elegido, asi que esto nunca invierte el orden sin querer: para eso esta el

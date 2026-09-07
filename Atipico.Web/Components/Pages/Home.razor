@@ -64,6 +64,8 @@
             <div class="panel-lista mb-4">
                 @foreach (var pedido in _activos)
                 {
+                    @* Los tres roles que ven esta seccion pueden abrir la ficha
+                       (specs/rol-delivery.md §8), asi que la fila es un enlace para todos. *@
                     <a class="panel-fila" href="@($"/pedidos/{pedido.Id}")">
                         @* Mismo formato que la columna N° de la grilla: tres digitos y cifras
                            tabulares, para que la columna de numeros no baile entre filas. *@
