@@ -3,6 +3,12 @@
 @code {
     protected override void OnInitialized()
     {
-        Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(Nav.ToBaseRelativePath(Nav.Uri))}", forceLoad: true);
+        // ToBaseRelativePath devuelve la ruta SIN la barra inicial ("pedidos/17", no
+        // "/pedidos/17"). Ese valor viaja tal cual hasta el POST /auth/login (Program.cs) y,
+        // sin la barra, Results.LocalRedirect lo rechaza con "The supplied URL is not local" —
+        // no hay app que funcione con un returnUrl relativo sin barra. Se antepone acá, en el
+        // origen, y Program.cs igual valida por las dudas (defensa en profundidad).
+        var rutaLocal = "/" + Nav.ToBaseRelativePath(Nav.Uri);
+        Nav.NavigateTo($"/login?returnUrl={Uri.EscapeDataString(rutaLocal)}", forceLoad: true);
     }
 }

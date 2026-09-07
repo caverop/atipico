@@ -9,6 +9,7 @@ namespace Atipico.Domain.Enums
         Mesero,
         Cajero,
         Cocinero,
-        Admin
+        Admin,
+        Delivery
     }
 }

@@ -19,6 +19,9 @@
 ## Pendientes
 - [Los pendientes van en TODO.md](atipico-todo-netarchtest.md) — en la raíz, no en memoria; hoy el único es evaluar NetArchTest.
 
+## Trampas del framework
+- [Comentarios Razor que rompen](atipico-razor-comentario-en-atributos.md) — entre atributos de un componente compilan y revientan en runtime; y `*@` adentro del comentario lo corta.
+
 ## Entorno y herramientas
 - [PostgreSQL local](atipico-local-postgres-tooling.md) — los binarios están en `C:\Program Files\PostgreSQL\18\bin\`, fuera del PATH; ojo, ya no es la base de dev.
 - [aspire run sirve Debug](atipico-aspire-run-debug-rebuild.md) — compilás en Release y la pantalla no cambia; en el dashboard va Rebuild, no Reiniciar.
