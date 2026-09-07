@@ -183,7 +183,7 @@
                     <input class="form-control" inputmode="numeric" placeholder="012"
                            @bind="_filtroNumero" @bind:event="oninput" />
                 </div>
-                <AuthorizeView Roles="Mesero">
+                <AuthorizeView Roles="Mesero,Delivery">
                     <NotAuthorized>
                         <div class="col-12 col-md-3">
                             <label class="form-label">Turno</label>
@@ -210,7 +210,7 @@
                         }
                     </select>
                 </div>
-                <AuthorizeView Roles="Mesero">
+                <AuthorizeView Roles="Mesero,Delivery">
                     <NotAuthorized>
                         <div class="col-6 col-md-3">
                             <label class="form-label">Mesero</label>
@@ -239,6 +239,14 @@
        la tabla que hay adentro, que es N°. Sin el, la regla alcanzaria a las otras ocho
        grillas de la aplicacion. *@
     <div class="grilla-pedidos">
+        @* Delivery abre la ficha pero no escribe (specs/rol-delivery.md §8.2): por eso va en
+           DetalleRoles y no en WriteRoles, que ademas encenderia "+ Nuevo". Y por eso el boton
+           dice "Ver" y no "Editar" para el.
+
+           OJO: este comentario va ACA y no entre los atributos del componente. Un comentario
+           Razor dentro de la lista de atributos NO se trata como comentario: se manda como si
+           fuera el nombre de un parametro, compila sin un solo warning y revienta en runtime
+           con "does not have a property matching the name". Verificado. *@
         <EntityTable TEntity="Pedido"
                      Title="Pedidos"
                      Items="_pedidosOrdenados"
@@ -251,7 +259,9 @@
                      EditUrlPrefix="/pedidos"
                      ShowDelete="false"
                      ShowCreate="@EsElTurnoAbierto"
-                     WriteRoles="@(["Admin", "Mesero"])" />
+                     WriteRoles="@(["Admin", "Mesero"])"
+                     DetalleRoles="@(["Admin", "Mesero", "Delivery"])"
+                     DetalleLabel="@(_puedeEditarPedidos ? "Editar" : "Ver")" />
     </div>
 }
 
@@ -295,6 +305,10 @@
     private bool HayFiltrosAvanzados => CuantosFiltrosAvanzados > 0;
 
     private bool EsElTurnoAbierto => _turno is not null && _turno.CerradoEn is null;
+
+    // Decide la etiqueta del boton que abre la ficha: "Editar" para quien edita, "Ver" para
+    // quien solo mira (Delivery). Mismo corte por capacidad que Pedidos/Edit.razor.
+    private bool _puedeEditarPedidos = true;
 
     // El turno que se abrio ayer y sigue abierto: la numeracion sigue subiendo sobre el
     // dia anterior y nadie se entera hasta que alguien mira el 214 de un martes.
@@ -468,7 +482,12 @@
         if (AuthStateTask is not null)
         {
             var user = (await AuthStateTask).User;
-            if (!user.IsInRole("Mesero") || user.IsInRole("Admin"))
+
+            // Antes de _cargado: la grilla se dibuja recien ahi, y si esto quedara despues el
+            // primer render le mostraria "Editar" a Delivery (specs/rol-delivery.md §8.2).
+            _puedeEditarPedidos = user.IsInRole("Admin") || user.IsInRole("Mesero");
+
+            if ((!user.IsInRole("Mesero") && !user.IsInRole("Delivery")) || user.IsInRole("Admin"))
                 await CargarTurnosAsync();
         }
 

@@ -153,10 +153,7 @@ app.MapPost("/auth/login", async (HttpContext http, IHttpClientFactory httpClien
     await http.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
         new AuthenticationProperties { ExpiresUtc = login.ExpiresAt, IsPersistent = true });
 
-    var target = !string.IsNullOrEmpty(returnUrl) && Uri.IsWellFormedUriString(returnUrl, UriKind.Relative)
-        ? returnUrl
-        : "/";
-    return Results.LocalRedirect(target);
+    return Results.LocalRedirect(RutaLocalSegura(returnUrl));
 }).AllowAnonymous();
 
 app.MapPost("/auth/logout", async (HttpContext http) =>
@@ -170,3 +167,20 @@ app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
 app.Run();
+
+// Uri.IsWellFormedUriString(_, UriKind.Relative) NO alcanza: acepta "pedidos/17" (sin la barra
+// inicial) y "//host/lo-que-sea" (protocolo-relativo) como "relativos bien formados", y
+// Results.LocalRedirect rechaza los dos con una InvalidOperationException no capturada en vez
+// de devolver un 400 — eso fue justo el bug que reventó al volver a loguearse después de un
+// redirect a /login con returnUrl. Acá se valida lo mismo que exige LocalRedirect (arranca con
+// "/" y no con "//" ni "/\"), así que un valor inválido cae a "/" en vez de tirar la app abajo.
+static string RutaLocalSegura(string? returnUrl)
+{
+    if (string.IsNullOrEmpty(returnUrl) || returnUrl[0] != '/')
+        return "/";
+
+    if (returnUrl.Length > 1 && (returnUrl[1] == '/' || returnUrl[1] == '\\'))
+        return "/";
+
+    return returnUrl;
+}

@@ -1,6 +1,9 @@
 @page "/pedidos/nuevo"
 @page "/pedidos/{Id:long}"
-@attribute [Authorize(Roles = "Admin,Mesero")]
+@* Delivery entra a VER, no a editar: specs/rol-delivery.md §8. La API ya se encarga de que
+   solo pueda abrir pedidos Servido+Delivery (GetById le devuelve 404 para el resto), y aca
+   _puedeEditar apaga los cuatro controles de escritura que quedan vivos en ese estado. *@
+@attribute [Authorize(Roles = "Admin,Mesero,Delivery")]
 @using System.Net
 @using Atipico.Application.Common
 @using System.Text.Json
@@ -40,7 +43,7 @@
     <EditForm Model="_entity" FormName="pedido-edit" OnValidSubmit="@(() => EjecutarAsync(HandleSave, "Guardando el pedido…"))">
         <div class="mb-3">
             <label class="form-label">Comensal</label>
-            <InputText class="form-control" @bind-Value="_entity.Comensal" />
+            <InputText class="form-control" @bind-Value="_entity.Comensal" disabled="@(!_puedeEditar)" />
         </div>
         <div class="mb-3">
             <label class="form-label">Tipo de pedido</label>
@@ -282,8 +285,13 @@
                             <p class="text-muted"><em>No hay mesas disponibles para asociar.</em></p>
                         }
                     }
-                    else
+                    else if (_puedeEditar)
                     {
+                        @* Solo para quien podria editar si el estado se lo permitiera: este
+                           texto explica un ESTADO, y a Delivery —que mira un pedido Servido—
+                           le estaria mintiendo. Para el que solo mira, la lista de mesas es
+                           informativa y no necesita justificar la ausencia de un boton.
+                           Ver specs/rol-delivery.md §8.1. *@
                         <p class="text-muted"><em>El pedido ya está cerrado o anulado; no se puede cambiar la mesa.</em></p>
                     }
                 }
@@ -403,7 +411,7 @@
             <ComprobantesPanel IdCuenta="cuenta.Id"
                                Monto="cuenta.Monto"
                                MetodoPago="cuenta.MetodoPago"
-                               PuedeEditar="@(cuenta.Estado != EstadoCuenta.Anulada)" />
+                               PuedeEditar="@(_puedeEditar && cuenta.Estado != EstadoCuenta.Anulada)" />
         }
     }
 
@@ -740,17 +748,38 @@
     private bool BarraConMetodo => _pedidoActivo;
 
     private bool _puedeAnular =>
-        Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
+        _puedeEditar && Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
 
     // A diferencia de los platos (atados al timing de cocina, solo mientras esta Abierto), la
     // mesa se puede seguir asociando/quitando mientras el pedido siga vivo de cualquier forma
     // (Abierto, EnPreparacion, Servido); solo se bloquea al Cerrar o Anular, que es cuando
     // PedidosController.Update ya libera la mesa de todas formas.
     private bool _puedeAsociarMesa =>
-        Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
+        _puedeEditar && Id is not null && _entity.Estado != EstadoPedido.Cerrado && _entity.Estado != EstadoPedido.Anulado;
+
+    // Delivery entra a ver, no a editar (specs/rol-delivery.md §8.1). El corte es por
+    // CAPACIDAD y no por identidad —se pregunta por los roles que SI editan, no por "es
+    // Delivery"—, igual que PedidosController con RolesSinRestriccionDePedidos.
+    //
+    // Arranca en true: si el AuthenticationState no llegara, la pantalla se comporta como
+    // siempre y es la API la que rechaza. El default seguro aca no es "no puede": es "como
+    // antes", porque quien de verdad decide es el servidor.
+    //
+    // NO se mezcla con _pedidoActivo, que es un predicado de ESTADO ("el pedido esta
+    // Abierto") y cuyo nombre lo dice: para Delivery ya es false —solo puede abrir pedidos
+    // Servido— asi que todo lo que cuelga de el ya esta apagado sin ayuda.
+    private bool _puedeEditar = true;
 
     protected override async Task OnInitializedAsync()
     {
+        // Antes que nada: la pantalla no se dibuja hasta _loaded, pero el flag decide marcado
+        // en varios lugares y no debe quedar en su default un solo render.
+        if (AuthStateTask is not null)
+        {
+            var usuario = (await AuthStateTask).User;
+            _puedeEditar = usuario.IsInRole("Admin") || usuario.IsInRole("Mesero");
+        }
+
         _meseros = await UsuarioApi.GetAllAsync();
         _platos = await PlatoApi.GetAllAsync();
         // Igual que _platos: se carga sin condicion, no solo dentro de LoadAsociaciones(), para
@@ -960,6 +989,12 @@
 
     private async Task HandleSave()
     {
+        // El EditForm no dibuja boton de submit cuando el pedido ya existe, pero Enter en un
+        // campo de texto igual envia el formulario. Con Comensal deshabilitado hoy no hay
+        // donde tipear; el guard cierra el caso por si mañana se agrega otro campo.
+        if (!_puedeEditar)
+            return;
+
         try
         {
             if (Id is null)
