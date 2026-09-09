@@ -8,8 +8,15 @@ metadata:
 ## graphify
 
 El grafo vive en `graphify-out/` en la **raíz** del repo, pero su `.graphify_root`
-apunta a `specs/` — el corpus son los 10 specs, no el código. Se actualiza con
-`graphify specs --update`.
+apunta a `specs/` — el corpus son los specs, no el código.
+
+**El grafo se atrasa en silencio y nada avisa.** Al 2026-09-09 tenía **10 de los 24
+specs**, con fecha 2026-09-01: 15 documentos sin indexar, acumulados en 8 días. Nada
+lo detecta solo (no hay hooks, el CI no mira `specs/`), así que hay que ir a buscarlo.
+Para saber cuánto falta, comparar las claves de `graphify-out/manifest.json` contra
+los `.md` de `specs/`. Ojo con `graph.json`: las aristas están bajo **`links`**, no
+`edges` — `len(d['nodes'])` con `d.get('edges')` da "0 aristas" y parece un grafo roto
+cuando no lo está. Quedó como [SCRUM-27](https://caverop.atlassian.net/browse/SCRUM-27).
 
 **No hace falta ninguna clave de API.** La doc de la skill es tajante: *"graphify
 needs no API key. Never ask the user for one, and never block on one."* Cuando

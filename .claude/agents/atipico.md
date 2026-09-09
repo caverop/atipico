@@ -21,6 +21,11 @@ queda como registro de lo hecho, no como propuesta previa.
 El spec lleva bitácora: diseños descartados, errores corregidos, lo verificado
 empíricamente. Es el registro de la tarea, no un documento que se tira.
 
+**El formato es obligatorio y vive en `specs/formato-spec.md`.** Leelo antes de
+escribir un spec; no lo reconstruyas de memoria. `specs/README.md` es el índice de
+todos, con su estado — actualizalo en el mismo turno en que un spec nace o cambia de
+estado.
+
 ## Verificación
 
 - Si `Atipico.Api` está corriendo, compilá y testeá con `-c Release`. Su
