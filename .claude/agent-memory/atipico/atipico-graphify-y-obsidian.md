@@ -34,10 +34,27 @@ corpus entero y conviene decirlo antes de arrancar.
 specs quedaron enlazadas. La arista `direccion-entrega` → `tipo-pedido`, colgada desde
 agosto por haberse extraído en corridas distintas, ya existe.
 
+**Re-extraer un archivo deja nodos huérfanos por deriva de slug.** El id sale del label,
+y el subagente frasea el mismo concepto apenas distinto en cada corrida: *"Enlaces
+markdown relativos"* → `..._relativos` una vez, *"Los enlaces son markdown relativo"* →
+`..._relativo` la siguiente. Como el id cambió, el *replace-on-re-extract* de
+`build_merge` no lo pisa y quedan **los dos**, describiendo lo mismo. Verificado el
+2026-09-10 re-extrayendo `README.md`: 13 avisos de "minted by two different files" y 2
+duplicados reales sobrevividos. **El chequeo de salud no lo ve** — mira aristas
+colgantes, no etiquetas redundantes. Después de re-extraer un archivo, listar sus nodos
+(`[n for n in g['nodes'] if n['source_file']=='<archivo>']`) y buscar slugs casi
+iguales; podar el viejo y sus aristas, y re-clusterizar. Ojo: las aristas viven bajo
+`links` en `graph.json`.
+
 **Encoding en Windows:** los scripts de graphify imprimen etiquetas con acentos y la
 consola es cp1252 — un `print` de labels revienta con `UnicodeEncodeError`. Correr
 siempre con `PYTHONIOENCODING=utf-8`. Y para pasos con mucho texto acentuado, escribir
 un `.py` al scratchpad y ejecutarlo, en vez de `python -c` con comillas anidadas.
+
+**El subagente puede devolver el JSON en su mensaje y escribirlo igual en disco.** Pasó
+el 2026-09-10: el resumen final fue el JSON entero, y el archivo estaba correcto en
+`graphify-out/`. Verificar el disco antes de asumir que falló — y también antes de
+asumir que anduvo (un chunk cortado por límite de sesión alcanzó a escribir completo).
 
 **No hace falta ninguna clave de API.** La doc de la skill es tajante: *"graphify
 needs no API key. Never ask the user for one, and never block on one."* Cuando

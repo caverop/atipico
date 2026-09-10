@@ -38,7 +38,7 @@ Hoy: **5 propuestos · 1 aprobado · 11 implementados · 7 en producción**.
 | [mesa-compartida-por-turno](mesa-compartida-por-turno.md) | `en-produccion` | Una misma mesa puede estar en más de un pedido del mismo turno |
 | [tipo-pedido](tipo-pedido.md) | `en-produccion` | Tipo de pedido: en salón, para llevar, delivery |
 | [barra-acciones-pedido](barra-acciones-pedido.md) | `implementado` | Barra de acciones fija en `Pedidos/Edit.razor`. Falta la pasada por navegador |
-| [reservas](reservas.md) | `propuesto` | Formulario público de reserva de mesa, más pantalla interna para confirmarlas |
+| [reservas](reservas.md) | `propuesto` | Formulario público de reserva de mesa, más pantalla interna para confirmarlas. Migración `016`, detrás del `015` de [reparacion-ck](reparacion-ck-cuenta-metodo.md) ([SCRUM-21](https://caverop.atlassian.net/browse/SCRUM-21)) |
 
 ## Delivery
 
