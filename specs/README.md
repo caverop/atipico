@@ -1,6 +1,6 @@
 # Índice de specs
 
-24 specs, más este índice. Cada feature de Atipico tiene el suyo, y el spec es el
+25 specs, más este índice. Cada feature de Atipico tiene el suyo, y el spec es el
 registro permanente de la decisión — no una propuesta que se tira al implementar.
 
 El formato obligatorio está en **[formato-spec.md](formato-spec.md)**: leerlo antes de
@@ -17,7 +17,7 @@ escribir uno nuevo.
 | `en-produccion` | corrido contra la base real y verificado por el usuario |
 | `descartado` | abandonado; queda como registro del porqué |
 
-Hoy: **4 propuestos · 2 aprobados · 11 implementados · 7 en producción**.
+Hoy: **5 propuestos · 2 aprobados · 11 implementados · 7 en producción**.
 
 ---
 
@@ -60,7 +60,8 @@ Hoy: **4 propuestos · 2 aprobados · 11 implementados · 7 en producción**.
 
 | Spec | Estado | De qué se trata |
 |---|---|---|
-| [neon-branches-ambientes](neon-branches-ambientes.md) | `implementado` | Branches de Neon: `production`, `qa`, `dev` |
+| [neon-branches-ambientes](neon-branches-ambientes.md) | `implementado` | Branches de Neon: `production`, `qa`, `dev`. §2/§4/§5/§6 superseded por [postgres-local-dev](postgres-local-dev.md) |
+| [postgres-local-dev](postgres-local-dev.md) | `propuesto` | `dev` sale de Neon: Docker local para el usuario, contenedor descartable para el agente ([SCRUM-29](https://caverop.atlassian.net/browse/SCRUM-29)) |
 | [telemetria-postgres](telemetria-postgres.md) | `implementado` | Telemetría de PostgreSQL, verificada contra la app corriendo |
 | [script-inicial-completo](script-inicial-completo.md) | `propuesto` | Script de arranque: esquema + catálogo + usuarios de operación |
 | [limpieza-datos-prueba](limpieza-datos-prueba.md) | `propuesto` | Limpiar datos de prueba en la base compartida. Auditoría hecha, ejecución pendiente |
