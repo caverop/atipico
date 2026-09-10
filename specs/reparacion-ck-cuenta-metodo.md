@@ -1,5 +1,5 @@
 ---
-estado: aprobado
+estado: en-produccion
 ticket: SCRUM-28
 actualizado: 2026-09-10
 afecta: [sql]
@@ -10,11 +10,12 @@ afecta: [sql]
 Especificación de la migración `sql/015_cuenta_metodo_qr.sql`: registra qué se repara, por qué
 se elige este arreglo y no otro, y cómo se verifica.
 
-- **Estado:** **aprobado el 2026-09-10** (paso 1). El script **ya está escrito** (paso 2), y las
-  199 pruebas de la solución quedaron en verde con él en el repo. **Nada se corrió todavía
-  contra ninguna base**: ni el contenedor descartable de §7.1–§7.2 (paso 3) ni Neon (paso 5).
-  Sigue en `aprobado` y no en `implementado` justamente por eso — el archivo existe pero
-  ningún PostgreSQL lo parseó nunca.
+- **Estado:** **en-producción, confirmado el 2026-09-10.** `015` está escrito, verificado
+  en contenedor descartable (§7, pasos 3–4) y **corrido contra Neon** (paso 5), con la
+  consulta de verificación de §9.2 devolviendo, carácter a carácter, el texto esperado
+  (paso 6, salida real en §11). Quedan dos pasos administrativos abiertos, no bloqueantes:
+  regenerar `sql/schema_completo.sql` (paso 7) y actualizar los comentarios que describen
+  el drift como no registrado (paso 8, §9.4).
 - **Ticket:** [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28), creado el 2026-09-09.
   Es el número que va en el encabezado de `sql/015_cuenta_metodo_qr.sql`, en lugar del
   `SCRUM-XX` de plantilla.
@@ -294,9 +295,9 @@ aplica igual** —los conserva— pero queda anotado en la bitácora, porque cie
 | 2 | Escribir `sql/015_cuenta_metodo_qr.sql` | agente `db` | ✅ 2026-09-10 |
 | 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | ✅ 2026-09-10 |
 | 4 | Entregar el runbook ya probado + la consulta de verificación posterior | agente `db` | ✅ 2026-09-10 |
-| 5 | Correr §7.3 y luego `015` contra Neon | **usuario** | **Siguiente** |
-| 6 | Confirmar con la consulta de verificación posterior (§9.2) | usuario | Pendiente |
-| 7 | Regenerar `sql/schema_completo.sql` desde Neon | agente `db` | Pendiente |
+| 5 | Correr §7.3 y luego `015` contra Neon | **usuario** | ✅ 2026-09-10 |
+| 6 | Confirmar con la consulta de verificación posterior (§9.2) | usuario | ✅ 2026-09-10 |
+| 7 | Regenerar `sql/schema_completo.sql` desde Neon | agente `db` | **Siguiente** |
 | 8 | Actualizar los comentarios que describen el drift como no registrado (§9.4) | agente `db` | Pendiente |
 
 Los pasos 2-4 no tocan la base compartida. El paso 5 es el único que escribe en Neon, y **lo
@@ -454,6 +455,26 @@ verificaron igual, pero el `INSERT` literal de §7.2 no alcanza tal cual está e
 sembrar el mesero primero.
 
 `docker rm -f atipico-015` al terminar, confirmado sin containers `atipico-015` colgados.
+
+**2026-09-10 — Confirmado contra Neon (pasos 5 y 6).** El usuario corrió `015` contra
+Neon y pegó la salida real de la consulta de §9.2:
+
+```
+CHECK (((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['EFECTIVO'::character varying,
+'TARJETA'::character varying, 'TRANSFERENCIA'::character varying, 'QR'::character varying])::text[]))))
+```
+
+Idéntica, carácter a carácter, a la esperada en §9.2 y a la que se verificó en el
+contenedor descartable (§11, entrada anterior). El intento del agente de verificarlo
+directo por su cuenta —de solo lectura, con la excepción que confirma §3.4 de
+`specs/postgres-local-dev.md`— falló tres veces por autenticación contra las credenciales
+locales guardadas antes de la rotación; el usuario cerró el paso corriéndolo él mismo y
+pasando la salida, que es exactamente el patrón que fija
+`atipico-runbook-y-verificacion` en memoria cuando el agente no puede llegar a la base
+real. No quedó registrado contra qué branch exacto (`dev`, `qa` o `production`) se corrió
+— no cambia el resultado esperado, porque los tres ya tenían `QR` de antes (heredado de
+`production` al clonarse), así que `015` es un no-op verificable en cualquiera de los
+tres, igual que predice §4.2.
 
 **2026-09-10 — Números despinados.** Dos párrafos apalabraban `016` para un futuro
 angostamiento: §4.2 y esta misma bitácora. `016` quedó reclamado por

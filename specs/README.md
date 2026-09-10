@@ -17,7 +17,7 @@ escribir uno nuevo.
 | `en-produccion` | corrido contra la base real y verificado por el usuario |
 | `descartado` | abandonado; queda como registro del porqué |
 
-Hoy: **5 propuestos · 2 aprobados · 11 implementados · 7 en producción**.
+Hoy: **5 propuestos · 1 aprobado · 11 implementados · 8 en producción**.
 
 ---
 
@@ -54,7 +54,7 @@ Hoy: **5 propuestos · 2 aprobados · 11 implementados · 7 en producción**.
 | Spec | Estado | De qué se trata |
 |---|---|---|
 | [comprobantes-qr](comprobantes-qr.md) | `implementado` | Comprobantes de pago QR, con subida a R2. Verificado en desarrollo |
-| [reparacion-ck-cuenta-metodo](reparacion-ck-cuenta-metodo.md) | `aprobado` | El `CHECK` canónico rechaza `QR`. `sql/015_cuenta_metodo_qr.sql` verificado en contenedor descartable, **falta aplicarlo en Neon** ([SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28)) |
+| [reparacion-ck-cuenta-metodo](reparacion-ck-cuenta-metodo.md) | `en-produccion` | El `CHECK` canónico ya acepta `QR`. `sql/015_cuenta_metodo_qr.sql` corrido y confirmado contra Neon ([SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28)) |
 
 ## Base de datos
 
