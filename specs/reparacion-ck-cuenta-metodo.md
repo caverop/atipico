@@ -5,9 +5,11 @@ script: registra qué se repara, por qué se elige este arreglo y no otro, y có
 
 - **Estado:** **propuesto, pendiente de aprobación.** No hay script escrito. Nada corrido
   contra ningún contenedor todavía (§7 lo dice explícito).
+- **Ticket:** [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28), creado el 2026-09-09.
+  Es el número que va en el encabezado de `sql/015_cuenta_metodo_qr.sql`, en lugar del
+  `SCRUM-XX` de plantilla.
 - **Origen:** hallazgo de la auditoría de `specs/agente-db.md` §5.3–§5.4, que lo dejó fuera de
-  su propio alcance por ser un cambio a la base. **Sin ticket de Jira todavía** — hay que
-  crearlo antes de aplicar (§8, paso 0).
+  su propio alcance por ser un cambio a la base.
 - **Alcance:** una migración numerada que redefina `ck_cuenta_metodo` para que un ambiente
   construido desde `script_inicial.sql` + las migraciones numeradas acepte `QR`, igual que la
   base desplegada en Neon.
@@ -269,7 +271,7 @@ aplica igual** —los conserva— pero queda anotado en la bitácora, porque cie
 
 | # | Paso | Quién | Estado |
 |---|---|---|:---:|
-| 0 | Crear el ticket de Jira (proyecto `atipico`) y reemplazar `SCRUM-XX` en el encabezado del script | usuario | Pendiente |
+| 0 | Crear el ticket de Jira (proyecto `atipico`) | usuario | ✅ [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28) |
 | 1 | Aprobar este spec | usuario | Pendiente |
 | 2 | Escribir `sql/015_cuenta_metodo_qr.sql` | agente `db` | Pendiente |
 | 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | Pendiente |
@@ -385,10 +387,14 @@ la consulta de §7.3.
 **Hallazgos colaterales, reportados y no arreglados de callado:**
 
 1. **Colisión de numeración con `specs/reservas.md`. — CORREGIDO el 2026-09-09.** Ese spec
-   (SCRUM-21, todavía *propuesto*) nombraba su migración como `sql/013_reserva.sql`, pero
-   `013` y `014` ya están tomados por `mesa_compartida_por_turno` y `rol_delivery`. Como este
-   spec reserva `015`, reservas pasó a **`016`**: ya está cambiado en
-   [reservas.md](reservas.md) §4, con la nota de por qué.
+   (SCRUM-21, todavía *propuesto*) numeraba su migración como **013**, pero `013` y `014` ya
+   están tomados por `mesa_compartida_por_turno` y `rol_delivery`. Como este spec reserva
+   `015`, reservas pasó a **`016`**: ya está cambiado en [reservas.md](reservas.md) §4, con la
+   nota de por qué.
+
+   *(El número viejo se escribe acá suelto, sin la ruta `sql/…`, a propósito: escrito completo
+   lo levanta cualquier grep de numeración como si este spec reclamara dos migraciones. Ya
+   pasó una vez. Las menciones históricas de un número no se escriben como ruta.)*
 
    Vale registrar cómo se cerró: el hallazgo estaba acá desde que se escribió este spec,
    *reportado y no arreglado*, y así se habría quedado. Lo que lo desenterró fue el grafo de

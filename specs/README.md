@@ -54,7 +54,7 @@ Hoy: **5 propuestos · 1 aprobado · 11 implementados · 7 en producción**.
 | Spec | Estado | De qué se trata |
 |---|---|---|
 | [comprobantes-qr](comprobantes-qr.md) | `implementado` | Comprobantes de pago QR, con subida a R2. Verificado en desarrollo |
-| [reparacion-ck-cuenta-metodo](reparacion-ck-cuenta-metodo.md) | `propuesto` | El `CHECK` canónico rechaza `QR`: migración que lo repara. **Sin ticket de Jira todavía** |
+| [reparacion-ck-cuenta-metodo](reparacion-ck-cuenta-metodo.md) | `propuesto` | El `CHECK` canónico rechaza `QR`: migración `015` que lo repara ([SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28)) |
 
 ## Base de datos
 
