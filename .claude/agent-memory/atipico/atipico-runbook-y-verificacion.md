@@ -29,15 +29,29 @@ excepción para SQL.
   [[atipico-postgres-local-dev]]).** Es local, sin credencial de Neon de por medio — el
   agente puede correr ahí las consultas de verificación directamente después de que el
   usuario confirme que aplicó el script, sin el riesgo que motivó todo esto.
-- **`qa` y `production` en Neon.** El agente **no se conecta**. La consulta de
-  verificación va escrita en el runbook con el resultado esperado, pre-probada en el
-  contenedor descartable; el usuario la corre y reporta, o pega la salida para que el
-  agente la coteje. Esto no cambia la regla dura de `agente-db.md` §2.2 — el agente sigue
-  sin escribir ni leer directo contra Neon en el trabajo normal.
+- **`qa` y `production` en Neon.** El agente **puede conectarse de solo lectura** —
+  `SELECT` y `pg_dump --schema-only`, la excepción que ya fijaba `agente-db.md` §2.2 y que
+  el usuario confirmó explícitamente el 2026-09-10 tras una primera versión de
+  [[atipico-postgres-local-dev]] que la eliminaba de más. Nunca DDL ni DML: eso sigue
+  siendo exclusivo del usuario, a mano, cuando decide. La consulta de verificación va
+  igual en el runbook con el resultado esperado, pre-probada en el contenedor
+  descartable — la diferencia es que el agente **también** puede correrla él mismo contra
+  la base real después de que el usuario aplicó el script, no solo dejarla escrita.
+  **Al conectar, nunca imprimir la credencial en la transcripción** — ver la trampa de
+  abajo.
 
 **El documento de pasos** sigue el patrón de tres entregables que ya usa `agente-db.md`:
 el script, el runbook con comandos exactos y probados (no redactados de memoria), y la
 consulta de verificación posterior con el resultado esperado. No es nuevo formato — es
 extender ese patrón fuera de las migraciones SQL.
+
+**Trampa: `dotnet user-secrets list` no tiene forma de ocultar valores.** Cualquier
+llamada que lo corra sin capturar la salida imprime la cadena de conexión completa
+—contraseña incluida— en la transcripción. Pasó el 2026-09-10 verificando `015`. La forma
+correcta es capturar directo a una variable de shell en el mismo comando que la usa, sin
+un paso previo que solo "liste para ver si está": `CONN=$(dotnet user-secrets list
+--project X | grep '^Clave' | sed 's/^Clave = //')`, nunca imprimir `$CONN`. Mismo cuidado
+al armar `PGPASSWORD`/`PGUSER`/etc. para `psql`: derivarlos de la variable capturada, no
+de un `echo` intermedio.
 
 Relacionado: [[atipico-postgres-local-dev]], [[atipico-grafo-con-el-commit]].

@@ -125,11 +125,13 @@ publica en **`5433`** a propósito. La cadena de conexión local usa ese puerto.
 
 Nada cambia acá. El patrón de `specs/agente-db.md` §5 —contenedor descartable, nace de la
 cadena canónica, se borra al terminar— es exactamente lo que ya se usó para verificar
-`sql/015_cuenta_metodo_qr.sql` hoy mismo. Este spec no le agrega reglas nuevas; lo que hace
-es que **el agente deja de necesitar ninguna credencial de Neon** ni siquiera para el caso
-de lectura ocasional que hoy tenía asignado (§2.2 de `agente-db.md` seguía dejándole al
-agente `pg_dump --schema-only` y `SELECT` de solo lectura contra Neon — eso desaparece por
-completo, no solo el DDL/DML).
+`sql/015_cuenta_metodo_qr.sql` hoy mismo. Este spec no le agrega reglas nuevas al agente,
+ni se las quita: **la excepción de solo lectura de `agente-db.md` §2.2 sigue en pie** —
+`pg_dump --schema-only` y `SELECT` contra Neon, para confirmar que una migración quedó como
+se esperaba después de que el usuario la aplicó. Lo que cambia es dónde vive el trabajo
+*cotidiano* de desarrollo (ya no pasa por ninguna credencial de Neon); la verificación
+puntual de solo lectura contra `qa`/`production`, cuando hace falta, sigue permitida —
+corregido el 2026-09-10, tras una primera versión de este párrafo que la eliminaba de más.
 
 ### 3.5 El orden de promoción, ahora explícito
 
