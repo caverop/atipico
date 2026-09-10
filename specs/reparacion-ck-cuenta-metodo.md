@@ -262,6 +262,12 @@ ROLLBACK;
 *(Las columnas exactas del `INSERT` se ajustan al leer la definición real de `cuenta` al momento
 de escribir el script; lo que importa es el par pasa/falla.)*
 
+**Corregido tras correrlo (2026-09-10):** el `INSERT` de arriba no alcanza tal cual está escrito.
+`cuenta.id_mesero` es `NOT NULL` con FK a `usuario`, y una base recién construida desde la cadena
+canónica no tiene usuarios — el catálogo semilla (`specs/script-inicial-completo.md`) sigue
+*propuesto*. Hay que insertar un `usuario` con rol válido dentro de la misma transacción
+descartable y usar su `id` como `id_mesero`. Salida real en §11.
+
 Y **borrar el contenedor** al terminar: `docker rm -f atipico-015`. Un contenedor viejo con
 datos de la corrida anterior es exactamente el modo de fallo que hace inservible esta prueba.
 
@@ -286,9 +292,9 @@ aplica igual** —los conserva— pero queda anotado en la bitácora, porque cie
 | 0 | Crear el ticket de Jira (proyecto `atipico`) | usuario | ✅ [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28) |
 | 1 | Aprobar este spec | usuario | ✅ 2026-09-10 |
 | 2 | Escribir `sql/015_cuenta_metodo_qr.sql` | agente `db` | ✅ 2026-09-10 |
-| 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | **Siguiente** |
-| 4 | Entregar el runbook ya probado + la consulta de verificación posterior | agente `db` | Pendiente |
-| 5 | Correr §7.3 y luego `015` contra Neon | **usuario** | Pendiente |
+| 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | ✅ 2026-09-10 |
+| 4 | Entregar el runbook ya probado + la consulta de verificación posterior | agente `db` | ✅ 2026-09-10 |
+| 5 | Correr §7.3 y luego `015` contra Neon | **usuario** | **Siguiente** |
 | 6 | Confirmar con la consulta de verificación posterior (§9.2) | usuario | Pendiente |
 | 7 | Regenerar `sql/schema_completo.sql` desde Neon | agente `db` | Pendiente |
 | 8 | Actualizar los comentarios que describen el drift como no registrado (§9.4) | agente `db` | Pendiente |
@@ -413,6 +419,41 @@ vieja— y quedó descartado por medición, no por inspección visual. Después,
 **Ningún PostgreSQL parseó todavía este script** — ni siquiera para validar su sintaxis. Por eso
 el estado quedó en `aprobado` y no en `implementado`. El paso 3 (§7.1–§7.2, contenedor
 descartable) es el que convierte "el archivo dice lo correcto" en "el archivo corre".
+
+**2026-09-10 — Verificación en contenedor descartable (pasos 3 y 4), salida real.**
+`docker run -d postgres:18-alpine`, `pg_isready` en ~3 intentos, cadena canónica completa
+(`script_inicial.sql` + `002`…`014`) aplicada sin errores.
+
+*Antes de `015` (§7.1) — confirma la premisa:*
+```
+CHECK (((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['EFECTIVO'::character varying,
+'TARJETA'::character varying, 'TRANSFERENCIA'::character varying, 'YAPE'::character varying,
+'PLIN'::character varying])::text[])))))
+```
+Nombra `YAPE`/`PLIN`, no `QR`. Igual que predice §1.
+
+*Aplicado `015`* — `DROP CONSTRAINT` + `ADD CONSTRAINT`, exit 0.
+
+*Después de `015` (§7.2) — confirma la reparación, texto idéntico al de §9.2:*
+```
+CHECK (((metodo_pago IS NULL) OR ((metodo_pago)::text = ANY ((ARRAY['EFECTIVO'::character varying,
+'TARJETA'::character varying, 'TRANSFERENCIA'::character varying, 'QR'::character varying])::text[]))))
+```
+
+*Las dos direcciones, dentro de una transacción que se descarta con `ROLLBACK`:*
+```sql
+INSERT INTO cuenta (..., metodo_pago) ... 'QR'  →  INSERT 0 1  (pasa)
+INSERT INTO cuenta (..., metodo_pago) ... 'YAPE' →  ERROR: viola ck_cuenta_metodo  (falla)
+```
+
+Un detalle no anticipado por §7.2: `cuenta.id_mesero` es `NOT NULL` con FK a `usuario`, y la
+base recién construida no tiene ningún usuario sembrado (`script-inicial-completo.md`, el spec
+del catálogo semilla, sigue `propuesto`). El `INSERT` de prueba tuvo que crear un usuario `MESERO`
+dentro de la misma transacción descartable — no cambia el resultado, ambas direcciones se
+verificaron igual, pero el `INSERT` literal de §7.2 no alcanza tal cual está escrito ahí; hay que
+sembrar el mesero primero.
+
+`docker rm -f atipico-015` al terminar, confirmado sin containers `atipico-015` colgados.
 
 **2026-09-10 — Números despinados.** Dos párrafos apalabraban `016` para un futuro
 angostamiento: §4.2 y esta misma bitácora. `016` quedó reclamado por
