@@ -10,13 +10,34 @@ metadata:
 El grafo vive en `graphify-out/` en la **raíz** del repo, pero su `.graphify_root`
 apunta a `specs/` — el corpus son los specs, no el código.
 
-**El grafo se atrasa en silencio y nada avisa.** Al 2026-09-09 tenía **10 de los 24
-specs**, con fecha 2026-09-01: 15 documentos sin indexar, acumulados en 8 días. Nada
-lo detecta solo (no hay hooks, el CI no mira `specs/`), así que hay que ir a buscarlo.
-Para saber cuánto falta, comparar las claves de `graphify-out/manifest.json` contra
-los `.md` de `specs/`. Ojo con `graph.json`: las aristas están bajo **`links`**, no
+**Estado al 2026-09-09 (SCRUM-27):** 389 nodos · 502 aristas · 20 comunidades sobre
+los 25 documentos. Antes eran 177 sobre 10.
+
+**El grafo se atrasa en silencio y nada avisa.** Llegó a tener 10 de 24 specs con 8
+días de deriva. Nada lo detecta solo (no hay hooks, el CI no mira `specs/`), así que
+hay que ir a buscarlo: comparar las claves de `graphify-out/manifest.json` contra los
+`.md` de `specs/`. Ojo con `graph.json`: las aristas están bajo **`links`**, no
 `edges` — `len(d['nodes'])` con `d.get('edges')` da "0 aristas" y parece un grafo roto
-cuando no lo está. Quedó como [SCRUM-27](https://caverop.atlassian.net/browse/SCRUM-27).
+cuando no lo está.
+
+**Un `--update` después de actualizar graphify cuesta como una reconstrucción
+completa.** La caché semántica atribuye cada entrada al prompt que la produjo
+(`references/extraction-spec.md`); si ese archivo cambió con una versión nueva, la
+caché da **0 hits** y se re-extrae todo. Verificado el 2026-09-09: `detect_incremental`
+marcó 25 cambiados cuando solo 15 eran nuevos —los otros 10 por `mtime`— y el chequeo
+de caché no rescató ninguno. Costó **812k tokens** (6 subagentes, ~130-150k cada uno)
+contra los ~111k de la corrida anterior de 10 documentos. **Chequear el hit-rate de la
+caché antes de despachar subagentes**, no después: si da 0, el costo real es el del
+corpus entero y conviene decirlo antes de arrancar.
+
+**El efecto colateral bueno:** al re-extraerse los 25 juntos, todas las citas entre
+specs quedaron enlazadas. La arista `direccion-entrega` → `tipo-pedido`, colgada desde
+agosto por haberse extraído en corridas distintas, ya existe.
+
+**Encoding en Windows:** los scripts de graphify imprimen etiquetas con acentos y la
+consola es cp1252 — un `print` de labels revienta con `UnicodeEncodeError`. Correr
+siempre con `PYTHONIOENCODING=utf-8`. Y para pasos con mucho texto acentuado, escribir
+un `.py` al scratchpad y ejecutarlo, en vez de `python -c` con comillas anidadas.
 
 **No hace falta ninguna clave de API.** La doc de la skill es tajante: *"graphify
 needs no API key. Never ask the user for one, and never block on one."* Cuando
@@ -41,7 +62,7 @@ hook de git corre sin agente, así que un `post-commit` que dispare graphify sob
 dentro de una sesión, que además encaja con [[atipico-spec-primero]]: cuando un spec
 cambia, el agente ya está en la conversación.
 
-Costo de referencia: una reconstrucción completa de los 10 specs registró ~202k tokens
+Costo de referencia (histórico, corpus de 10): una reconstrucción completa registró ~202k tokens
 de entrada en `graphify-out/cost.json`.
 
 ## Obsidian

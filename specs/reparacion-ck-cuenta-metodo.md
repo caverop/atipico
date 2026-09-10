@@ -384,11 +384,18 @@ la consulta de §7.3.
 
 **Hallazgos colaterales, reportados y no arreglados de callado:**
 
-1. **Colisión de numeración con `specs/reservas.md`.** Ese spec (SCRUM-21, todavía *propuesto*)
-   nombra su migración como `sql/013_reserva.sql`, pero `013` y `014` ya están tomados por
-   `mesa_compartida_por_turno` y `rol_delivery`. Si este spec se aprueba y toma `015`, reservas
-   pasa a `016`. Hay que corregirlo en `specs/reservas.md` **antes** de que alguien escriba ese
-   archivo, o se pisan dos migraciones.
+1. **Colisión de numeración con `specs/reservas.md`. — CORREGIDO el 2026-09-09.** Ese spec
+   (SCRUM-21, todavía *propuesto*) nombraba su migración como `sql/013_reserva.sql`, pero
+   `013` y `014` ya están tomados por `mesa_compartida_por_turno` y `rol_delivery`. Como este
+   spec reserva `015`, reservas pasó a **`016`**: ya está cambiado en
+   [reservas.md](reservas.md) §4, con la nota de por qué.
+
+   Vale registrar cómo se cerró: el hallazgo estaba acá desde que se escribió este spec,
+   *reportado y no arreglado*, y así se habría quedado. Lo que lo desenterró fue el grafo de
+   graphify al indexar los dos specs en la misma corrida
+   ([SCRUM-27](https://caverop.atlassian.net/browse/SCRUM-27)), que lo levantó como arista
+   AMBIGUOUS entre las dos migraciones homónimas. Un hallazgo anotado en un spec que nadie
+   vuelve a abrir es un hallazgo perdido; el grafo es lo que lo volvió a poner sobre la mesa.
 2. **`Atipico.Database.Tests` no existe.** `.claude/agents/db.md` lo declara entre sus
    responsabilidades y `specs/agente-db.md` lo propone, pero no está en `Atipico.slnx` ni en
    disco. Por eso CA-1…CA-4 se verifican a mano por ahora. No es un bloqueo para `015`.

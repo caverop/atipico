@@ -69,7 +69,16 @@ solapamientos — ver §7.
 
 ## 4. Esquema
 
-`sql/013_reserva.sql` (numerado — es esquema nuevo, no carga de datos):
+`sql/016_reserva.sql` (numerado — es esquema nuevo, no carga de datos):
+
+> **Corregido el 2026-09-09.** Este spec reclamaba `013`, número que ya ocupa
+> `sql/013_mesa_compartida_por_turno.sql`, **corrido en producción**. La colisión la
+> detectó el grafo de graphify al indexar los dos specs en la misma corrida
+> ([SCRUM-27](https://caverop.atlassian.net/browse/SCRUM-27)). Con `014_rol_delivery.sql`
+> aplicado y `015_cuenta_metodo_qr.sql` reservado por
+> [reparacion-ck-cuenta-metodo.md](reparacion-ck-cuenta-metodo.md), el siguiente libre es
+> `016`. **Verificar que siga libre antes de escribir el script**: este spec está
+> propuesto y la numeración avanza con cada migración que se aplique mientras tanto.
 
 ```sql
 CREATE TABLE reserva (
