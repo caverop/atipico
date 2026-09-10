@@ -52,6 +52,26 @@ menor.
 2. Corré por la skill `/graphify`, nunca `graphify update <path>` del binario suelto
    —ese es el modo estructural sin LLM, da nodos superficiales y los escribe en
    `specs/graphify-out/` en vez del canónico— y siempre desde la raíz del repo.
+
+   **La extracción va a un subagente Haiku, en segundo plano** (`Agent` con
+   `model: "haiku"`, `run_in_background: true`) — es el paso caro en tiempo (3–16
+   minutos por corrida) y el que menos necesita que lo mires en vivo. **La
+   orquestación no** — mergear, rebuildear, verificar contra respaldo, podar
+   duplicados y commitear los seguís haciendo vos mismo, en el hilo principal, con
+   Bash/Python directo. Ahí vive el control, y no es delegable.
+
+   Sea cual sea el modelo que extraiga, estos cuatro guardas son obligatorios, no
+   opcionales — atraparon dos incidentes reales el 2026-09-10 con un modelo más
+   capaz que Haiku (una extracción que se quedó corta por un prompt mal enfocado, y
+   nodos huérfanos por re-frasear el mismo concepto):
+   1. Piso explícito de nodos en el prompt, basado en la corrida anterior del mismo
+      archivo.
+   2. Lista de ids existentes a reusar verbatim, sacada de `graph.json` antes de
+      despachar.
+   3. Respaldo de `graph.json` (`cp graph.json .graphify_old.json`) y comparación de
+      ids perdidos/nuevos contra ese respaldo **antes** de aceptar el merge.
+   4. Buscar duplicados por prefijo de etiqueta (no por similitud de id) después del
+      merge, y podar los reales.
 3. **Al empezar cualquier trabajo sobre specs, chequeá deriva primero.** El usuario
    commitea desde su terminal y ahí no hay agente, así que la regla no se disparó:
 

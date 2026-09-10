@@ -4,6 +4,7 @@
 - [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; el formato canónico vive en `specs/formato-spec.md`, leerlo antes de escribir uno.
 - [Jira corto, spec largo](atipico-jira-corto-spec-largo.md) — el ticket lleva lo esencial y un puntero; el detalle vive en el spec.
 - [El grafo va con el commit](atipico-grafo-con-el-commit.md) — commiteás specs, actualizás el grafo en el mismo turno; un hook de git no puede.
+- [Extracción del grafo: Haiku en segundo plano](atipico-grafo-haiku-background.md) — la extracción va a Haiku en background; la orquestación (merge/rebuild/poda/commit) la seguís haciendo vos, en vivo, con los guardas siempre obligatorios.
 - [Runbook y verificación](atipico-runbook-y-verificacion.md) — para cualquier script contra una instancia real: entregás el documento de pasos, el usuario ejecuta, vos verificás con las consultas necesarias.
 - [Él hace las pruebas](atipico-user-tests-himself.md) — verificar con build, no levantar servidores ni Playwright salvo pedido.
 - [Bin bloqueado → Release](atipico-locked-bin-release-build.md) — con la API corriendo, `-c Release`; nunca matarle el proceso.
