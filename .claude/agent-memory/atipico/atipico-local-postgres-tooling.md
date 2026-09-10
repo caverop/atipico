@@ -1,6 +1,6 @@
 ---
 name: atipico-local-postgres-tooling
-description: "Dónde están las herramientas CLI de PostgreSQL local (no están en el PATH) — sirven para correr migraciones y pg_dump sin pedírselo al usuario. Ojo: la base de dev ya no es la local."
+description: "Dónde están las herramientas CLI de PostgreSQL local nativo (no están en el PATH). Desde 2026-09-10 la base de dev es Docker (docker-compose.db.yml, puerto 5433), no esta instalación nativa — que sigue sin ser la base de dev, solo cambió el motivo."
 metadata:
   type: reference
 ---
@@ -8,11 +8,17 @@ metadata:
 > Redactado al migrar (2026-08-31): esta carpeta va a git, así que la contraseña del
 > superusuario local no se anota acá — pedírsela al usuario si hace falta.
 >
-> **Estado:** desde 2026-08-19 la base de desarrollo es Neon, no esta
-> ([[atipico-neon-deployment]]). El servidor local sigue instalado y corriendo
-> (verificado 2026-08-31: servicio `postgresql-x64-18` en Running, `psql.exe` presente),
-> así que sigue siendo útil para bases descartables de prueba — pero no se toca
-> `restaurante_db` esperando que sea lo que ve la app.
+> **Estado (actualizado 2026-09-10):** el péndulo dio dos vueltas. Hasta el
+> 2026-08-19 esta instalación nativa *era* la base de dev. Del 2026-08-19 al
+> 2026-09-10 la base de dev fue Neon ([[atipico-neon-deployment]]). Desde el
+> 2026-09-10 ([[atipico-postgres-local-dev]], SCRUM-29) es local otra vez, pero
+> **Docker, no esta instalación** — `postgres:18-alpine` vía `docker-compose.db.yml`,
+> puerto **5433** porque este servicio nativo ya tiene tomado el `5432`. El usuario
+> eligió Docker sobre reactivar este nativo (más fácil de resetear a cero con un
+> volumen nuevo). El servidor local sigue instalado y corriendo (verificado
+> 2026-08-31: servicio `postgresql-x64-18` en Running, `psql.exe` presente), sigue
+> siendo útil para bases descartables sueltas — pero **nunca** es la base de dev, y
+> nunca lo fue desde el 2026-08-19 para acá, con dos motivos distintos en el medio.
 
 El servidor PostgreSQL 18 local corre como servicio de Windows (`postgresql-x64-18`)
 en `localhost:5432`. Superusuario: `postgres` (contraseña no anotada acá). Bases

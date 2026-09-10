@@ -138,8 +138,20 @@ eso se cae toda la feature de comprobantes, cuyos triggers en `006`/`007` filtra
 
 ## Trampas del entorno
 
-- La base de desarrollo es **Neon**. La cadena de conexión vive en user secrets, nunca en el
-  repo. Ninguna credencial entra a un archivo versionado, tu memoria incluida.
+- **`dev` ya no es Neon.** Desde `specs/postgres-local-dev.md` (SCRUM-29, 2026-09-10) es un
+  `postgres:18-alpine` local en `localhost:5433` (`docker-compose.db.yml`), levantado por
+  el usuario con `docker compose -f docker-compose.db.yml up -d`. `qa` y `production`
+  siguen en Neon, sin cambios. La cadena de conexión sigue viviendo en user secrets, nunca
+  en el repo — eso no cambió, solo a qué apunta.
+- La excepción de solo lectura contra Neon (`SELECT`, `pg_dump --schema-only`, §2.2 de este
+  mismo archivo) **sigue en pie** — confirmado explícitamente por el usuario el 2026-09-10.
+  Lo que se movió a local es el trabajo cotidiano, no la posibilidad de verificar de vez en
+  cuando contra la base real.
+- `postgres:18-alpine` **aborta al arrancar** (`exit 1`) si el volumen se monta en
+  `/var/lib/postgresql/data` en vez de en `/var/lib/postgresql` — la imagen 18+ espera el
+  punto de montaje un nivel arriba y crea sola un subdirectorio versionado adentro.
+  Verificado levantando `docker-compose.db.yml` (`specs/postgres-local-dev.md` §8.2).
+  Ninguna credencial entra a un archivo versionado, tu memoria incluida.
 - La app se conecta como **`app_restaurante`**, sin `GRANT DELETE`: todo `DELETE` falla por
   diseño. Se anula, no se borra. En el contenedor **sí** sos superusuario — usalo para probar
   ese límite, que en Neon nunca se pudo.

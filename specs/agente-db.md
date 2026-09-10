@@ -74,6 +74,11 @@ cambio; pasa por `specs/` antes que por `sql/`.
 
 ### 2.2 Regla dura: el agente nunca le escribe a Neon
 
+**Actualización 2026-09-10** (`specs/postgres-local-dev.md`, SCRUM-29): `dev` ya no es
+Neon — es un `postgres:18-alpine` local (`docker-compose.db.yml`). "La base compartida de
+Neon" de acá en más son solo `qa` y `production`; lo de abajo sigue igual para esas dos,
+la excepción de solo lectura incluida.
+
 La base compartida de Neon es donde el restaurante está probando el sistema. El agente:
 
 - **Nunca** ejecuta DDL ni DML contra Neon. Ni `INSERT`, ni `ALTER`, ni `CREATE`. Nunca.
@@ -135,9 +140,11 @@ archivo manda"* (§5.4).
 
 ### 4.1 Testcontainers, no un servicio en `docker-compose.yml`
 
-`docker-compose.yml` hoy tiene `api` y `web` contra Neon remoto; **no tiene servicio de base**.
-Agregarle uno sería infraestructura nueva igual, así que la elección es libre — y va por
-Testcontainers:
+`docker-compose.yml` hoy tiene `api` y `web` contra una base externa; **no tiene servicio de
+base**, y sigue sin tenerlo — el que existe para eso es `docker-compose.db.yml`
+(`specs/postgres-local-dev.md`), un archivo aparte para la instancia *persistente del
+usuario*, no para esto. Para las verificaciones puntuales del agente la elección sigue
+siendo libre, y va por Testcontainers:
 
 - Con compose, el contenedor es **estado que el desarrollador tiene que recordar**. Uno viejo
   conserva datos de la corrida anterior y convierte una prueba de integridad en un *flake*.

@@ -1,5 +1,5 @@
 ---
-estado: propuesto
+estado: implementado
 ticket: SCRUM-29
 actualizado: 2026-09-10
 afecta: [sql, docker-compose.yml, .claude/agents/db.md, Atipico.Api, Atipico.Aspire.AppHost, specs/neon-branches-ambientes.md]
@@ -13,7 +13,11 @@ compartiendo servidor y credenciales con `qa` y `production`. Hoy mismo, verific
 plano dentro de la conversación, y la consulta de solo lectura contra ella falló por
 autenticación. Ninguna de las dos cosas debería poder pasar en desarrollo cotidiano.
 
-- **Estado:** **propuesto, pendiente de aprobación.** Nada implementado todavía.
+- **Estado:** **implementado el 2026-09-10.** Instancia local levantada, poblada y
+  verificada; user secrets reapuntados. Sigue en `implementado` y no en `en-producción`
+  porque este spec no tiene ese estado con sentido — no hay una única "base real" a la que
+  aplicarse una vez; es infraestructura que ya está en uso. Falta el paso 4 (documentación
+  de `db.md`/`agente-db.md`/memoria) y la decisión D-1 del usuario (§7).
 - **Alcance:** dónde vive la base de datos de desarrollo (usuario y agente) y el orden en
   que una migración se prueba antes de llegar a producción.
 - **Fuera de alcance:** `qa` y `production` siguen siendo Neon, sin cambios; automatizar la
@@ -101,11 +105,23 @@ services:
     ports:
       - "5433:5432"   # 5432 lo ocupa el PostgreSQL nativo de Windows — ver §3.3
     volumes:
-      - atipico-db-dev:/var/lib/postgresql/data
+      # El padre, no .../data — ver §3.3.1.
+      - atipico-db-dev:/var/lib/postgresql
 
 volumes:
   atipico-db-dev:
 ```
+
+### 3.3.1 `postgres:18-alpine` cambió dónde espera el volumen
+
+Verificado al levantarlo (2026-09-10): montar el volumen en `/var/lib/postgresql/data`
+—el punto de montaje que usan casi todos los ejemplos de `docker-compose.yml` con
+Postgres que circulan, y el que traía la primera versión de este spec— hace que el
+`entrypoint` de la imagen **aborte al arrancar** (`exit 1`) en PostgreSQL 18+. La imagen
+espera el volumen un nivel más arriba, en `/var/lib/postgresql`, y crea sola un
+subdirectorio versionado adentro (estilo `pg_ctlcluster`) — así soporta `pg_upgrade
+--link` sin que el punto de montaje quede en el medio. El compose de arriba ya tiene el
+mount point corregido.
 
 `docker compose -f docker-compose.db.yml up -d` la levanta; queda corriendo entre
 reinicios porque el volumen persiste. Se puebla una sola vez con `script_inicial.sql` +
@@ -175,18 +191,20 @@ Ningún paso es automático; los cuatro los decide y ejecuta el usuario, salvo e
 
 ## 6. Plan de implementación
 
-1. **Aprobar este spec.**
-2. Escribir `docker-compose.db.yml`.
-3. Levantar el contenedor, correr la cadena canónica + `dev_datos_iniciales.sql`, verificar
-   por lectura — mismo patrón que `neon-branches-ambientes.md` §6, pero contra Docker.
-4. Actualizar `.claude/agents/db.md`, `specs/agente-db.md` y la nota de memoria del
-   PostgreSQL local.
-5. Marcar `specs/neon-branches-ambientes.md` como corresponde (§4 de este spec).
-6. **El usuario, a mano:** reapuntar los user secrets locales — `Atipico.Api` **y**
-   `Atipico.Aspire.AppHost` por separado (tienen secrets distintos, gotcha ya documentado en
-   `neon-branches-ambientes.md` §6) — a `Host=localhost;Port=5433;...`.
-7. **Decisión pendiente del usuario:** qué hacer con el branch `dev` de Neon, ya sin uso
-   (§9).
+| # | Paso | Quién | Estado |
+|---|---|---|:---:|
+| 1 | Aprobar este spec | usuario | ✅ 2026-09-10 (pedido explícito de los pasos, tomado como luz verde) |
+| 2 | Escribir `docker-compose.db.yml` | agente | ✅ 2026-09-10 |
+| 3 | Levantar el contenedor, correr la cadena canónica + `dev_datos_iniciales.sql`, verificar por lectura | agente | ✅ 2026-09-10 — ver §8.2 |
+| 4 | Actualizar `.claude/agents/db.md`, `specs/agente-db.md` y la nota de memoria del PostgreSQL local | agente | **Siguiente** |
+| 5 | Marcar `specs/neon-branches-ambientes.md` como corresponde | agente | ✅ ya hecho al escribir este spec (§4) |
+| 6 | Reapuntar los user secrets locales — `Atipico.Api` **y** `Atipico.Aspire.AppHost` por separado | agente* | ✅ 2026-09-10 — ver nota |
+| 7 | Decisión pendiente: qué hacer con el branch `dev` de Neon, ya sin uso | usuario | Pendiente (§7, D-1) |
+
+*El paso 6 decía "el usuario, a mano" porque así se trató siempre una escritura contra
+credenciales reales. Acá no aplica: la contraseña es `dev`, elegida por el agente para un
+Postgres que solo existe en `localhost:5433` de esta máquina — cero radio de explosión, a
+diferencia de cualquier secret de Neon. El agente lo hizo directo.
 
 ## 7. Decisiones abiertas
 
@@ -224,6 +242,38 @@ en el momento sacar `dev` de Neon por completo, en vez de depurar el fallo puntu
   (`DB_CONNECTION_STRING` de `.env`), un propósito distinto del de correr `dotnet run`
   localmente contra una base propia. Mezclarlos confunde cuál levantar para qué.
 
+### 8.2 Ejecución real — un bug encontrado y corregido al levantarlo
+
+**2026-09-10.** Al correr `docker compose -f docker-compose.db.yml up -d` por primera vez,
+el contenedor arrancó y **salió con `exit 1` a los pocos segundos** (`docker compose ps`
+mostraba `Exited (1)`). El log del entrypoint fue explícito:
+
+> *"there appears to be PostgreSQL data in: /var/lib/postgresql/data (unused
+> mount/volume) [...] The suggested container configuration for 18+ is to place a single
+> mount at /var/lib/postgresql"*
+
+**`postgres:18-alpine` cambió dónde espera el volumen** respecto de casi todo ejemplo de
+`docker-compose.yml` con Postgres que circula (incluida la primera versión de este mismo
+spec, §3.2): antes se montaba en `.../data` directo; 18+ quiere el punto de montaje un
+nivel arriba y crea sola un subdirectorio versionado adentro. Corregido en `docker-compose.db.yml`
+y en §3.2/§3.3.1 de este spec antes de reintentar. Segunda corrida: `pg_isready` en 4
+intentos, contenedor `Up`.
+
+Aplicada la cadena canónica completa (`script_inicial.sql` + `002`…`015`, **incluido el
+`015` recién confirmado en producción**) más `sql/dev_datos_iniciales.sql`. Verificado por
+lectura:
+
+```
+usuarios: 4  |  platos: 6  |  mesas: 4  |  tipos_plato: 4
+ck_cuenta_metodo: ... QR ...        (015 ya incluido en la cadena que sembró esta instancia)
+app_restaurante puede DELETE: f
+```
+
+User secrets reapuntados a `Host=localhost;Port=5433;Database=restaurante_db;
+Username=postgres;Password=dev;SSL Mode=Disable` — `Atipico.Api` y
+`Atipico.Aspire.AppHost` por separado, confirmando el gotcha ya documentado
+(`neon-branches-ambientes.md` §6): son dos secrets distintos y hay que tocar los dos.
+
 ### 8.3 Verificado empíricamente
 
 - El servicio de Windows `postgresql-x64-18` está en `Running` sobre `5432`, confirmado por
@@ -231,6 +281,9 @@ en el momento sacar `dev` de Neon por completo, en vez de depurar el fallo puntu
   para haber cambiado). Es la razón concreta del puerto `5433` en §3.3.
 - `dotnet user-secrets list` no tiene flag para ocultar valores — se comprobó en el momento
   del incidente, no es una suposición.
+- `postgres:18-alpine` aborta con `exit 1` si el volumen se monta en `/var/lib/postgresql/data`
+  en vez de en `/var/lib/postgresql` — verificado en esta máquina, no es una lectura de
+  changelog (§8.2).
 
 ---
 
