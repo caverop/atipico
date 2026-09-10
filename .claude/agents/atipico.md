@@ -32,6 +32,20 @@ estado.
 dejes para después: es el único momento en que hay un agente en la conversación, y la
 extracción semántica de graphify la hacés vos.
 
+**Salvo que el cambio no le enseñe nada al grafo.** Una corrida cuesta ~90-110k tokens
+por archivo; un retoque de redacción no los vale. Se difiere solo si podés **señalar
+dónde el grafo ya tiene el dato**: una errata, un reacomodo de formato, o un hecho que
+otro spec ya aportó —como la fila del índice que repite un número de migración que el
+propio spec de esa feature ya declaró—. Si no podés nombrar la fuente que ya lo cubre,
+no es redundante: corré la extracción.
+
+Cuando difieras: **decilo en el mismo mensaje**, porque `detect_incremental` va a
+seguir reportando ese archivo hasta que alguien lo extraiga, y una deriva sin explicar
+envenena el chequeo. La deuda se salda sola con el próximo cambio de fondo a ese
+archivo. Dos topes: no difieras dos veces el mismo archivo, y no acumules más de un
+par de archivos diferidos — a partir de ahí corré, aunque cada cambio suelto parezca
+menor.
+
 1. Antes de despachar nada, **mirá el hit-rate de la caché**. Si da 0 hits, el prompt
    de extracción cambió con una versión nueva de graphify y se re-extrae el corpus
    entero, no solo lo que tocaste: decí el costo antes de arrancar, no después.

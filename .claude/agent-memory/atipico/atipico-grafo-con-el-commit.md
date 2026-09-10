@@ -21,8 +21,20 @@ del repo. Antes de despachar subagentes, mirar el hit-rate de la caché y decir 
 si da 0 (ver [[atipico-graphify-y-obsidian]] para esa trampa y las demás). Si el usuario
 commiteó los specs por su cuenta desde su terminal —ya pasó en la sesión del
 2026-09-09, commit `2116d75`— la regla no se disparó: al retomar trabajo sobre specs,
-comparar `graphify-out/manifest.json` contra los `.md` de `specs/` y avisar si hay
-deriva.
+correr `detect_incremental` sobre `specs/` y avisar si hay deriva.
+
+**Cláusula de proporcionalidad (agregada el 2026-09-10, a pedido del usuario).** Una
+corrida cuesta ~90-110k tokens por archivo. Un cambio que no le enseña nada al grafo no
+los vale, y se difiere. El test es poder **señalar dónde el grafo ya tiene el dato**:
+errata, formato, o un hecho que otro spec ya aportó. Si no podés nombrar la fuente que
+ya lo cubre, no es redundante — corré. El caso que la motivó: una fila del índice pasó
+a decir que reservas usa la migración `016`, dato que el grafo ya tenía de
+`reservas.md`; costó 87k tokens enseñarle algo que ya sabía.
+
+Al diferir, **decirlo en el mismo mensaje**: `detect_incremental` va a seguir marcando
+ese archivo, y una deriva sin explicar envenena el chequeo. Se salda con el próximo
+cambio de fondo. Topes: no diferir dos veces el mismo archivo, ni acumular más de un
+par de archivos diferidos.
 
 **Un hook de git no puede hacerlo, y no hay que volver a proponerlo.** Corre sin agente,
 y sin clave de Gemini la extracción semántica la hace el agente anfitrión. Se intentó y
