@@ -34,17 +34,33 @@ corpus entero y conviene decirlo antes de arrancar.
 specs quedaron enlazadas. La arista `direccion-entrega` → `tipo-pedido`, colgada desde
 agosto por haberse extraído en corridas distintas, ya existe.
 
-**Re-extraer un archivo deja nodos huérfanos por deriva de slug.** El id sale del label,
-y el subagente frasea el mismo concepto apenas distinto en cada corrida: *"Enlaces
-markdown relativos"* → `..._relativos` una vez, *"Los enlaces son markdown relativo"* →
-`..._relativo` la siguiente. Como el id cambió, el *replace-on-re-extract* de
-`build_merge` no lo pisa y quedan **los dos**, describiendo lo mismo. Verificado el
-2026-09-10 re-extrayendo `README.md`: 13 avisos de "minted by two different files" y 2
-duplicados reales sobrevividos. **El chequeo de salud no lo ve** — mira aristas
-colgantes, no etiquetas redundantes. Después de re-extraer un archivo, listar sus nodos
-(`[n for n in g['nodes'] if n['source_file']=='<archivo>']`) y buscar slugs casi
-iguales; podar el viejo y sus aristas, y re-clusterizar. Ojo: las aristas viven bajo
-`links` en `graph.json`.
+**Re-extraer REEMPLAZA el archivo entero, no parchea.** `build_merge` borra todos los
+nodos cuyo `source_file` es el archivo re-extraído y pone los nuevos. **Lo que el
+subagente no emita, se destruye.** Por eso el prompt de una re-extracción tiene que
+pedir el documento **completo**, y mencionar los cambios solo como hechos a acertar,
+nunca como el alcance. Verificado a lo caro el 2026-09-10: un prompt centrado en *"qué
+cambió"* devolvió 30 nodos donde el spec tenía 39, y habría borrado los tres candidatos
+A/B/C, la regla de subconjunto, el orden de autoridad y el modo de falla. Se detectó
+comparando el extract mergeado contra el `graph.json` previo **antes** de escribirlo.
+Dar un piso explícito de nodos en el prompt ("si te da menos de 35, sub-extrajiste")
+arregló: pasó a 70 y el control dio perdidos 0.
+
+**Y deja huérfanos por deriva de slug.** El id sale del label, y el mismo concepto
+fraseado apenas distinto mintea otro id: `UpperSnakeCaseEnumConverter` convivió con
+`UpperSnakeCaseEnumConverter: Qr → 'QR'`. **El chequeo de salud no lo ve** — mira
+aristas colgantes, no etiquetas redundantes. Mitigación en el prompt: pasar la lista
+literal de ids ya existentes del archivo y pedir que se reusen textualmente.
+
+**Cómo detectarlos después:** comparar *etiquetas* donde una es prefijo de la otra
+dentro del mismo `source_file`, no similitud de strings entre ids. La similitud de ids
+dio 6 falsos positivos de 7 (`candidato_a`/`_b`/`_c`, `ck_cuenta_metodo`/`ck_cuenta_pago`,
+`scrum_27`/`scrum_28`); el prefijo de etiqueta dio 1 falso positivo en 456 nodos
+(`TurnosController` vs `TurnosControllerTests`). Podar el viejo con sus aristas e
+hiperaristas, y re-clusterizar. Ojo: las aristas viven bajo `links` en `graph.json`.
+
+**Siempre respaldar `graph.json` antes de mergear** (`cp graph.json .graphify_old.json`)
+y comparar ids perdidos/nuevos contra el respaldo antes de dar por buena la corrida. Es
+lo único que atrapa las dos fallas de arriba.
 
 **Encoding en Windows:** los scripts de graphify imprimen etiquetas con acentos y la
 consola es cp1252 — un `print` de labels revienta con `UnicodeEncodeError`. Correr

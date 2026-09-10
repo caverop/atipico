@@ -1,10 +1,20 @@
+---
+estado: aprobado
+ticket: SCRUM-28
+actualizado: 2026-09-10
+afecta: [sql]
+---
+
 # Reparación de `ck_cuenta_metodo`: la cadena canónica rechaza `QR`
 
-Especificación de la migración `sql/015_cuenta_metodo_qr.sql`. Documento previo a escribir el
-script: registra qué se repara, por qué se elige este arreglo y no otro, y cómo se verifica.
+Especificación de la migración `sql/015_cuenta_metodo_qr.sql`: registra qué se repara, por qué
+se elige este arreglo y no otro, y cómo se verifica.
 
-- **Estado:** **propuesto, pendiente de aprobación.** No hay script escrito. Nada corrido
-  contra ningún contenedor todavía (§7 lo dice explícito).
+- **Estado:** **aprobado el 2026-09-10** (paso 1). El script **ya está escrito** (paso 2), y las
+  199 pruebas de la solución quedaron en verde con él en el repo. **Nada se corrió todavía
+  contra ninguna base**: ni el contenedor descartable de §7.1–§7.2 (paso 3) ni Neon (paso 5).
+  Sigue en `aprobado` y no en `implementado` justamente por eso — el archivo existe pero
+  ningún PostgreSQL lo parseó nunca.
 - **Ticket:** [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28), creado el 2026-09-09.
   Es el número que va en el encabezado de `sql/015_cuenta_metodo_qr.sql`, en lugar del
   `SCRUM-XX` de plantilla.
@@ -120,8 +130,10 @@ pero:
   **subconjunto, no igualdad**: un valor de más en la base es inofensivo, uno de menos rompe
   producción. Angostar no arregla nada; solo achica la holgura.
 
-  Si más adelante se quiere igualdad estricta, es una migración `016` con su propio spec, y su
-  primer paso es la consulta de §7.3.
+  Si más adelante se quiere igualdad estricta, es una migración aparte con su propio spec, y su
+  primer paso es la consulta de §7.3. *(Este párrafo decía `016`; se despinó el número el
+  2026-09-10, cuando `016` quedó reclamado por [reservas.md](reservas.md). Un spec no debería
+  apalabrar el número de una migración que todavía no tiene ni spec propio.)*
 
 **Descartada C (unión).** Reintroduce `YAPE`/`PLIN`, que no existen en el enum, no existen en la
 base y no van a usarse. Es preservar por preservar: agranda el `CHECK` con dos valores muertos
@@ -272,9 +284,9 @@ aplica igual** —los conserva— pero queda anotado en la bitácora, porque cie
 | # | Paso | Quién | Estado |
 |---|---|---|:---:|
 | 0 | Crear el ticket de Jira (proyecto `atipico`) | usuario | ✅ [SCRUM-28](https://caverop.atlassian.net/browse/SCRUM-28) |
-| 1 | Aprobar este spec | usuario | Pendiente |
-| 2 | Escribir `sql/015_cuenta_metodo_qr.sql` | agente `db` | Pendiente |
-| 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | Pendiente |
+| 1 | Aprobar este spec | usuario | ✅ 2026-09-10 |
+| 2 | Escribir `sql/015_cuenta_metodo_qr.sql` | agente `db` | ✅ 2026-09-10 |
+| 3 | Correr §7.1 y §7.2 en contenedor descartable y **pegar la salida real en la bitácora** | agente `db` | **Siguiente** |
 | 4 | Entregar el runbook ya probado + la consulta de verificación posterior | agente `db` | Pendiente |
 | 5 | Correr §7.3 y luego `015` contra Neon | **usuario** | Pendiente |
 | 6 | Confirmar con la consulta de verificación posterior (§9.2) | usuario | Pendiente |
@@ -381,8 +393,32 @@ migración define `ck_cuenta_metodo`. La premisa se sostiene. **No se levantó n
 §7 sigue sin ejecutar y el runbook de §9 está redactado, no probado.
 
 **Diseños descartados.** Angostar a `EFECTIVO, QR` (B) y unir ambas listas (C) — razones en
-§4.2. B queda como posible `016` si el usuario quiere igualdad estricta, y su primer paso sería
-la consulta de §7.3.
+§4.2. B queda como una migración posterior si el usuario quiere igualdad estricta, y su primer
+paso sería la consulta de §7.3.
+
+**2026-09-10 — Aprobado y escrito (pasos 1 y 2).** El script salió tal como lo redactaba §5,
+con `SCRUM-28` en lugar del `SCRUM-XX` de plantilla. Antes de escribirlo se reverificó contra el
+esquema real: `ck_cuenta_metodo` sigue definido solo en `script_inicial.sql:198` y
+`schema_completo.sql:421`, ninguna migración lo toca, y `015` seguía libre.
+
+Se simuló el regex de `ModeloEnumsCheckTest` sobre el archivo terminado antes de correr nada:
+**una sola coincidencia**, dentro del `ALTER TABLE` real, leyendo
+`EFECTIVO, TARJETA, TRANSFERENCIA, QR`. Era el riesgo concreto de §5 —que un comentario del
+encabezado escribiera la forma sintáctica de la restricción y la prueba se quedara con la lista
+vieja— y quedó descartado por medición, no por inspección visual. Después, la suite completa:
+**199 pruebas en verde**, 13 de ellas de `ModeloEnumsCheckTest`.
+
+**Lo que esto NO demuestra, y conviene tener presente:** que las pruebas pasen solo dice que el
+*texto* del archivo es el esperado. `ModeloEnumsCheckTest` lee SQL como texto; no lo ejecuta.
+**Ningún PostgreSQL parseó todavía este script** — ni siquiera para validar su sintaxis. Por eso
+el estado quedó en `aprobado` y no en `implementado`. El paso 3 (§7.1–§7.2, contenedor
+descartable) es el que convierte "el archivo dice lo correcto" en "el archivo corre".
+
+**2026-09-10 — Números despinados.** Dos párrafos apalabraban `016` para un futuro
+angostamiento: §4.2 y esta misma bitácora. `016` quedó reclamado por
+[reservas.md](reservas.md) el 2026-09-09, así que ambos pasaron a decir "una migración
+posterior". Un spec no debería reservar el número de una migración que todavía no tiene ni spec
+propio: la numeración se toma al escribir el script, no al imaginarlo.
 
 **Hallazgos colaterales, reportados y no arreglados de callado:**
 
