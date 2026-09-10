@@ -55,4 +55,23 @@ sigan siendo obligatorios.
    `graph.json`, y ese archivo se queda desactualizado si se edita el `graph.json` a
    mano).
 
+6. **Typo de ruta, verificado en dos corridas seguidas.** Haiku escribe `pdiego` en vez de
+   `pdieg` al copiar la ruta absoluta del `source_file` — no una vez, dos, la segunda peor
+   (94 de 98 nodos con la ruta mal escrita, un archivo entero bajo la ruta incorrecta).
+   Revisar `Counter(n['source_file'] for n in chunk['nodes'])` **siempre**, antes de mirar
+   cualquier otra cosa del chunk; el script de corrección ya existe
+   (`fix_typo.py` en el scratchpad de esta sesión, reusable).
+7. **"No hagas X" no garantiza que no lo haga — ni repitiéndolo dos veces en el mismo
+   prompt.** El prompt de README.md decía explícito, dos veces, "no crear un nodo por fila
+   de la tabla" — Haiku creó 25 de todas formas (`readme_spec_<nombre>`), uno por cada
+   spec listado, duplicando estructuralmente nodos que cada spec ya tiene desde su propia
+   extracción. No fue omisión de contenido nuevo (guarda 5 original) — fue una
+   instrucción explícita, negativa, repetida, ignorada. Al podarlos, **cuidado con no
+   llevarse de encuentro un id legítimo de una corrida anterior** que coincida con el
+   mismo patrón textual (pasó: `readme_spec_postgres_local_dev` sí era real, de una
+   extracción previa, y el filtro por prefijo `readme_spec_` lo podó también — hubo que
+   recuperarlo de `graph.json` antes del merge). **Chequeo concreto**: contar cuántos
+   nodos comparten un mismo patrón de id sospechoso (`grep`/list-comprehension sobre
+   `n['id']`) antes de aceptar el chunk, no solo el total.
+
 Relacionado: [[atipico-grafo-con-el-commit]], [[atipico-graphify-y-obsidian]].

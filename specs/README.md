@@ -17,7 +17,7 @@ escribir uno nuevo.
 | `en-produccion` | corrido contra la base real y verificado por el usuario |
 | `descartado` | abandonado; queda como registro del porqué |
 
-Hoy: **4 propuestos · 1 aprobado · 12 implementados · 8 en producción**.
+Hoy: **4 propuestos · 0 aprobados · 13 implementados · 8 en producción**.
 
 ---
 
@@ -26,7 +26,7 @@ Hoy: **4 propuestos · 1 aprobado · 12 implementados · 8 en producción**.
 | Spec | Estado | De qué se trata |
 |---|---|---|
 | [formato-spec](formato-spec.md) | `implementado` | El formato de estos documentos: secciones obligatorias, silogismo, diagramas, artefactos |
-| [agente-db](agente-db.md) | `aprobado` | Subagente `db` dueño de la base, y el proyecto `Atipico.Database.Tests` que le sirve de herramienta (falta escribirlo) |
+| [agente-db](agente-db.md) | `implementado` | Subagente `db` dueño de la base, y `Atipico.Database.Tests` (13/16 verde, 3 por drift real). Falta regenerar `schema_completo.sql` — bloqueado por credencial de Neon |
 
 ## Pedidos y sala
 

@@ -3,6 +3,7 @@
 ## Cómo trabaja el usuario
 - [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; el formato canónico vive en `specs/formato-spec.md`, leerlo antes de escribir uno.
 - [Jira corto, spec largo](atipico-jira-corto-spec-largo.md) — el ticket lleva lo esencial y un puntero; el detalle vive en el spec.
+- [No commitear sin aprobación](atipico-no-commit-sin-aprobacion.md) — implementar y verificar sí, pero commit/push esperan el visto bueno explícito, aunque el spec ya esté aprobado.
 - [El grafo va con el commit](atipico-grafo-con-el-commit.md) — commiteás specs, actualizás el grafo en el mismo turno; un hook de git no puede.
 - [Extracción del grafo: Haiku en segundo plano](atipico-grafo-haiku-background.md) — la extracción va a Haiku en background; la orquestación (merge/rebuild/poda/commit) la seguís haciendo vos, en vivo, con los guardas siempre obligatorios.
 - [Runbook y verificación](atipico-runbook-y-verificacion.md) — para cualquier script contra una instancia real: entregás el documento de pasos, el usuario ejecuta, vos verificás con las consultas necesarias.
@@ -28,6 +29,7 @@
 - [Comentarios Razor que rompen](atipico-razor-comentario-en-atributos.md) — entre atributos de un componente compilan y revientan en runtime; y `*@` adentro del comentario lo corta.
 
 ## Entorno y herramientas
+- [Atipico.Database.Tests: normalizar el catálogo](atipico-database-tests-catalogo-normalizado.md) — `\restrict`, `IN` vs `ANY(ARRAY)`, CRLF en dollar-quoting, líneas en blanco de `pg_dump`: cuatro capas antes de que la comparación sea confiable.
 - [PostgreSQL local](atipico-local-postgres-tooling.md) — el nativo en `C:\Program Files\PostgreSQL\18\bin\` nunca es la base de dev; desde 2026-09-10 esa es Docker en 5433, no Neon.
 - [aspire run sirve Debug](atipico-aspire-run-debug-rebuild.md) — compilás en Release y la pantalla no cambia; en el dashboard va Rebuild, no Reiniciar.
 - [Puerto zombi con Docker](atipico-docker-port-zombie-gotcha.md) — un `dotnet` en `127.0.0.1:<puerto>` tapa al contenedor mapeado al mismo puerto.

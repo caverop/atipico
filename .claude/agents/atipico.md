@@ -81,6 +81,14 @@ menor.
       `.graphify_extract.json`** con el `graph.json` parcheado, porque el rebuild lee de
       ahí, no del `graph.json`, y si quedan desincronizados el guard de #479 rechaza
       escribir por "achicar".
+   6. **Typo de ruta y "no hagas X" ignorado — chequeá siempre, no solo cuando algo se
+      ve raro.** Verificado dos veces el 2026-09-10: Haiku escribe `pdiego` en vez de
+      `pdieg` en el `source_file` (corregible con el script `fix_typo.py`), y una vez
+      creó 25 nodos por fila de tabla pese a que el prompt lo prohibía explícito, dos
+      veces. Antes de aceptar un chunk: `Counter(source_file)` para el typo de ruta, y
+      contar cuántos ids comparten un patrón sospechoso (`grep`/list-comprehension) para
+      lo segundo. Si podás algo, cuidado con llevarte de encuentro un id legítimo de una
+      corrida anterior que matchee el mismo patrón — recuperalo de `graph.json` antes.
 3. **Al empezar cualquier trabajo sobre specs, chequeá deriva primero.** El usuario
    commitea desde su terminal y ahí no hay agente, así que la regla no se disparó:
 

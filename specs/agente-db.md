@@ -5,10 +5,13 @@ Especificación para un subagente especializado en base de datos, y para el proy
 recoge las decisiones tomadas, las descartadas y su porqué, más la bitácora de lo verificado
 empíricamente el 2026-09-09.
 
-- **Estado:** **aprobado el 2026-09-09**; el agente existe (`.claude/agents/db.md`).
-  `Atipico.Database.Tests` sigue sin escribirse. El terreno está verificado (§5): la cadena de
-  migraciones corre limpia en un contenedor, y la comparación contra el snapshot ya encontró
-  tres diferencias reales.
+- **Estado:** **`Atipico.Database.Tests` implementado el 2026-09-10** (los tres tests de
+  deriva de §4.3 + el de `app_restaurante` sin `DELETE` de §4.2 — las pruebas de trigger
+  quedan para después, según §3 punto 5). Referenciado en `Atipico.slnx`, 16 tests: 13 en
+  verde, 3 en rojo por la razón correcta (§5.6). Sin Docker, la suite entera se saltea —
+  verificado, no falla. **Sigue bloqueada la regeneración de `schema_completo.sql`**: pide
+  `pg_dump` de solo lectura contra Neon (§2.3), y hoy no hay credencial válida a mano — ver
+  §5.6.
 - **Origen:** [SCRUM-19](https://caverop.atlassian.net/browse/SCRUM-19), tipo Task, sin
   descripción ni criterios de aceptación en el ticket — el alcance de este documento es la
   interpretación de lo pedido, acordada en conversación el 2026-09-09.
@@ -308,6 +311,69 @@ porque los dos volcados salieron de versiones distintas de `pg_dump`. Es la raz�
 test de §4.3.1 compara catálogo normalizado y no texto — y es exactamente el tipo de detalle que
 no se anticipa razonando, solo corriéndolo.
 
+### 5.6 Implementación de `Atipico.Database.Tests` — 2026-09-10
+
+Todo lo de esta sección se ejecutó de verdad, igual que §5.1-§5.5. `pg_get_constraintdef`
+**no alcanza solo** para normalizar el catálogo (§4.4 lo daba por sentado); hicieron falta
+tres capas más de normalización, cada una encontrada corriendo la suite, no leyendo el
+código:
+
+1. **`\restrict`/`\unrestrict`.** `psql`/`pg_dump` modernos envuelven todo el volcado en
+   estos dos meta-comandos de *cliente* (verificado en `sql/schema_completo.sql:53` y
+   `:1317`) — no son SQL, Npgsql (que habla el protocolo de cable, no el lenguaje de
+   `psql`) revienta con `syntax error` al toparlos. Se filtra cualquier línea que empiece
+   con `\` antes de ejecutar.
+2. **`IN (...)` vs `= ANY (ARRAY[...])` no es solo un problema de versión de `pg_dump`.**
+   Es estructural: Postgres guarda el árbol de expresión tal como se escribió el DDL
+   original, y `pg_get_constraintdef` lo reproduce sin colapsar las dos formas —
+   `script_inicial.sql` escribe `IN (...)`, `schema_completo.sql` (salida literal de
+   `pg_dump`) siempre usa `= ANY (ARRAY[...])`, con un cast por elemento
+   (`('MESERO'::character varying)::text`) más un paréntesis extra que la forma de la
+   cadena no tiene. Sin normalizar esto, las 8 restricciones de lista fallan por sintaxis
+   y ahogan la única diferencia real (`ck_usuario_rol` sin `DELIVERY`) en puro ruido.
+3. **CRLF dentro de `$function$...$function$`.** `sql/script_inicial.sql` está en un
+   checkout de Windows; dentro de un cuerpo con dollar-quoting Postgres guarda el `\r`
+   *literal*, no lo trata como fin de línea a normalizar. El mismo cuerpo, volcado por
+   `pg_dump` en Linux, no lo tiene — mismo código, bytes distintos. Se detectó comparando
+   `fn_cuenta_inmutable` con `diff`: visualmente idéntico, `file` marcaba un lado
+   `"with CRLF, LF line terminators"` y el otro `"ASCII text"` a secas.
+4. **Líneas en blanco entre sentencias, ya resuelto el CRLF.** `schema_completo.sql` trae
+   una línea vacía entre cada sentencia de varios triggers (`fn_cuenta_inmutable`,
+   `fn_detalle_inmutable`, `fn_pedido_plato_facturado`, `fn_touch`) que
+   `script_inicial.sql`, tal como está hoy en el repo, ya no tiene — semánticamente inerte
+   en PL/pgSQL, confirmado byte a byte reconstruyendo las dos bases a mano con `psql` y
+   diffeando. Se resuelve colapsando todo run de espacio en blanco a uno solo, después de
+   sacar los literales (paso 2) para no tocar el contenido de un mensaje de error.
+
+Con las cuatro capas, `CadenaVsSnapshotTests` deja de fallar por ruido y falla por lo real:
+**dos** diferencias, no las tres que predecía §5.3 —
+`fn_pedido_mesa_ocupada`/`tg_pedido_mesa_ocupada` (dropeados por `013`, ausentes de la
+cadena, presentes en el snapshot) y `ck_usuario_rol` sin `DELIVERY` (`014`)—. La tercera,
+`ck_cuenta_metodo`, ya no aparece: `015` (`specs/reparacion-ck-cuenta-metodo.md`, en
+producción el mismo día) la cerró, así que hoy cadena y snapshot coinciden ahí.
+
+**Otros dos hallazgos, de armado, no del dominio:**
+
+- **Orden de inicialización.** La primera versión de `PostgresFixture` armaba
+  `SnapshotOwnerConnectionString` *después* de llamar al método que la usaba —
+  `InvalidOperationException: The ConnectionString property has not been initialized`,
+  en las 16 pruebas a la vez. Se corrigió armando las tres cadenas de conexión antes de
+  cualquier `AplicarXAsync`.
+- **`xUnit v2.9.x` no tiene `Assert.Skip`/`SkipUnless` dinámico** (eso es de v3). El
+  mecanismo real es setear `Skip` en el constructor de un `FactAttribute`/`TheoryAttribute`
+  propio — se ejecuta en tiempo de *descubrimiento*, antes de correr nada — de ahí
+  `DockerFactAttribute`/`DockerTheoryAttribute`.
+
+**Verificado, no solo compilado:** 16 tests con Docker arriba (13 verde, 3 rojo por la razón
+correcta); 9 de 9 `Skipped` con Docker inalcanzable a propósito (PATH vaciado para el
+proceso de test, sin tocar el demonio real — el contenedor persistente de
+`docker-compose.db.yml` del usuario no se interrumpió); `dotnet test` de toda la solución,
+199 pruebas previas sin cambios + esto.
+
+**Sigue bloqueado:** regenerar `sql/schema_completo.sql` necesita `pg_dump --schema-only`
+de solo lectura contra Neon (§2.3), y la credencial local quedó desactualizada tras una
+rotación (`specs/postgres-local-dev.md` §8.1) sin que el agente tenga todavía una vigente.
+
 ## 6. Diseños descartados
 
 ### 6.1 "Mantener a mano un script principal"
@@ -370,16 +436,28 @@ solo se descubren corriendo (el ruido de `pg_dump`, el tiempo de arranque del co
       en `C:\Program Files\PostgreSQL\18\bin\`, `timestamptz` solo UTC. **Hecho** — sección
       "Trampas del entorno", más la receta del contenedor y el estado de deriva conocido, para
       que no tenga que redescubrirlo en cada arranque en frío.
-- [ ] `Atipico.Database.Tests` existe, referenciado en `Atipico.slnx`.
-- [ ] Con Docker levantado, la suite corre y **el test de §4.3.1 falla**, señalando las tres
-      diferencias de §5.3 — falla por la razón correcta, no por un error de armado.
-- [ ] Sin Docker, `dotnet test` en la raíz **no se pone rojo**: la suite se saltea y lo informa.
-- [ ] El test de §4.3.2 pasa hoy (la relación es subconjunto, y `MetodoPago` ⊂ `ck_cuenta_metodo`
-      se cumple contra la base desplegada).
-- [ ] El test de `app_restaurante` confirma que el `DELETE` falla con
-      `insufficient_privilege` (`42501`).
-- [ ] `sql/schema_completo.sql` regenerado y al día con `014`; el test de §4.3.1 pasa a verde
-      salvo por `ck_cuenta_metodo`.
+- [x] `Atipico.Database.Tests` existe, referenciado en `Atipico.slnx`. **Hecho el
+      2026-09-10.**
+- [x] Con Docker levantado, la suite corre y **el test de §4.3.1 falla**, señalando
+      diferencias reales de §5.3 — falla por la razón correcta, no por un error de armado.
+      **Hecho** — con un matiz que corrige lo anticipado: hoy son **dos** diferencias, no
+      tres (`fn_pedido_mesa_ocupada`/`tg_pedido_mesa_ocupada` por `013`, `ck_usuario_rol`
+      sin `DELIVERY` por `014`), no las tres originales — `ck_cuenta_metodo` **ya no
+      difiere**, porque `015` (`specs/reparacion-ck-cuenta-metodo.md`, en producción)
+      cerró ese drift el mismo día. Ver §5.6.
+- [x] Sin Docker, `dotnet test` en la raíz **no se pone rojo**: la suite se saltea y lo
+      informa. **Hecho y verificado** — 9 de 9 tests `Skipped`, cero `Failed`, con Docker
+      inalcanzable a propósito (no se apagó el demonio real, ver §5.6).
+- [x] El test de §4.3.2 pasa hoy (la relación es subconjunto, y los ocho enums con `CHECK`
+      —no solo `MetodoPago`— cumplen contra el catálogo real del contenedor, no contra
+      texto de `sql/`). **Hecho.**
+- [x] El test de `app_restaurante` confirma que el `DELETE` falla con
+      `insufficient_privilege` (`42501`), y que `INSERT`/`UPDATE` sí funcionan (el
+      contraste importa: el rol no está roto, le falta *justo* `DELETE`). **Hecho.**
+- [ ] `sql/schema_completo.sql` regenerado y al día con `014`; el test de §4.3.1 pasaría a
+      verde por completo (`ck_cuenta_metodo` ya no es la excepción que este criterio
+      anticipaba — ver arriba). **Bloqueado**: pide `pg_dump --schema-only` de solo
+      lectura contra Neon, y no hay credencial válida disponible ahora mismo — ver §5.6.
 
 ## 9. Fuera de alcance — lo que viene después
 
