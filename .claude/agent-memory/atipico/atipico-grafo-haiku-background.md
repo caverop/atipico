@@ -39,5 +39,20 @@ sigan siendo obligatorios.
    modelo extraiga: si perdió algo, se ve antes de escribir `graph.json`.
 4. Después del merge, **buscar duplicados por prefijo de etiqueta** (no por similitud de
    id, que da muchos falsos positivos) y podar los reales.
+5. **Spot-check de contenido nuevo explícito — el piso de nodos no alcanza.** Verificado
+   el 2026-09-10: Haiku cumplió el piso exacto (45 = 45, cero de más) y **no agregó
+   ninguno** de los conceptos que el prompt marcaba como genuinamente nuevos —el bug del
+   punto de montaje de `postgres:18-alpine`, encontrado esa misma sesión—. Peor: reusó la
+   etiqueta de un nodo existente **sin actualizarla**, dejando en el grafo un dato
+   objetivamente falso ("5 propuestos" cuando el archivo real ya decía "4"). El piso de
+   nodos protege contra *perder* contenido, no contra *no agregar* el nuevo ni contra
+   *dejar viejo* lo que cambió. Después de cada extracción, buscar en el grafo los
+   conceptos que el prompt pedía como nuevos por nombre/palabra clave; si no aparecen,
+   parchear a mano es más barato y más confiable que otra ronda de subagente —fue lo que
+   se hizo, agregando 4 nodos + 6 aristas + 1 corrección de label directo en `graph.json`,
+   resincronizando `.graphify_extract.json` después (si no, el guard de #479 rechaza
+   escribir por "achicar", porque `rebuild.py` lee de `.graphify_extract.json`, no de
+   `graph.json`, y ese archivo se queda desactualizado si se edita el `graph.json` a
+   mano).
 
 Relacionado: [[atipico-grafo-con-el-commit]], [[atipico-graphify-y-obsidian]].

@@ -72,6 +72,15 @@ menor.
       ids perdidos/nuevos contra ese respaldo **antes** de aceptar el merge.
    4. Buscar duplicados por prefijo de etiqueta (no por similitud de id) después del
       merge, y podar los reales.
+   5. **Spot-check de contenido nuevo explícito — el piso de nodos no alcanza.** Buscar
+      en el grafo, por nombre o palabra clave, los conceptos que el prompt marcaba como
+      genuinamente nuevos. Verificado el 2026-09-10: Haiku cumplió el piso exacto y aun
+      así no agregó ninguno, y encima dejó una etiqueta reusada con un dato ya falso
+      ("5 propuestos" cuando el archivo decía "4"). Si falta, parchear `graph.json` a
+      mano es más barato que otra ronda — y después **resincronizar
+      `.graphify_extract.json`** con el `graph.json` parcheado, porque el rebuild lee de
+      ahí, no del `graph.json`, y si quedan desincronizados el guard de #479 rechaza
+      escribir por "achicar".
 3. **Al empezar cualquier trabajo sobre specs, chequeá deriva primero.** El usuario
    commitea desde su terminal y ahí no hay agente, así que la regla no se disparó:
 
