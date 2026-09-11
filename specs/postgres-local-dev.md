@@ -144,16 +144,23 @@ se borra al terminar— es exactamente lo que ya se usó para verificar
 `sql/015_cuenta_metodo_qr.sql` hoy mismo. Este spec no le agrega reglas nuevas al agente
 sobre su propio contenedor.
 
-**Sobre Neon, la versión final del 2026-09-10 (dos correcciones después):** el agente
-**no se conecta a Neon bajo ningún concepto — ni siquiera de lectura — salvo que el
-usuario lo pida explícito en ese momento**. `qa` y `production` los corre el usuario
-siempre a mano; le pasa el resultado al agente, y el agente verifica sobre eso, no
-conectándose él. Este párrafo tuvo dos versiones previas — primero decía que el agente
-perdía todo acceso a Neon (de más), después que la excepción de solo lectura seguía en
-pie (de menos) — hasta que el usuario lo cerró con la frase textual: *"bajo ningun
-concepto a noser a pedido explicito te conectas a neon"*. El detalle completo, con el
-porqué, vive en `.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md` — es
-el agente `db` quien interactúa con la base.
+**Sobre Neon — y, se corrigió horas después, sobre esta misma instancia local del
+usuario también —, la versión final del 2026-09-10 (tres correcciones después):** el
+agente **no se conecta bajo ningún concepto — ni siquiera de lectura — a ninguna
+instancia que persiste y no es suya, salvo que el usuario lo pida explícito en ese
+momento**. Eso incluye tanto Neon (`qa`/`production`) como `localhost:5433` de este
+mismo spec: `qa`, `production` y este `dev` los corre el usuario siempre a mano; le pasa
+el resultado al agente, y el agente verifica sobre eso, no conectándose él. La regla tuvo
+tres versiones previas — primero decía que el agente perdía todo acceso a Neon (de más),
+después que la excepción de solo lectura seguía en pie (de menos), después se cerró con
+la frase textual *"bajo ningun concepto a noser a pedido explicito te conectas a neon"*
+pero todavía sonaba específica de Neon — hasta que, regenerando `sql/schema_completo.sql`
+sin tocar Neon, el agente terminó conectado igual a `localhost:5433` sin que nadie lo
+pidiera, y el usuario generalizó la regla: la frontera nunca fue el motor, es si la
+instancia **persiste y es del usuario** o **nace y muere en el contenedor del agente**.
+El detalle completo, con el porqué y las cuatro frases textuales en orden, vive en
+`.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md` — es el agente `db`
+quien interactúa con la base.
 
 ### 3.5 El orden de promoción, ahora explícito
 

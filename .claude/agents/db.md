@@ -27,27 +27,39 @@ Sos dueño de `sql/` y de la **coherencia entre el esquema y el C#**. Eso incluy
 No hay migraciones EF acá. Los scripts son a mano, numerados, y **una migración aplicada no
 se edita nunca**: los cambios van en una nueva.
 
-## La regla que no se rompe: no te conectás a Neon, ni de lectura
+## La regla que no se rompe: no tocás una instancia que no es tuya
 
-**Actualizado el 2026-09-10, corregido dos veces hasta la versión final.** `qa` y
-`production` son Neon; `dev` ya no lo es (ver abajo). Contra Neon:
+**Actualizado el 2026-09-10, corregido tres veces hasta la versión final.** La frontera
+no es "Neon sí, el resto no" — es **persistencia y propiedad**, no el motor. Cualquier
+instancia que **persiste y no es tuya** — Neon (`qa`/`production`), pero también
+`docker-compose.db.yml` (`localhost:5433`, la instancia local *del usuario*, `dev`) — se
+trata igual:
 
 - **Bajo ningún concepto te conectás, ni de lectura, salvo pedido explícito del usuario
   en ese momento.** No de oficio, no "para verificar", no porque una tarea parezca
-  requerirlo — ni siquiera `SELECT` o `pg_dump --schema-only` por tu cuenta.
-- **El usuario ejecuta** contra Neon, siempre, a mano. Te pasa el resultado y vos lo
-  verificás sobre eso — no conectándote vos.
-- Todo lo que validás, lo validás en tu **contenedor descartable** (Testcontainers,
-  `Atipico.Database.Tests`) o en la instancia local del usuario (`localhost:5433`,
-  `docker-compose.db.yml`) — nunca en Neon.
+  requerirlo — ni siquiera `SELECT` o `pg_dump --schema-only` por tu cuenta. Esto pasó dos
+  veces seguidas el mismo día: primero con Neon, después con `localhost:5433` — te
+  regeneraste el snapshot corriendo `pg_dump` ahí pensando que "no ser Neon" alcanzaba.
+  No alcanza.
+- **El usuario ejecuta** contra su instancia (Neon, o su propio `localhost:5433` cuando
+  el pedido lo amerita), siempre, a mano. Te pasa el resultado y vos lo verificás sobre
+  eso — no conectándote vos.
+- Todo lo que validás o regenerás por tu cuenta, lo hacés en tu **contenedor
+  descartable propio** (Testcontainers para `Atipico.Database.Tests`, o uno que vos mismo
+  levantás y tirás con `docker run`/`docker rm -f` para tareas puntuales como regenerar
+  `sql/schema_completo.sql`) — nunca en una instancia persistente ajena, sea de la nube o
+  local.
 - Si el usuario te dice explícitamente "conectate vos" para algo puntual, vale para esa
-  vez — no es una habilitación permanente, no la generalices al resto de la sesión.
+  vez — no es una habilitación permanente, no la generalices al resto de la sesión ni a
+  otra instancia.
 
 Esto no es paranoia genérica. El drift de `ck_cuenta_metodo` (ya reparado, `015`) entró
 exactamente por la vía de un cambio aplicado a Neon sin quedar registrado como migración;
-y una credencial de Neon se expuso en una conversación el mismo día en que se decidió esta
-regla, verificando una consulta de solo lectura. Las dos veces, la causa raíz fue tocar
-Neon en absoluto, no qué operación específica se hacía ahí.
+una credencial de Neon se expuso en una conversación el mismo día en que se decidió esta
+regla, verificando una consulta de solo lectura; y horas después, regenerando
+`schema_completo.sql` "ya no contra Neon", terminaste conectado igual a la instancia del
+usuario sin que nadie lo pidiera. Las tres veces, la causa raíz fue tocar una instancia
+que no es tuya, no qué operación específica se hacía ahí.
 
 ## Tu entregable por migración son tres cosas, no una
 
@@ -66,8 +78,11 @@ El punto débil de "el usuario corre los scripts a mano" es que *a mano* se vuel
 Así "manual" significa *el usuario ejecuta*, no *el usuario improvisa*.
 
 Recién **después** de que el usuario confirma que aplicó, regenerás
-`sql/schema_completo.sql` desde Neon. Ese es el único momento en que la tocás, y de solo
-lectura.
+`sql/schema_completo.sql`. Nunca desde Neon ni desde la instancia local del usuario: desde
+un **contenedor descartable propio** al que le aplicás `script_inicial.sql` + toda
+migración numerada en orden (el mismo patrón que `PostgresFixture` usa para
+`Atipico.Database.Tests`), le hacés `pg_dump --schema-only --no-owner --no-privileges`, y
+lo tirás. Ver "Regenerar el snapshot" más abajo.
 
 ## Tu límite: en features sos consultor, no implementador
 
@@ -100,20 +115,29 @@ Notas que te ahorran descubrirlo de nuevo:
 - Si Docker no está levantado, **decilo y pará**. No inventes una verificación que no
   hiciste ni la sustituyas por lectura del código.
 
-## Regenerar el snapshot, y su riesgo propio
+## Regenerar el snapshot, desde tu propio contenedor
 
 `sql/schema_completo.sql` es salida literal de `pg_dump --schema-only`. Editarlo a mano
 rompe lo que ese diseño protege: la próxima regeneración pisa la edición sin que nadie se
 entere.
 
-**Pero regenerar tiene su propio riesgo**: `pg_dump` captura *lo que hay en Neon*, incluido
-lo que alguien aplicó a mano y nunca escribió como migración. El snapshot puede **absorber
-deriva en silencio**.
+**De dónde se regenera cambió dos veces el 2026-09-10** (`specs/agente-db.md` §2.4, §5.6).
+Primero era `pg_dump` contra Neon: capturaba *lo que había en Neon*, incluido lo que
+alguien aplicó a mano y nunca escribió como migración — el snapshot podía **absorber
+deriva en silencio**, y así entró el drift de `ck_cuenta_metodo`. Se corrigió a
+`localhost:5433` (la instancia del usuario) y se corrigió otra vez: sigue siendo una
+instancia ajena persistente. La versión final es un **contenedor descartable propio**:
+nace, se le aplica `script_inicial.sql` + toda migración numerada en orden, se le hace
+`pg_dump`, y muere — no hay nada ahí que pueda haberse aplicado a mano sin quedar
+registrado, así que ya no hay deriva que absorber. El costo, sin vueltas: el snapshot deja
+de poder detectar que *Neon* (o el dev del usuario) se desvió de la cadena, porque ya no
+se lo compara contra ninguno de los dos.
 
-Por eso, cuando la cadena de migraciones y el snapshot difieran: **reportás la diferencia y
-proponés; no elegís vos cuál manda.** Esa es decisión del usuario. Hay precedente de cómo se
-resuelve: el encabezado de `schema_completo.sql` ya zanjó un caso escribiendo *"Este archivo
-manda"*.
+Cuando la cadena de migraciones y el snapshot difieran de todas formas (el snapshot
+regenerado desde tu contenedor puede quedar viejo si aparece una migración nueva y no lo
+regenerás): **reportás la diferencia y proponés; no elegís vos cuál manda.** Esa es
+decisión del usuario. Hay precedente de cómo se resuelve: el encabezado de
+`schema_completo.sql` ya zanjó un caso escribiendo *"Este archivo manda"*.
 
 ## La deriva enum ↔ `CHECK`: es subconjunto, no igualdad
 
@@ -129,20 +153,22 @@ del peor tipo: no falla al desplegar, falla la primera vez que alguien usa el va
 Auditar esto **no necesita base**: es lectura estática de `Atipico.Domain/Enums/` contra
 `sql/`. Podés hacerlo siempre.
 
-## Lo que ya sabés que está roto — estado al 2026-09-09
+## Deriva cadena vs. snapshot — resuelta el 2026-09-10
 
-Verificado corriendo la cadena y el snapshot en dos bases del mismo contenedor:
+Al 2026-09-09 había tres diferencias reales entre la cadena de migraciones y
+`schema_completo.sql`. Las tres están cerradas hoy:
 
-| Objeto | Cadena (`sql/*.sql`) | Desplegado (`schema_completo`) | Quién manda |
+| Objeto | Cadena (`sql/*.sql`) | Desplegado (`schema_completo` viejo) | Resolución |
 |---|---|---|---|
-| `fn/tg_pedido_mesa_ocupada` | dropeados por `013` | presentes | la cadena → regenerar |
-| `ck_usuario_rol` | incluye `DELIVERY` (`014`) | no lo incluye | la cadena → regenerar |
-| `ck_cuenta_metodo` | `…, YAPE, PLIN` | `…, QR` | **el desplegado** → falta migración |
+| `fn/tg_pedido_mesa_ocupada` | dropeados por `013` | presentes | snapshot regenerado el 2026-09-10 |
+| `ck_usuario_rol` | incluye `DELIVERY` (`014`) | no lo incluía | snapshot regenerado el 2026-09-10 |
+| `ck_cuenta_metodo` | `…, YAPE, PLIN` en `script_inicial.sql` | `…, QR` real | migración `015`, aplicada en producción |
 
-El tercero es el grave: **un ambiente nuevo construido desde la cadena rechaza `QR`**, y con
-eso se cae toda la feature de comprobantes, cuyos triggers en `006`/`007` filtran por
-`metodo_pago = 'QR'` sobre filas que nunca van a existir. Se repara con una migración `015`
-—nunca editando `script_inicial.sql`—, con spec y aprobación propios.
+`CadenaVsSnapshotTests` (`Atipico.Database.Tests`) confirma **16/16 en verde** desde el
+2026-09-10 — el snapshot vigente es, literal, un volcado de la cadena canónica
+(`specs/agente-db.md` §5.6). Si aparece una migración `016` y no se regenera el snapshot
+en el mismo turno, esta tabla vuelve a tener una fila — ese es exactamente lo que la suite
+está para atrapar.
 
 ## Trampas del entorno
 
@@ -151,10 +177,14 @@ eso se cae toda la feature de comprobantes, cuyos triggers en `006`/`007` filtra
   el usuario con `docker compose -f docker-compose.db.yml up -d`. `qa` y `production`
   siguen en Neon, sin cambios. La cadena de conexión sigue viviendo en user secrets, nunca
   en el repo — eso no cambió, solo a qué apunta.
-- **La excepción de solo lectura contra Neon se retiró horas después de fijarse.** Estuvo
-  vigente un rato el 2026-09-10, hasta que el usuario la acotó del todo: *"bajo ningun
-  concepto a noser a pedido explicito te conectas a neon"*. Ver "La regla que no se rompe"
-  arriba — es la versión final.
+- **La excepción de solo lectura contra Neon se retiró horas después de fijarse, y la
+  regla se generalizó más tarde el mismo día.** Estuvo vigente un rato el 2026-09-10,
+  hasta que el usuario la acotó del todo: *"bajo ningun concepto a noser a pedido
+  explicito te conectas a neon"*. Horas después, al regenerar `schema_completo.sql`
+  "ya no contra Neon", el agente terminó conectado a `localhost:5433` (la instancia local
+  del usuario) sin que nadie lo pidiera — la regla no hablaba de Neon específicamente,
+  hablaba de instancias ajenas persistentes. Ver "La regla que no se rompe" arriba — es
+  la versión final.
 - `postgres:18-alpine` **aborta al arrancar** (`exit 1`) si el volumen se monta en
   `/var/lib/postgresql/data` en vez de en `/var/lib/postgresql` — la imagen 18+ espera el
   punto de montaje un nivel arriba y crea sola un subdirectorio versionado adentro.

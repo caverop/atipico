@@ -7,11 +7,13 @@ empíricamente el 2026-09-09.
 
 - **Estado:** **`Atipico.Database.Tests` implementado el 2026-09-10** (los tres tests de
   deriva de §4.3 + el de `app_restaurante` sin `DELETE` de §4.2 — las pruebas de trigger
-  quedan para después, según §3 punto 5). Referenciado en `Atipico.slnx`, 16 tests: 13 en
-  verde, 3 en rojo por la razón correcta (§5.6). Sin Docker, la suite entera se saltea —
-  verificado, no falla. **Regenerar `schema_completo.sql` es tarea del usuario, no del
-  agente**: pide `pg_dump` contra Neon (§2.3), y el agente no se conecta ahí (§2.2) — ver
-  §5.6.
+  quedan para después, según §3 punto 5). Referenciado en `Atipico.slnx`, **16/16 en
+  verde**: `sql/schema_completo.sql` quedó al día con `013`/`014`/`015` el mismo día. Sin
+  Docker, la suite entera se saltea — verificado, no falla. **Regenerar
+  `schema_completo.sql` es tarea del agente**, desde un **contenedor descartable propio**
+  — nunca Neon, y tampoco la instancia local del usuario (`localhost:5433`): ambas quedan
+  fuera de los límites del agente salvo pedido explícito, misma regla generalizada. Ver
+  §2.2, §2.4 y §5.6.
 - **Origen:** [SCRUM-19](https://caverop.atlassian.net/browse/SCRUM-19), tipo Task, sin
   descripción ni criterios de aceptación en el ticket — el alcance de este documento es la
   interpretación de lo pedido, acordada en conversación el 2026-09-09.
@@ -75,25 +77,33 @@ C# contra ella. No al revés, y no los dos.
 **`db` sigue el mismo orden que todos: spec → plan → aprobación → código.** Una migración es un
 cambio; pasa por `specs/` antes que por `sql/`.
 
-### 2.2 Regla dura: el agente no se conecta a Neon, ni de lectura
+### 2.2 Regla dura: el agente no toca una instancia que no es suya
 
 **Actualización 2026-09-10** (`specs/postgres-local-dev.md`, SCRUM-29): `dev` ya no es
 Neon — es un `postgres:18-alpine` local (`docker-compose.db.yml`). "La base compartida de
 Neon" de acá en más son solo `qa` y `production`.
 
-**Versión final, tras dos correcciones el mismo día** (detalle en
-`.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md`): el agente **no se
-conecta a Neon bajo ningún concepto, ni siquiera de lectura, salvo pedido explícito del
-usuario en ese momento**. El agente:
+**Versión final, tras tres correcciones el mismo día** (detalle en
+`.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md`): la frontera no es
+"Neon sí, todo lo demás no" — es **persistencia y propiedad**, no el motor. Cualquier
+instancia que **persiste y no es del agente** —Neon, pero también
+`docker-compose.db.yml` (`localhost:5433`, la instancia local *del usuario*)— se trata
+igual: el agente no se conecta bajo ningún concepto, ni siquiera de lectura, salvo pedido
+explícito del usuario en ese momento puntual. El agente:
 
-- **Nunca** ejecuta DDL ni DML contra Neon. Ni `INSERT`, ni `ALTER`, ni `CREATE`. Nunca.
-- **Tampoco lee** — ni `SELECT` ni `pg_dump --schema-only` — por su cuenta. La excepción
-  de solo lectura que este párrafo tuvo unas horas se retiró: el usuario decidió que
-  ni siquiera eso vale sin que él lo pida en el momento.
-- Todo lo que valida, lo valida en un **contenedor descartable** que él mismo levanta, o
-  en la instancia local del usuario (`localhost:5433`).
-- **El usuario ejecuta** contra Neon, a mano, siempre — y le pasa el resultado al agente
-  para que verifique sobre eso, no conectándose él.
+- **Nunca** ejecuta DDL ni DML contra una instancia ajena persistente. Ni `INSERT`, ni
+  `ALTER`, ni `CREATE`. Nunca.
+- **Tampoco lee** — ni `SELECT` ni `pg_dump --schema-only` — por su cuenta. Pasó dos
+  veces la misma corrección: primero con Neon (una excepción de solo lectura que se
+  retiró a las pocas horas), después con `localhost:5433` (el agente corrió `pg_dump`
+  ahí pensando que "no ser Neon" alcanzaba para tener luz verde — no alcanza).
+- Todo lo que el agente valida o regenera por su cuenta, lo hace en un **contenedor
+  descartable propio**: nace para esa tarea, se le aplica la cadena canónica si hace
+  falta, y muere al terminar. Nunca en la instancia persistente del usuario, sea local o
+  en la nube.
+- **El usuario ejecuta** contra cualquier instancia suya (Neon, o su propio
+  `localhost:5433` cuando el pedido lo amerita), a mano, siempre — y le pasa el
+  resultado al agente para que verifique sobre eso, no conectándose él.
 
 Esto no es una precaución genérica: el drift documentado en §5.4 entró exactamente por la vía
 de aplicar algo a la base sin que quedara registrado como migración.
@@ -114,8 +124,12 @@ El punto débil de "el usuario corre los scripts a mano" es que *a mano* se conv
 Así "manual" significa *el usuario ejecuta*, no *el usuario improvisa*.
 
 Y recién **después** de que el usuario confirmó que aplicó, el agente regenera
-`sql/schema_completo.sql` desde Neon por `pg_dump`. Ese es el único momento en que toca Neon, y
-es de solo lectura.
+`sql/schema_completo.sql`. **Corregido dos veces el 2026-09-10** (ver §2.4): primero se
+pensó en Neon — descartado, el agente no se conecta ahí bajo ningún concepto. Después se
+probó `localhost:5433` (la instancia local del usuario) — también descartado, por la
+misma razón: no es del agente. La fuente final es un **contenedor descartable propio del
+agente**, que arma la cadena canónica (`script_inicial.sql` + `002...NNN`) desde cero,
+igual que `PostgresFixture` hace para `Atipico.Database.Tests`.
 
 ### 2.4 Regenerar, nunca editar a mano
 
@@ -123,15 +137,33 @@ es de solo lectura.
 `specs/script-inicial-completo.md` §2.1 lo establecen. Editarlo a mano rompe justamente lo que
 ese diseño protege: la próxima regeneración pisa la edición sin que nadie se entere.
 
-**Pero regenerar tiene un riesgo propio**, y hay que nombrarlo: `pg_dump` captura *lo que hay
-en Neon*, incluido cualquier cambio aplicado a mano que nunca se escribió como migración. El
-snapshot puede **absorber deriva en silencio**. Por eso el test de §4.3.1 no es un lujo: es lo
-que convierte "regenerar" en algo verificable.
+**De dónde se regenera cambió dos veces el 2026-09-10, y no es un detalle menor.** Primero
+era `pg_dump` contra Neon, con un riesgo nombrado explícito: Neon podía tener *cualquier
+cambio aplicado a mano que nunca se escribió como migración*, y el snapshot lo absorbía en
+silencio —exactamente así entró el drift de `ck_cuenta_metodo` (§5.4)—. La primera
+corrección lo movió a la instancia local del usuario (`docker-compose.db.yml`,
+`specs/postgres-local-dev.md`); la segunda corrección retiró también esa opción, porque
+seguía siendo una instancia que **persiste y no es del agente** — la frontera de §2.2 no
+es "Neon sí, lo demás no". La fuente final es un **contenedor descartable propio del
+agente**: nace, se le aplica `script_inicial.sql` + `002...015` en orden (nada pudo
+tocarlo a mano por fuera de esa cadena), se le hace `pg_dump`, y muere. No hay nada que
+absorber en silencio: el snapshot va a ser, siempre, exactamente lo que la cadena dice.
 
-**Y cuando cadena y snapshot difieran, cuál de los dos tiene razón es decisión del usuario, no
-del agente.** El agente reporta la diferencia y propone; no elige. Hay precedente de cómo se
-decide: el encabezado de `schema_completo.sql` ya resolvió un caso así escribiendo *"Este
-archivo manda"* (§5.4).
+**El costo de este cambio, dicho sin rodeos:** el snapshot deja de poder detectar que *Neon*
+divergió de la cadena — porque ya no se lo compara contra Neon. Cumple otro propósito, el que
+`specs/script-inicial-completo.md` §2.1 nombra primero: ser *"un atajo de un solo archivo para
+levantar un ambiente nuevo"*, fiel a la cadena. Verificar que la cadena coincide con lo que
+Neon tiene realmente desplegado sigue siendo posible — pero es una consulta que corre el
+usuario a mano contra Neon, cuando quiera confirmarlo, no algo que este archivo garantice solo.
+
+**Y cuando cadena y snapshot difieran** (por ejemplo, hoy: `013`/`014` no estaban en el
+snapshot vigente), **cuál de los dos tiene razón es decisión del usuario, no del agente.** El
+agente reporta la diferencia y propone; no elige. Con la fuente local, en la práctica la
+respuesta casi siempre es la misma: la cadena tiene razón, porque el snapshot solo se atrasó —
+ya no hay un tercer lado (Neon) que pueda tener razón por su cuenta. Sigue habiendo precedente
+de un caso donde no fue así: el encabezado de `schema_completo.sql` resolvió el drift de
+`ck_cuenta_metodo` escribiendo *"Este archivo manda"* (§5.4) — eso queda como registro
+histórico, no se reescribe.
 
 ## 3. Alcance v1
 
@@ -376,13 +408,44 @@ proceso de test, sin tocar el demonio real — el contenedor persistente de
 `docker-compose.db.yml` del usuario no se interrumpió); `dotnet test` de toda la solución,
 199 pruebas previas sin cambios + esto.
 
-**Regenerar `sql/schema_completo.sql` no es tarea bloqueada del agente — es tarea del
-usuario.** Necesita `pg_dump --schema-only` contra Neon (§2.3), y la regla final del
-2026-09-10 (§2.2) es que el agente no se conecta a Neon bajo ningún concepto salvo
-pedido explícito del usuario en el momento — no algo que espera a que consiga una
-credencial. El camino quedó claro después de que la credencial local se desactualizara
-tras una rotación (`specs/postgres-local-dev.md` §8.1): en vez de perseguir una nueva,
-el usuario decidió que directamente no hace falta que el agente la tenga.
+**Corregido otra vez, minutos después — GitHub Actions detectó los 3 rojos.** El párrafo
+de arriba decía que regenerar `sql/schema_completo.sql` era tarea del usuario, porque
+suponía que hacía falta `pg_dump` contra Neon. El usuario lo corrigió: *"pg_dump
+--schema-only porque haria eso si la bd es local"* — la instancia local
+(`localhost:5433`) ya tiene la cadena completa, `015` incluido, y el agente sí puede
+leerla directo. No hacía falta Neon para esto; era una suposición de más.
+
+**Y es más seguro así, no solo más rápido.** El riesgo que motivaba regenerar desde Neon
+—`pg_dump` "absorbe deriva en silencio", cualquier cambio a mano no registrado como
+migración se cuela en el snapshot (§2.4, el mismo mecanismo por el que entró el drift de
+`ck_cuenta_metodo`)— desaparece regenerando desde una instancia que **nace pura** de
+`script_inicial.sql` + las migraciones numeradas. No hay nada ahí que pueda haberse
+aplicado a mano sin quedar registrado. El costo, nombrado sin vueltas en §2.4: el
+snapshot deja de poder detectar que *Neon* se desvió de la cadena — ya no se lo compara
+contra Neon en absoluto.
+
+**Corregido una tercera vez, minutos después.** El párrafo anterior decía que la
+regeneración se había hecho contra `docker-compose.db.yml` (`localhost:5433`) — y eso se
+llegó a ejecutar: un `pg_dump` real corrió contra esa instancia y produjo un crudo de
+1220 líneas. El usuario lo frenó: *"quedamos que la instancia para validar los test
+corren por tu lado en tu instancia, solo mis pruebas manuales yo voy a ejecutar el
+dump"*. `localhost:5433` es la instancia local **del usuario**, persistente — la misma
+categoría que Neon para efectos de esta regla, aunque no sea la nube. La frontera
+correcta, según la corrigió el usuario, no es "Neon no, Docker local sí": es **lo que
+persiste y no es del agente, contra lo que nace y muere en cada corrida del agente**.
+
+Se descartó el crudo sacado de `:5433` y se regeneró de nuevo, esta vez desde un
+contenedor Postgres descartable propio (`atipico-schema-regen`, levantado y eliminado en
+esta misma sesión): se le aplicó `script_inicial.sql` + `002`...`015` en el mismo orden
+que usa `PostgresFixture` (`Directory.GetFiles` ordenado por nombre), se confirmó el
+conteo de objetos contra la instancia del usuario antes de tirar el contenedor (11
+tablas, 5 vistas, 35 índices, 7 funciones, 9 triggers — coincide, ambas instancias están
+en el mismo estado), y se le hizo `pg_dump --schema-only --no-owner --no-privileges`.
+`BLOQUE 2` se reescribió a mano como siempre (`pg_dump` no emite `CREATE ROLE`, es de
+cluster). Confirmado con `dotnet test Atipico.Database.Tests -c Release`:
+**`CadenaVsSnapshotTests` pasa 16/16, cero fallos** — los dos tests que fallaban por
+diseño hasta acá ya no tienen nada que señalar, el snapshot es, literal, un volcado de la
+misma cadena que comparan.
 
 ## 6. Diseños descartados
 
@@ -464,16 +527,20 @@ solo se descubren corriendo (el ruido de `pg_dump`, el tiempo de arranque del co
 - [x] El test de `app_restaurante` confirma que el `DELETE` falla con
       `insufficient_privilege` (`42501`), y que `INSERT`/`UPDATE` sí funcionan (el
       contraste importa: el rol no está roto, le falta *justo* `DELETE`). **Hecho.**
-- [ ] `sql/schema_completo.sql` regenerado y al día con `014`; el test de §4.3.1 pasaría a
-      verde por completo (`ck_cuenta_metodo` ya no es la excepción que este criterio
-      anticipaba — ver arriba). **Tarea del usuario, no del agente**: pide `pg_dump
-      --schema-only` contra Neon, y el agente no se conecta ahí (§2.2) — ver §5.6.
+- [x] `sql/schema_completo.sql` regenerado y al día con `013`, `014` y `015`; el test de
+      §4.3.1 pasa a verde por completo. **Hecho el 2026-09-10** — regenerado desde un
+      contenedor descartable propio del agente (nunca Neon, nunca `localhost:5433`),
+      `CadenaVsSnapshotTests` confirmado en **16/16** con `dotnet test
+      Atipico.Database.Tests -c Release`. Ver §5.6.
 
 ## 9. Fuera de alcance — lo que viene después
 
-- **Migración `015`** para `ck_cuenta_metodo` (§5.4). Necesita spec propio y aprobación.
+- ~~Migración `015` para `ck_cuenta_metodo`~~ — **hecha**: spec propio
+  (`specs/reparacion-ck-cuenta-metodo.md`), aprobada, aplicada y verificada en producción
+  el 2026-09-10. Ya no está fuera de alcance, queda tachada como registro de que este
+  documento la anticipó antes de existir.
 - **Verificar `dev_datos_iniciales.sql`** de punta a punta en el contenedor: lo que
   `specs/script-inicial-completo.md` §6 dejó en checklist sin marcar. Ahora hay con qué.
-- **La rama de Neon para desarrollo** (`specs/cicd-github-azure-render.md` §3.2). Si nace de la
-  cadena en vez del snapshot, hereda el bug de QR de §5.4 — otra razón para reparar el drift
-  antes.
+- ~~La rama de Neon para desarrollo~~ — **ya no aplica**: `dev` dejó de ser Neon el
+  2026-09-10 (`specs/postgres-local-dev.md`, SCRUM-29), pasó a `docker-compose.db.yml`
+  local. No hay rama de Neon que crear.

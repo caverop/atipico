@@ -53,12 +53,18 @@ menor.
    —ese es el modo estructural sin LLM, da nodos superficiales y los escribe en
    `specs/graphify-out/` en vez del canónico— y siempre desde la raíz del repo.
 
-   **La extracción va a un subagente Haiku, en segundo plano** (`Agent` con
-   `model: "haiku"`, `run_in_background: true`) — es el paso caro en tiempo (3–16
-   minutos por corrida) y el que menos necesita que lo mires en vivo. **La
-   orquestación no** — mergear, rebuildear, verificar contra respaldo, podar
-   duplicados y commitear los seguís haciendo vos mismo, en el hilo principal, con
-   Bash/Python directo. Ahí vive el control, y no es delegable.
+   **La extracción va a un subagente en segundo plano** (`Agent` con
+   `run_in_background: true`) — es el paso caro en tiempo (3–16 minutos por corrida) y
+   el que menos necesita que lo mires en vivo. **La orquestación no** — mergear,
+   rebuildear, verificar contra respaldo, podar duplicados y commitear los seguís
+   haciendo vos mismo, en el hilo principal, con Bash/Python directo. Ahí vive el
+   control, y no es delegable.
+
+   **Qué modelo:** `model: "sonnet"` para la próxima corrida — pedido el 2026-09-10 tras
+   tres corridas con Haiku que repitieron el mismo typo de ruta (una vez el propio
+   subagente lo dio por corregido en su resumen) y una que omitió, sin aviso, un id de
+   la lista de reuso. Es una comparación puntual, no todavía un cambio de default —
+   ver [[atipico-grafo-haiku-background]] y decidir después de ver cómo sale Sonnet.
 
    Sea cual sea el modelo que extraiga, estos cuatro guardas son obligatorios, no
    opcionales — atraparon dos incidentes reales el 2026-09-10 con un modelo más
@@ -81,14 +87,15 @@ menor.
       `.graphify_extract.json`** con el `graph.json` parcheado, porque el rebuild lee de
       ahí, no del `graph.json`, y si quedan desincronizados el guard de #479 rechaza
       escribir por "achicar".
-   6. **Typo de ruta y "no hagas X" ignorado — chequeá siempre, no solo cuando algo se
-      ve raro.** Verificado dos veces el 2026-09-10: Haiku escribe `pdiego` en vez de
-      `pdieg` en el `source_file` (corregible con el script `fix_typo.py`), y una vez
-      creó 25 nodos por fila de tabla pese a que el prompt lo prohibía explícito, dos
-      veces. Antes de aceptar un chunk: `Counter(source_file)` para el typo de ruta, y
-      contar cuántos ids comparten un patrón sospechoso (`grep`/list-comprehension) para
-      lo segundo. Si podás algo, cuidado con llevarte de encuentro un id legítimo de una
-      corrida anterior que matchee el mismo patrón — recuperalo de `graph.json` antes.
+   6. **Nunca confíes en el resumen del subagente — verificá vos mismo, siempre.** El
+      typo `pdiego`/`pdieg` en `source_file` ya salió **tres** corridas seguidas — una
+      vez el propio subagente lo dio como corregido en su resumen (mintiendo sin
+      querer). También pasó que omitió, sin aviso, un id de la lista de reuso que sí
+      tenía que reusar (guarda 3 no alcanza solo: el piso total puede seguir cumplido
+      aunque falte exactamente el nodo que pedías). El detalle completo, con los
+      comandos exactos de chequeo, está en
+      [[atipico-grafo-haiku-background]] — leerla antes de aceptar cualquier chunk, no
+      reconstruir de memoria.
 3. **Al empezar cualquier trabajo sobre specs, chequeá deriva primero.** El usuario
    commitea desde su terminal y ahí no hay agente, así que la regla no se disparó:
 
@@ -130,13 +137,16 @@ nadie mira.
   (Testcontainers, `Atipico.Database.Tests`). Misma idea de los dos lados — Docker
   local — con instancias distintas: la del usuario persiste, la tuya nace y muere por
   corrida.
-- **Bajo ningún concepto te conectás a Neon, salvo pedido explícito del usuario en ese
-  momento.** No de oficio, no "para verificar", no porque una tarea parezca requerirlo.
-  `qa` y `production` los corre el usuario siempre a mano — él te pasa el resultado y
-  vos lo verificás sobre eso, no conectándote vos. Si algo parece necesitar tocar Neon
-  (por ejemplo, regenerar `sql/schema_completo.sql` con `pg_dump`), entregale el comando
-  exacto y esperá su resultado — no lo corras vos, ni siquiera de lectura, a menos que
-  él te lo pida en el momento.
+- **Bajo ningún concepto te conectás a una instancia que no es tuya — ni Neon, ni el
+  `localhost:5433` del usuario —, salvo pedido explícito del usuario en ese momento.** No
+  de oficio, no "para verificar", no porque una tarea parezca requerirlo. La frontera es
+  persistencia y propiedad, no el motor: `qa`/`production` (Neon) y el `dev` local del
+  usuario los corre siempre él a mano — te pasa el resultado y vos lo verificás sobre eso,
+  no conectándote vos. Corregido dos veces el 2026-09-10 — la segunda vez porque el propio
+  agente `db` regeneró `sql/schema_completo.sql` conectándose a `localhost:5433` pensando
+  que "no ser Neon" alcanzaba. No hace falta ninguna de las dos: esa regeneración se hace
+  en un contenedor descartable propio, aplicando la cadena canónica ahí. Ver
+  `.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md`.
 - La app se conecta como `app_restaurante`, sin `GRANT DELETE`: todo `DELETE`
   falla por diseño. Se anula, no se borra. Es así en Neon y en `localhost:5433` —
   `docker-compose.db.yml` corre el mismo `script_inicial.sql` con el mismo `BLOQUE 2`.
