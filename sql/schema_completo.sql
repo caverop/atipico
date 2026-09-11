@@ -1,17 +1,26 @@
 -- =====================================================================
 -- schema_completo.sql — snapshot consolidado del esquema de Atipico
--- PostgreSQL 12+ (verificado sobre 18.3)
+-- PostgreSQL 12+ (verificado sobre 18.6)
 --
--- REGENERADO el 2026-08-31 con pg_dump --schema-only sobre una base
--- descartable construida así: el snapshot anterior (que reflejaba la base
--- real hasta 005_plato_habilitado_hasta.sql) + las migraciones 006 a 012
--- aplicadas en orden. Las 7 aplicaron limpias.
+-- REGENERADO el 2026-09-10 con pg_dump --schema-only sobre un contenedor
+-- Postgres descartable propio del agente — nace, se le aplica la cadena
+-- canónica completa (script_inicial.sql + 002...015 en orden, no un delta
+-- sobre el snapshot anterior) y muere. Nunca contra Neon ni contra la
+-- instancia de dev del usuario (docker-compose.db.yml): ver
+-- specs/agente-db.md §2.2 y §2.4.
 --
--- Reemplaza al snapshot del 2026-08-18, que se había quedado 7 migraciones
--- atrás: le faltaban comprobante_pago, turno_caja, pedido.tipo,
--- pedido.direccion_entrega, pedido.numero_turno y pedido.id_turno_caja.
+-- Reemplaza al snapshot del 2026-08-31, que se había quedado 3 migraciones
+-- atrás (013, 014, 015) sin que nada lo marcara — recién lo destapó la
+-- primera corrida de Atipico.Database.Tests en CI:
+--   - 013_mesa_compartida_por_turno.sql eliminó tg_pedido_mesa_ocupada y
+--     fn_pedido_mesa_ocupada(); el snapshot viejo todavía los tenía.
+--   - 014_rol_delivery.sql agregó DELIVERY a ck_usuario_rol; el snapshot
+--     viejo se había quedado en MESERO/CAJERO/COCINERO/ADMIN.
+--   - 015_cuenta_metodo_qr.sql agregó QR a ck_cuenta_metodo; el snapshot
+--     viejo no lo incluía y por lo tanto la feature de comprobantes QR no
+--     se podía levantar en un ambiente construido desde este archivo.
 --
--- Contiene 11 tablas, 15 índices, 8 funciones, 10 triggers y 5 vistas.
+-- Contiene 11 tablas, 5 vistas, 35 índices, 7 funciones y 9 triggers.
 --
 -- Este archivo NO reemplaza a script_inicial.sql ni a las migraciones
 -- numeradas: esas siguen siendo el historial canónico, y script_inicial.sql
@@ -32,7 +41,7 @@
 -- (mapeado a UPPER_SNAKE_CASE por UpperSnakeCaseEnumConverter). No hay una
 -- única fuente de verdad — pero desde 2026-08-31 sí hay una prueba que falla
 -- si divergen: Atipico.Infraestructure.Tests/ModeloEnumsCheckTest.cs.
---   ck_usuario_rol         <-> RolUsuario
+--   ck_usuario_rol         <-> RolUsuario (incluye Delivery desde 014)
 --   ck_mesa_estado         <-> EstadoMesa
 --   ck_pedido_estado       <-> EstadoPedido
 --   ck_pedido_plato_estado <-> EstadoPedidoPlato
@@ -41,19 +50,21 @@
 --   ck_pedido_tipo         <-> TipoPedido  (008_pedido_tipo.sql)
 --   ck_cuenta_metodo       <-> MetodoPago — DRIFT CONOCIDO: la base permite
 --       ('EFECTIVO','TARJETA','TRANSFERENCIA','QR') y MetodoPago.cs define
---       solo Efectivo/Qr. Es holgura deliberada. OJO: script_inicial.sql
+--       solo Efectivo/Qr. Es holgura deliberada (015_cuenta_metodo_qr.sql,
+--       specs/reparacion-ck-cuenta-metodo.md §4.2): la relación correcta
+--       entre enum y CHECK es subconjunto, no igualdad. OJO: script_inicial.sql
 --       todavía documenta ('...','YAPE','PLIN'), que NO es lo desplegado y no
---       hay migración que registre el cambio. Este archivo manda.
+--       hay migración que registre ese cambio puntual. Este archivo manda.
 -- =====================================================================
 
 --
 -- PostgreSQL database dump
 --
 
-\restrict q7QXGFjmQg3ZF9PgUUSabYPzVKemq4RcDnoyT1dv5pzmiQzcC9E4z3mpU5h1Q1E
+\restrict Ub8BS6KaFSlRaOSk33JDjirBa4LzYW1Qe7F4v1crmDQEtfMdJrmkqU2h00jSIIq
 
--- Dumped from database version 18.3
--- Dumped by pg_dump version 18.3
+-- Dumped from database version 18.6
+-- Dumped by pg_dump version 18.6
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -106,32 +117,32 @@ $$;
 
 CREATE FUNCTION public.fn_cuenta_inmutable() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-    IF NEW.estado = 'ANULADA' AND NEW.anulado_en IS NULL THEN
-        NEW.anulado_en := now();
-    END IF;
-
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'No se eliminan cuentas: anule la cuenta % con motivo', OLD.id;
-    END IF;
-
-    IF OLD.estado = 'ABIERTA' THEN
-        RETURN NEW;
-    END IF;
-
-    IF OLD.estado = 'PAGADA' AND NEW.estado = 'ANULADA'
-       AND NEW.id_anulado_por IS NOT NULL
-       AND NEW.motivo_anulacion IS NOT NULL AND btrim(NEW.motivo_anulacion) <> ''
-       AND (to_jsonb(NEW) - 'estado' - 'anulado_en' - 'id_anulado_por' - 'motivo_anulacion')
-           IS NOT DISTINCT FROM
-           (to_jsonb(OLD) - 'estado' - 'anulado_en' - 'id_anulado_por' - 'motivo_anulacion')
-    THEN
-        RETURN NEW;
-    END IF;
-
-    RAISE EXCEPTION 'Cuenta % en estado %: solo admite anulacion documentada', OLD.id, OLD.estado;
-END;
+    AS $$
+BEGIN
+    IF NEW.estado = 'ANULADA' AND NEW.anulado_en IS NULL THEN
+        NEW.anulado_en := now();
+    END IF;
+
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'No se eliminan cuentas: anule la cuenta % con motivo', OLD.id;
+    END IF;
+
+    IF OLD.estado = 'ABIERTA' THEN
+        RETURN NEW;
+    END IF;
+
+    IF OLD.estado = 'PAGADA' AND NEW.estado = 'ANULADA'
+       AND NEW.id_anulado_por IS NOT NULL
+       AND NEW.motivo_anulacion IS NOT NULL AND btrim(NEW.motivo_anulacion) <> ''
+       AND (to_jsonb(NEW) - 'estado' - 'anulado_en' - 'id_anulado_por' - 'motivo_anulacion')
+           IS NOT DISTINCT FROM
+           (to_jsonb(OLD) - 'estado' - 'anulado_en' - 'id_anulado_por' - 'motivo_anulacion')
+    THEN
+        RETURN NEW;
+    END IF;
+
+    RAISE EXCEPTION 'Cuenta % en estado %: solo admite anulacion documentada', OLD.id, OLD.estado;
+END;
 $$;
 
 
@@ -141,78 +152,35 @@ $$;
 
 CREATE FUNCTION public.fn_detalle_inmutable() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-DECLARE
-    v_id_cuenta    bigint;
-    v_estado       varchar(20);
-    v_estado_plato varchar(20);
-BEGIN
-    IF TG_OP = 'DELETE' THEN
-        RAISE EXCEPTION 'No se eliminan lineas de cuenta; anule la cuenta completa';
-    END IF;
-
-    IF TG_OP = 'UPDATE' THEN
-        IF OLD.id_cuenta IS DISTINCT FROM NEW.id_cuenta THEN
-            RAISE EXCEPTION 'No se puede mover una linea de cuenta a otra cuenta';
-        END IF;
-        v_id_cuenta := OLD.id_cuenta;
-    ELSE
-        v_id_cuenta := NEW.id_cuenta;
-        SELECT pp.estado INTO v_estado_plato
-        FROM pedido_plato pp WHERE pp.id = NEW.id_pedido_plato FOR SHARE;
-        IF v_estado_plato = 'ANULADO' THEN
-            RAISE EXCEPTION 'El plato % esta anulado: no puede facturarse', NEW.id_pedido_plato;
-        END IF;
-    END IF;
-
-    -- FOR SHARE: impide que el cobro cierre la cuenta entre este chequeo
-    -- y el COMMIT de esta transacción.
-    SELECT c.estado INTO v_estado FROM cuenta c WHERE c.id = v_id_cuenta FOR SHARE;
-    IF v_estado <> 'ABIERTA' THEN
-        RAISE EXCEPTION 'La cuenta % no esta abierta: su detalle no se modifica', v_id_cuenta;
-    END IF;
-
-    RETURN NEW;
-END;
-$$;
-
-
---
--- Name: fn_pedido_mesa_ocupada(); Type: FUNCTION; Schema: public; Owner: -
---
-
-CREATE FUNCTION public.fn_pedido_mesa_ocupada() RETURNS trigger
-    LANGUAGE plpgsql
     AS $$
 DECLARE
-    v_turno  bigint;
-    v_numero int;
-    v_otro   int;
+    v_id_cuenta    bigint;
+    v_estado       varchar(20);
+    v_estado_plato varchar(20);
 BEGIN
-    SELECT id_turno_caja INTO v_turno FROM pedido WHERE id = NEW.id_pedido;
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION 'No se eliminan lineas de cuenta; anule la cuenta completa';
+    END IF;
 
-    -- Lock sobre la fila de la mesa, sostenido hasta el commit. Sin esto, dos
-    -- meseros sentando gente en la mesa 5 al mismo tiempo pasan los dos el
-    -- chequeo y la doble ocupación entra igual: el conteo de abajo no ve una
-    -- fila que otra transacción todavía no commiteó. Es el mismo recurso que
-    -- usa fn_pedido_numero_turno, y con la misma condición: la transacción que
-    -- asocia la mesa tiene que ser corta.
-    SELECT numero INTO v_numero FROM mesa WHERE id = NEW.id_mesa FOR UPDATE;
+    IF TG_OP = 'UPDATE' THEN
+        IF OLD.id_cuenta IS DISTINCT FROM NEW.id_cuenta THEN
+            RAISE EXCEPTION 'No se puede mover una linea de cuenta a otra cuenta';
+        END IF;
+        v_id_cuenta := OLD.id_cuenta;
+    ELSE
+        v_id_cuenta := NEW.id_cuenta;
+        SELECT pp.estado INTO v_estado_plato
+        FROM pedido_plato pp WHERE pp.id = NEW.id_pedido_plato FOR SHARE;
+        IF v_estado_plato = 'ANULADO' THEN
+            RAISE EXCEPTION 'El plato % esta anulado: no puede facturarse', NEW.id_pedido_plato;
+        END IF;
+    END IF;
 
-    SELECT count(*) INTO v_otro
-    FROM pedido_mesa pm
-    JOIN pedido p ON p.id = pm.id_pedido
-    WHERE pm.id_mesa    = NEW.id_mesa
-      AND pm.id_pedido <> NEW.id_pedido
-      AND p.id_turno_caja = v_turno
-      AND p.estado NOT IN ('CERRADO', 'ANULADO');
-
-    -- RAISE EXCEPTION sin ERRCODE deja P0001, el único código de trigger que
-    -- TryTranslateDbError traduce: devuelve el MessageText tal cual dentro de un
-    -- 409. Por eso el texto va redactado para el mesero, con el número de mesa
-    -- que él ve en el salón y no con el id.
-    IF v_otro > 0 THEN
-        RAISE EXCEPTION 'La mesa % ya está ocupada por otro pedido de este turno.', v_numero;
+    -- FOR SHARE: impide que el cobro cierre la cuenta entre este chequeo
+    -- y el COMMIT de esta transacción.
+    SELECT c.estado INTO v_estado FROM cuenta c WHERE c.id = v_id_cuenta FOR SHARE;
+    IF v_estado <> 'ABIERTA' THEN
+        RAISE EXCEPTION 'La cuenta % no esta abierta: su detalle no se modifica', v_id_cuenta;
     END IF;
 
     RETURN NEW;
@@ -261,25 +229,25 @@ $$;
 
 CREATE FUNCTION public.fn_pedido_plato_facturado() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-DECLARE
-    v_cuenta bigint;
-BEGIN
-    IF NEW.estado <> 'ANULADO' OR OLD.estado = 'ANULADO' THEN
-        RETURN NEW;
-    END IF;
-
-    SELECT d.id_cuenta INTO v_cuenta FROM detalle_cuenta d WHERE d.id_pedido_plato = OLD.id;
-    IF FOUND THEN
-        RAISE EXCEPTION 'El plato % ya fue facturado en la cuenta %: anule la cuenta, no el plato',
-            OLD.id, v_cuenta;
-    END IF;
-
-    IF NEW.anulado_en IS NULL THEN
-        NEW.anulado_en := now();
-    END IF;
-    RETURN NEW;
-END;
+    AS $$
+DECLARE
+    v_cuenta bigint;
+BEGIN
+    IF NEW.estado <> 'ANULADO' OR OLD.estado = 'ANULADO' THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT d.id_cuenta INTO v_cuenta FROM detalle_cuenta d WHERE d.id_pedido_plato = OLD.id;
+    IF FOUND THEN
+        RAISE EXCEPTION 'El plato % ya fue facturado en la cuenta %: anule la cuenta, no el plato',
+            OLD.id, v_cuenta;
+    END IF;
+
+    IF NEW.anulado_en IS NULL THEN
+        NEW.anulado_en := now();
+    END IF;
+    RETURN NEW;
+END;
 $$;
 
 
@@ -289,11 +257,11 @@ $$;
 
 CREATE FUNCTION public.fn_touch() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
-BEGIN
-    NEW.actualizado_en := now();
-    RETURN NEW;
-END;
+    AS $$
+BEGIN
+    NEW.actualizado_en := now();
+    RETURN NEW;
+END;
 $$;
 
 
@@ -701,7 +669,7 @@ CREATE TABLE public.usuario (
     actualizado_en timestamp with time zone DEFAULT now() NOT NULL,
     nombre_usuario character varying(60) NOT NULL,
     password_hash character varying(200) NOT NULL,
-    CONSTRAINT ck_usuario_rol CHECK (((rol)::text = ANY ((ARRAY['MESERO'::character varying, 'CAJERO'::character varying, 'COCINERO'::character varying, 'ADMIN'::character varying])::text[])))
+    CONSTRAINT ck_usuario_rol CHECK (((rol)::text = ANY ((ARRAY['MESERO'::character varying, 'CAJERO'::character varying, 'COCINERO'::character varying, 'ADMIN'::character varying, 'DELIVERY'::character varying])::text[])))
 );
 
 
@@ -1126,13 +1094,6 @@ CREATE TRIGGER tg_detalle_inmutable BEFORE INSERT OR DELETE OR UPDATE ON public.
 
 
 --
--- Name: pedido_mesa tg_pedido_mesa_ocupada; Type: TRIGGER; Schema: public; Owner: -
---
-
-CREATE TRIGGER tg_pedido_mesa_ocupada BEFORE INSERT OR UPDATE ON public.pedido_mesa FOR EACH ROW EXECUTE FUNCTION public.fn_pedido_mesa_ocupada();
-
-
---
 -- Name: pedido tg_pedido_numero_turno; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -1314,9 +1275,11 @@ ALTER TABLE ONLY public.turno_caja
 -- PostgreSQL database dump complete
 --
 
-\unrestrict q7QXGFjmQg3ZF9PgUUSabYPzVKemq4RcDnoyT1dv5pzmiQzcC9E4z3mpU5h1Q1E
+\unrestrict Ub8BS6KaFSlRaOSk33JDjirBa4LzYW1Qe7F4v1crmDQEtfMdJrmkqU2h00jSIIq
+
 
 COMMIT;
+
 
 
 -- #####################################################################

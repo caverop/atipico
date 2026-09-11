@@ -12,11 +12,34 @@ el plan"*. Lo ha pedido repetidamente: *"realiza el plan y diagramas previamente
 *"primeramente actualiza el spec"*, *"primero el spec y luego planifica los
 cambios"*, *"revisa el spec y dame tu punto final antes de implementarlo"*.
 
-**Formato del documento.** Cada feature tiene el suyo en `specs/<feature>.md`, en
-español, con secciones numeradas y cabecera de estado / alcance / fuera-de-alcance.
-Incluye el razonamiento detrás de cada decisión, el plan de implementación numerado
-como sección propia, una sección de despliegue a producción, y diagramas Mermaid
-cuando el flujo lo pide. La línea de estado se actualiza cuando la feature sale.
+**Formato del documento.** Vive en `specs/formato-spec.md` (SCRUM-26) — leerlo antes
+de escribir un spec, no reconstruirlo de memoria. Cada feature tiene el suyo en
+`specs/<feature>.md`, en español, con secciones numeradas. El usuario pidió
+explícitamente el 2026-09-09 —*"graba en tu comportamiento lo siguiente para los
+specs"*— que todo spec lleve: resumen del estado actual al principio, resumen en
+pocas palabras al final, un apartado de **silogismo**, al menos un **diagrama**
+(prefiere secuencia), y una **lista de artefactos** nuevos / a modificar / a
+eliminar. Y que sea conciso: explicar con gráficos antes que con párrafos.
+
+Dos matices que él aceptó al proponérselos, y que no hay que volver a discutir: el
+diagrama es *del tipo que corresponda* (secuencia solo donde hay interacción real —
+este dominio es sobre todo máquinas de estado), y el silogismo va sobre la **decisión
+discutible** del spec, con una cláusula de reapertura que lo vuelva falsable.
+
+**Un archivo por spec, siempre. Sin carpetas y sin umbral de tamaño.** Se evaluaron
+las dos variantes y se descartaron las dos: carpeta-siempre rompe los enlaces
+relativos entre specs, las citas desde el código y los ids de graphify sin ganancia
+en 19 de 23 casos; y carpeta-por-umbral no la puede disparar nada, porque no hay
+hooks (viven en `settings.json`, que no se toca) y el CI no mira `specs/`. Lo que
+reemplaza al corte en archivos es una línea `**Contenido:** §1–§11 el diseño · §12 el
+plan · §13 la bitácora` en la cabecera, obligatoria pasando 8 secciones — la inventó
+solo `numero-pedido.md`, el más grande, y §7 del formato la generaliza.
+
+**Cómo se comporta el usuario acá, y vale para la próxima:** propuso carpeta-por-spec,
+aceptó la contrapropuesta por umbral, y después preguntó *"si el umbral no te favorece
+podemos quitar eso, qué opinás"* — dejando caer su propia idea al ver el argumento. Le
+sirve más una opinión fundada en datos del repo que un sí. Verificar antes de opinar
+(acá: contar specs, buscar hooks, mirar el CI) y decir que no cuando corresponde.
 
 El spec no es solo diseño ni una propuesta que se tira después: lleva una bitácora
 con los diseños descartados, los errores corregidos y lo verificado empíricamente.

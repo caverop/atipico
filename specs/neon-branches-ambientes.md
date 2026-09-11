@@ -3,9 +3,17 @@
 Especificación de la topología de branches de Neon que separa QA y desarrollo de la base
 compartida, y del procedimiento para propagar un cambio de esquema entre ellos.
 
-- **Estado:** **implementado y verificado.** Branches creados, topología verificada por
-  lectura directa contra los tres, `dev` poblado y los tres consumidores (local, QA,
-  producción) apuntando cada uno a su branch (ver §6).
+> **Parcialmente superseded (2026-09-10) por [postgres-local-dev](postgres-local-dev.md)
+> ([SCRUM-29](https://caverop.atlassian.net/browse/SCRUM-29)).** La decisión de `dev` como
+> branch de Neon —§2 (fila `dev`), §4 (el paso `dev`), §5, y las partes de §6 sobre
+> `dev`— quedó revertida: `dev` pasa a ser solo local. `qa` y `production` siguen tal como
+> este spec los documenta, sin cambios. No se reescribe nada de abajo: es el registro de
+> una decisión que se tomó y después se corrigió, y el porqué de ambas queda.
+
+- **Estado:** **implementado y verificado** (para `production`/`qa`; la parte de `dev`
+  quedó superseded — ver arriba). Branches creados, topología verificada por lectura
+  directa contra los tres, `dev` poblado y los tres consumidores (local, QA, producción)
+  apuntando cada uno a su branch (ver §6).
 - **Alcance:** qué branch es cada ambiente, por qué, y cómo viaja una migración de esquema
   entre los tres.
 - **Fuera de alcance:** automatizar esa propagación en CI/CD (evolución futura de

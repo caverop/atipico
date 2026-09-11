@@ -8,8 +8,69 @@ metadata:
 ## graphify
 
 El grafo vive en `graphify-out/` en la **raíz** del repo, pero su `.graphify_root`
-apunta a `specs/` — el corpus son los 10 specs, no el código. Se actualiza con
-`graphify specs --update`.
+apunta a `specs/` — el corpus son los specs, no el código.
+
+**Estado al 2026-09-09 (SCRUM-27):** 389 nodos · 502 aristas · 20 comunidades sobre
+los 25 documentos. Antes eran 177 sobre 10.
+
+**El grafo se atrasa en silencio y nada avisa.** Llegó a tener 10 de 24 specs con 8
+días de deriva. Nada lo detecta solo (no hay hooks, el CI no mira `specs/`), así que
+hay que ir a buscarlo: comparar las claves de `graphify-out/manifest.json` contra los
+`.md` de `specs/`. Ojo con `graph.json`: las aristas están bajo **`links`**, no
+`edges` — `len(d['nodes'])` con `d.get('edges')` da "0 aristas" y parece un grafo roto
+cuando no lo está.
+
+**Un `--update` después de actualizar graphify cuesta como una reconstrucción
+completa.** La caché semántica atribuye cada entrada al prompt que la produjo
+(`references/extraction-spec.md`); si ese archivo cambió con una versión nueva, la
+caché da **0 hits** y se re-extrae todo. Verificado el 2026-09-09: `detect_incremental`
+marcó 25 cambiados cuando solo 15 eran nuevos —los otros 10 por `mtime`— y el chequeo
+de caché no rescató ninguno. Costó **812k tokens** (6 subagentes, ~130-150k cada uno)
+contra los ~111k de la corrida anterior de 10 documentos. **Chequear el hit-rate de la
+caché antes de despachar subagentes**, no después: si da 0, el costo real es el del
+corpus entero y conviene decirlo antes de arrancar.
+
+**El efecto colateral bueno:** al re-extraerse los 25 juntos, todas las citas entre
+specs quedaron enlazadas. La arista `direccion-entrega` → `tipo-pedido`, colgada desde
+agosto por haberse extraído en corridas distintas, ya existe.
+
+**Re-extraer REEMPLAZA el archivo entero, no parchea.** `build_merge` borra todos los
+nodos cuyo `source_file` es el archivo re-extraído y pone los nuevos. **Lo que el
+subagente no emita, se destruye.** Por eso el prompt de una re-extracción tiene que
+pedir el documento **completo**, y mencionar los cambios solo como hechos a acertar,
+nunca como el alcance. Verificado a lo caro el 2026-09-10: un prompt centrado en *"qué
+cambió"* devolvió 30 nodos donde el spec tenía 39, y habría borrado los tres candidatos
+A/B/C, la regla de subconjunto, el orden de autoridad y el modo de falla. Se detectó
+comparando el extract mergeado contra el `graph.json` previo **antes** de escribirlo.
+Dar un piso explícito de nodos en el prompt ("si te da menos de 35, sub-extrajiste")
+arregló: pasó a 70 y el control dio perdidos 0.
+
+**Y deja huérfanos por deriva de slug.** El id sale del label, y el mismo concepto
+fraseado apenas distinto mintea otro id: `UpperSnakeCaseEnumConverter` convivió con
+`UpperSnakeCaseEnumConverter: Qr → 'QR'`. **El chequeo de salud no lo ve** — mira
+aristas colgantes, no etiquetas redundantes. Mitigación en el prompt: pasar la lista
+literal de ids ya existentes del archivo y pedir que se reusen textualmente.
+
+**Cómo detectarlos después:** comparar *etiquetas* donde una es prefijo de la otra
+dentro del mismo `source_file`, no similitud de strings entre ids. La similitud de ids
+dio 6 falsos positivos de 7 (`candidato_a`/`_b`/`_c`, `ck_cuenta_metodo`/`ck_cuenta_pago`,
+`scrum_27`/`scrum_28`); el prefijo de etiqueta dio 1 falso positivo en 456 nodos
+(`TurnosController` vs `TurnosControllerTests`). Podar el viejo con sus aristas e
+hiperaristas, y re-clusterizar. Ojo: las aristas viven bajo `links` en `graph.json`.
+
+**Siempre respaldar `graph.json` antes de mergear** (`cp graph.json .graphify_old.json`)
+y comparar ids perdidos/nuevos contra el respaldo antes de dar por buena la corrida. Es
+lo único que atrapa las dos fallas de arriba.
+
+**Encoding en Windows:** los scripts de graphify imprimen etiquetas con acentos y la
+consola es cp1252 — un `print` de labels revienta con `UnicodeEncodeError`. Correr
+siempre con `PYTHONIOENCODING=utf-8`. Y para pasos con mucho texto acentuado, escribir
+un `.py` al scratchpad y ejecutarlo, en vez de `python -c` con comillas anidadas.
+
+**El subagente puede devolver el JSON en su mensaje y escribirlo igual en disco.** Pasó
+el 2026-09-10: el resumen final fue el JSON entero, y el archivo estaba correcto en
+`graphify-out/`. Verificar el disco antes de asumir que falló — y también antes de
+asumir que anduvo (un chunk cortado por límite de sesión alcanzó a escribir completo).
 
 **No hace falta ninguna clave de API.** La doc de la skill es tajante: *"graphify
 needs no API key. Never ask the user for one, and never block on one."* Cuando
@@ -34,7 +95,7 @@ hook de git corre sin agente, así que un `post-commit` que dispare graphify sob
 dentro de una sesión, que además encaja con [[atipico-spec-primero]]: cuando un spec
 cambia, el agente ya está en la conversación.
 
-Costo de referencia: una reconstrucción completa de los 10 specs registró ~202k tokens
+Costo de referencia (histórico, corpus de 10): una reconstrucción completa registró ~202k tokens
 de entrada en `graphify-out/cost.json`.
 
 ## Obsidian

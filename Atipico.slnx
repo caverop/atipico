@@ -13,6 +13,7 @@
   <Folder Name="/tests/">
     <Project Path="Atipico.Api.Tests/Atipico.Api.Tests.csproj" Id="662cf30b-3876-4ed5-ae79-159f14e00d8f" />
     <Project Path="Atipico.Application.Tests/Atipico.Application.Tests.csproj" Id="3c46b3bb-74b2-4035-9df7-23f4c1759df7" />
+    <Project Path="Atipico.Database.Tests/Atipico.Database.Tests.csproj" />
     <Project Path="Atipico.Domain.Tests/Atipico.Domain.Tests.csproj" Id="5f4f3f7b-9386-4e3a-88ba-b43395698a19" />
     <Project Path="Atipico.Infraestructure.Tests/Atipico.Infraestructure.Tests.csproj" Id="2e9d7b6e-6d4c-4b1b-9875-206c16f83ed0" />
     <Project Path="Atipico.Web.Tests/Atipico.Web.Tests.csproj" Id="cd1910dc-4e24-4937-88ee-547a83898197" />

@@ -1,0 +1,21 @@
+# docker-compose.db.yml — base de datos local de desarrollo, uso diario.
+# No confundir con docker-compose.yml (ese levanta api+web empaquetados contra una
+# base externa, para probar el stack completo — ver specs/agente-db.md §6).
+#
+# Ver specs/postgres-local-dev.md (SCRUM-29) para el porqué.
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: restaurante_db
+    ports:
+      - "5433:5432"   # 5432 lo ocupa el PostgreSQL nativo de Windows — ver §3.3 del spec
+    volumes:
+      # PostgreSQL 18+ espera el volumen en el padre, no en .../data: la imagen crea
+      # sola un subdirectorio versionado (estilo pg_ctlcluster). Montar en .../data
+      # directo hace que el entrypoint aborte al arrancar (exit 1).
+      - atipico-db-dev:/var/lib/postgresql
+
+volumes:
+  atipico-db-dev:
