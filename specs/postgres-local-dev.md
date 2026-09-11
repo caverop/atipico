@@ -139,15 +139,21 @@ publica en **`5433`** a propósito. La cadena de conexión local usa ese puerto.
 
 ### 3.4 La instancia del agente: sigue igual, ya estaba bien
 
-Nada cambia acá. El patrón de `specs/agente-db.md` §5 —contenedor descartable, nace de la
-cadena canónica, se borra al terminar— es exactamente lo que ya se usó para verificar
-`sql/015_cuenta_metodo_qr.sql` hoy mismo. Este spec no le agrega reglas nuevas al agente,
-ni se las quita: **la excepción de solo lectura de `agente-db.md` §2.2 sigue en pie** —
-`pg_dump --schema-only` y `SELECT` contra Neon, para confirmar que una migración quedó como
-se esperaba después de que el usuario la aplicó. Lo que cambia es dónde vive el trabajo
-*cotidiano* de desarrollo (ya no pasa por ninguna credencial de Neon); la verificación
-puntual de solo lectura contra `qa`/`production`, cuando hace falta, sigue permitida —
-corregido el 2026-09-10, tras una primera versión de este párrafo que la eliminaba de más.
+El patrón de `specs/agente-db.md` §5 —contenedor descartable, nace de la cadena canónica,
+se borra al terminar— es exactamente lo que ya se usó para verificar
+`sql/015_cuenta_metodo_qr.sql` hoy mismo. Este spec no le agrega reglas nuevas al agente
+sobre su propio contenedor.
+
+**Sobre Neon, la versión final del 2026-09-10 (dos correcciones después):** el agente
+**no se conecta a Neon bajo ningún concepto — ni siquiera de lectura — salvo que el
+usuario lo pida explícito en ese momento**. `qa` y `production` los corre el usuario
+siempre a mano; le pasa el resultado al agente, y el agente verifica sobre eso, no
+conectándose él. Este párrafo tuvo dos versiones previas — primero decía que el agente
+perdía todo acceso a Neon (de más), después que la excepción de solo lectura seguía en
+pie (de menos) — hasta que el usuario lo cerró con la frase textual: *"bajo ningun
+concepto a noser a pedido explicito te conectas a neon"*. El detalle completo, con el
+porqué, vive en `.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md` — es
+el agente `db` quien interactúa con la base.
 
 ### 3.5 El orden de promoción, ahora explícito
 

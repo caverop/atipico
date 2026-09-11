@@ -9,8 +9,8 @@ empíricamente el 2026-09-09.
   deriva de §4.3 + el de `app_restaurante` sin `DELETE` de §4.2 — las pruebas de trigger
   quedan para después, según §3 punto 5). Referenciado en `Atipico.slnx`, 16 tests: 13 en
   verde, 3 en rojo por la razón correcta (§5.6). Sin Docker, la suite entera se saltea —
-  verificado, no falla. **Sigue bloqueada la regeneración de `schema_completo.sql`**: pide
-  `pg_dump` de solo lectura contra Neon (§2.3), y hoy no hay credencial válida a mano — ver
+  verificado, no falla. **Regenerar `schema_completo.sql` es tarea del usuario, no del
+  agente**: pide `pg_dump` contra Neon (§2.3), y el agente no se conecta ahí (§2.2) — ver
   §5.6.
 - **Origen:** [SCRUM-19](https://caverop.atlassian.net/browse/SCRUM-19), tipo Task, sin
   descripción ni criterios de aceptación en el ticket — el alcance de este documento es la
@@ -75,19 +75,25 @@ C# contra ella. No al revés, y no los dos.
 **`db` sigue el mismo orden que todos: spec → plan → aprobación → código.** Una migración es un
 cambio; pasa por `specs/` antes que por `sql/`.
 
-### 2.2 Regla dura: el agente nunca le escribe a Neon
+### 2.2 Regla dura: el agente no se conecta a Neon, ni de lectura
 
 **Actualización 2026-09-10** (`specs/postgres-local-dev.md`, SCRUM-29): `dev` ya no es
 Neon — es un `postgres:18-alpine` local (`docker-compose.db.yml`). "La base compartida de
-Neon" de acá en más son solo `qa` y `production`; lo de abajo sigue igual para esas dos,
-la excepción de solo lectura incluida.
+Neon" de acá en más son solo `qa` y `production`.
 
-La base compartida de Neon es donde el restaurante está probando el sistema. El agente:
+**Versión final, tras dos correcciones el mismo día** (detalle en
+`.claude/agent-memory/db/db-nunca-neon-salvo-pedido-explicito.md`): el agente **no se
+conecta a Neon bajo ningún concepto, ni siquiera de lectura, salvo pedido explícito del
+usuario en ese momento**. El agente:
 
 - **Nunca** ejecuta DDL ni DML contra Neon. Ni `INSERT`, ni `ALTER`, ni `CREATE`. Nunca.
-- Su única operación contra Neon es **de lectura**: `pg_dump --schema-only` y `SELECT`.
-- Todo lo que valida, lo valida en un **contenedor descartable** que él mismo levanta.
-- **El usuario ejecuta** contra Neon, a mano, cuando decide.
+- **Tampoco lee** — ni `SELECT` ni `pg_dump --schema-only` — por su cuenta. La excepción
+  de solo lectura que este párrafo tuvo unas horas se retiró: el usuario decidió que
+  ni siquiera eso vale sin que él lo pida en el momento.
+- Todo lo que valida, lo valida en un **contenedor descartable** que él mismo levanta, o
+  en la instancia local del usuario (`localhost:5433`).
+- **El usuario ejecuta** contra Neon, a mano, siempre — y le pasa el resultado al agente
+  para que verifique sobre eso, no conectándose él.
 
 Esto no es una precaución genérica: el drift documentado en §5.4 entró exactamente por la vía
 de aplicar algo a la base sin que quedara registrado como migración.
@@ -370,9 +376,13 @@ proceso de test, sin tocar el demonio real — el contenedor persistente de
 `docker-compose.db.yml` del usuario no se interrumpió); `dotnet test` de toda la solución,
 199 pruebas previas sin cambios + esto.
 
-**Sigue bloqueado:** regenerar `sql/schema_completo.sql` necesita `pg_dump --schema-only`
-de solo lectura contra Neon (§2.3), y la credencial local quedó desactualizada tras una
-rotación (`specs/postgres-local-dev.md` §8.1) sin que el agente tenga todavía una vigente.
+**Regenerar `sql/schema_completo.sql` no es tarea bloqueada del agente — es tarea del
+usuario.** Necesita `pg_dump --schema-only` contra Neon (§2.3), y la regla final del
+2026-09-10 (§2.2) es que el agente no se conecta a Neon bajo ningún concepto salvo
+pedido explícito del usuario en el momento — no algo que espera a que consiga una
+credencial. El camino quedó claro después de que la credencial local se desactualizara
+tras una rotación (`specs/postgres-local-dev.md` §8.1): en vez de perseguir una nueva,
+el usuario decidió que directamente no hace falta que el agente la tenga.
 
 ## 6. Diseños descartados
 
@@ -456,8 +466,8 @@ solo se descubren corriendo (el ruido de `pg_dump`, el tiempo de arranque del co
       contraste importa: el rol no está roto, le falta *justo* `DELETE`). **Hecho.**
 - [ ] `sql/schema_completo.sql` regenerado y al día con `014`; el test de §4.3.1 pasaría a
       verde por completo (`ck_cuenta_metodo` ya no es la excepción que este criterio
-      anticipaba — ver arriba). **Bloqueado**: pide `pg_dump --schema-only` de solo
-      lectura contra Neon, y no hay credencial válida disponible ahora mismo — ver §5.6.
+      anticipaba — ver arriba). **Tarea del usuario, no del agente**: pide `pg_dump
+      --schema-only` contra Neon, y el agente no se conecta ahí (§2.2) — ver §5.6.
 
 ## 9. Fuera de alcance — lo que viene después
 

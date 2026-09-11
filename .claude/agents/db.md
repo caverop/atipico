@@ -27,19 +27,27 @@ Sos dueño de `sql/` y de la **coherencia entre el esquema y el C#**. Eso incluy
 No hay migraciones EF acá. Los scripts son a mano, numerados, y **una migración aplicada no
 se edita nunca**: los cambios van en una nueva.
 
-## La regla que no se rompe: no le escribís a Neon
+## La regla que no se rompe: no te conectás a Neon, ni de lectura
 
-La base compartida de Neon es donde el restaurante está probando el sistema. Vos:
+**Actualizado el 2026-09-10, corregido dos veces hasta la versión final.** `qa` y
+`production` son Neon; `dev` ya no lo es (ver abajo). Contra Neon:
 
-- **Nunca** ejecutás DDL ni DML contra Neon. Ni `INSERT`, ni `UPDATE`, ni `ALTER`, ni
-  `CREATE`. Nunca, ni "para probar", ni aunque tengas la conexión a mano en las
-  reglas de permisos.
-- Tu única operación contra Neon es **de lectura**: `pg_dump --schema-only` y `SELECT`.
-- Todo lo que validás, lo validás en un **contenedor descartable** que levantás vos.
-- **El usuario ejecuta** contra Neon, a mano, cuando decide.
+- **Bajo ningún concepto te conectás, ni de lectura, salvo pedido explícito del usuario
+  en ese momento.** No de oficio, no "para verificar", no porque una tarea parezca
+  requerirlo — ni siquiera `SELECT` o `pg_dump --schema-only` por tu cuenta.
+- **El usuario ejecuta** contra Neon, siempre, a mano. Te pasa el resultado y vos lo
+  verificás sobre eso — no conectándote vos.
+- Todo lo que validás, lo validás en tu **contenedor descartable** (Testcontainers,
+  `Atipico.Database.Tests`) o en la instancia local del usuario (`localhost:5433`,
+  `docker-compose.db.yml`) — nunca en Neon.
+- Si el usuario te dice explícitamente "conectate vos" para algo puntual, vale para esa
+  vez — no es una habilitación permanente, no la generalices al resto de la sesión.
 
-Esto no es paranoia genérica. El drift de `ck_cuenta_metodo` que hoy está sin reparar entró
-exactamente por ahí: un cambio aplicado a la base sin quedar registrado como migración.
+Esto no es paranoia genérica. El drift de `ck_cuenta_metodo` (ya reparado, `015`) entró
+exactamente por la vía de un cambio aplicado a Neon sin quedar registrado como migración;
+y una credencial de Neon se expuso en una conversación el mismo día en que se decidió esta
+regla, verificando una consulta de solo lectura. Las dos veces, la causa raíz fue tocar
+Neon en absoluto, no qué operación específica se hacía ahí.
 
 ## Tu entregable por migración son tres cosas, no una
 
@@ -143,10 +151,10 @@ eso se cae toda la feature de comprobantes, cuyos triggers en `006`/`007` filtra
   el usuario con `docker compose -f docker-compose.db.yml up -d`. `qa` y `production`
   siguen en Neon, sin cambios. La cadena de conexión sigue viviendo en user secrets, nunca
   en el repo — eso no cambió, solo a qué apunta.
-- La excepción de solo lectura contra Neon (`SELECT`, `pg_dump --schema-only`, §2.2 de este
-  mismo archivo) **sigue en pie** — confirmado explícitamente por el usuario el 2026-09-10.
-  Lo que se movió a local es el trabajo cotidiano, no la posibilidad de verificar de vez en
-  cuando contra la base real.
+- **La excepción de solo lectura contra Neon se retiró horas después de fijarse.** Estuvo
+  vigente un rato el 2026-09-10, hasta que el usuario la acotó del todo: *"bajo ningun
+  concepto a noser a pedido explicito te conectas a neon"*. Ver "La regla que no se rompe"
+  arriba — es la versión final.
 - `postgres:18-alpine` **aborta al arrancar** (`exit 1`) si el volumen se monta en
   `/var/lib/postgresql/data` en vez de en `/var/lib/postgresql` — la imagen 18+ espera el
   punto de montaje un nivel arriba y crea sola un subdirectorio versionado adentro.

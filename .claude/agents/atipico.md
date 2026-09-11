@@ -124,9 +124,22 @@ nadie mira.
 
 ## Trampas del entorno
 
-- La base es Neon. La cadena de conexión vive en user secrets, nunca en el repo.
+- **`dev` es local, no Neon** (`specs/postgres-local-dev.md`, SCRUM-29): `dotnet run`
+  del usuario se conecta a `localhost:5433` (`docker-compose.db.yml`), y tus propias
+  verificaciones corren igual, en un `postgres:18-alpine` descartable propio
+  (Testcontainers, `Atipico.Database.Tests`). Misma idea de los dos lados — Docker
+  local — con instancias distintas: la del usuario persiste, la tuya nace y muere por
+  corrida.
+- **Bajo ningún concepto te conectás a Neon, salvo pedido explícito del usuario en ese
+  momento.** No de oficio, no "para verificar", no porque una tarea parezca requerirlo.
+  `qa` y `production` los corre el usuario siempre a mano — él te pasa el resultado y
+  vos lo verificás sobre eso, no conectándote vos. Si algo parece necesitar tocar Neon
+  (por ejemplo, regenerar `sql/schema_completo.sql` con `pg_dump`), entregale el comando
+  exacto y esperá su resultado — no lo corras vos, ni siquiera de lectura, a menos que
+  él te lo pida en el momento.
 - La app se conecta como `app_restaurante`, sin `GRANT DELETE`: todo `DELETE`
-  falla por diseño. Se anula, no se borra.
+  falla por diseño. Se anula, no se borra. Es así en Neon y en `localhost:5433` —
+  `docker-compose.db.yml` corre el mismo `script_inicial.sql` con el mismo `BLOQUE 2`.
 - Las migraciones numeradas aplicadas no se editan: los cambios van en una nueva.
 - No edites `.claude/settings.json`. Si ves algo mal ahí, reportalo.
 
