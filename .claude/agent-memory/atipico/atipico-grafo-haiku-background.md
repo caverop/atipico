@@ -74,4 +74,36 @@ sigan siendo obligatorios.
    nodos comparten un mismo patrón de id sospechoso (`grep`/list-comprehension sobre
    `n['id']`) antes de aceptar el chunk, no solo el total.
 
+8. **El typo de `pdiego` es sistemático, no un accidente — van tres corridas seguidas.**
+   Una vez, en su propio resumen final, Haiku afirmó *"source paths verified with
+   correct 'pdiego' username"* — confirmando la ruta mala como si fuera la buena.
+   No confiar nunca en el resumen del subagente sobre esto: `Counter(source_file)`
+   sobre el chunk es la única fuente de verdad.
+9. **Perder un nodo de la lista de reuso no siempre avisa con un id nuevo — a veces
+   simplemente lo omite.** Distinto del incidente de `readme_spec_postgres_local_dev`
+   (ahí un filtro de poda se lo llevó de encuentro): acá el subagente tenía 4 ids en su
+   lista de reuso explícita y **tres los cumplió, uno se salteó**, sin previo aviso ni
+   nodo de reemplazo. El chequeo de perdidos/nuevos contra el respaldo (guarda 3) es lo
+   único que lo atrapa — el piso de nodos totales no, porque el chunk igual estaba por
+   encima del piso.
+10. **`build_merge` no escribe `graph.json` en disco — solo `to_json()` (dentro de
+    `rebuild.py`) lo hace.** Si hay que restaurar un nodo perdido después del merge,
+    restaurarlo sobre **`.graphify_extract.json`** (lo que `build_merge` acaba de
+    producir en memoria), nunca sobre `graph.json` — ese todavía tiene el estado *antes*
+    del merge actual, y escribirle ahí pisa el trabajo recién hecho sin que se note hasta
+    el rebuild. Pasó una vez: la restauración pareció andar ("0 agregados, 0 aristas") y
+    en realidad estaba operando sobre el archivo viejo.
+11. Al escribir archivos temporales para restaurar nodos entre pasos, **especificar
+    `encoding='utf-8'` explícito tanto al escribir como al leer** — sin esto, en Windows
+    el default puede no ser UTF-8 y un archivo con acentos revienta con
+    `UnicodeDecodeError` al releerlo.
+
+**Prueba pendiente, pedida el 2026-09-10 tras el tercer typo seguido:** la próxima
+extracción real corre con `model: "sonnet"` en vez de `"haiku"`, para comparar
+directamente cuánta intervención manual ahorra. No es un cambio de regla todavía —
+Haiku sigue siendo el default hasta que se compare esta corrida. Si Sonnet sale limpio
+(sin el typo de ruta, sin omitir contenido de la lista de reuso), es el dato que faltaba
+para decidir si el ahorro de tiempo en background vale la pena con Haiku o si conviene
+mover el default a Sonnet.
+
 Relacionado: [[atipico-grafo-con-el-commit]], [[atipico-graphify-y-obsidian]].
