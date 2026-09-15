@@ -1,7 +1,7 @@
 ---
 estado: implementado
 ticket: SCRUM-26
-actualizado: 2026-09-09
+actualizado: 2026-09-14
 afecta: [specs]
 ---
 
@@ -11,7 +11,8 @@ afecta: [specs]
 tienen un diagrama. El estado de cada uno es prosa en tres formatos distintos, así que no
 se puede grepear. No hay índice: saber qué spec cubre un tema cuesta un grep sobre los 24.
 
-- **Estado:** **propuesto, pendiente de aprobación.** Solo existe este documento.
+- **Estado:** **implementado.** El formato rige desde el 2026-09-09, `specs/README.md` lo
+  indexa, y los specs existentes lo adoptan a medida que se los toca (§10.1).
 - **Alcance:** el formato de los documentos de `specs/` — secciones obligatorias,
   diagramas, silogismo y navegación.
 - **Fuera de alcance:** reescribir los specs existentes (§10.1 explica por qué no); el
@@ -352,6 +353,21 @@ decreto.
   premisa P1 de §2.
 - SCRUM-26 existe, se llama "Mejorar specs", está en *Por hacer* y **no tiene
   descripción** — este spec es su contenido.
+
+### 11.5 Corregido por la auditoría de specs (2026-09-14)
+
+- **Este spec se contradecía a sí mismo sobre su propio estado.** El frontmatter decía
+  `estado: implementado` y la línea de prosa de la cabecera seguía diciendo
+  `- **Estado:** **propuesto, pendiente de aprobación.** Solo existe este documento.` La
+  auditoría (`auditar-specs.ps1`, que extrae el estado desde la prosa con un modelo local)
+  leyó el cuerpo, lo comparó contra el índice y reportó `DISCREPA` acá. Corregida la línea a
+  **implementado**, y de paso la afirmación vencida de que este documento era el único.
+- **La lección es del propio formato, no del spec.** §4.1 dice que el frontmatter *reemplaza*
+  la línea de prosa como dato, pero §4.2 deja la línea como redundancia **a propósito** — y un
+  dato duplicado puede divergir. Ésta es la primera divergencia registrada entre las dos
+  copias, y apareció en el documento que las define. No cambia la decisión (la redundancia
+  sirve para leer el archivo sin abrir el frontmatter); sí dice que la auditoría tiene que
+  mirar **las dos** y no sólo el frontmatter.
 
 ---
 

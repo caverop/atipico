@@ -3,8 +3,8 @@
 Estado del despliegue de Atipico en Azure Container Apps, qué se arregló para llegar hasta
 acá, y qué queda pendiente.
 
-- **Estado:** **funcionando y verificado** contra el entorno real. `atipico-web--0000003` y
-  `atipico-api--0000003` en `Running`, login y navegación operativos.
+- **Estado:** **en producción** — funcionando y verificado contra el entorno real.
+  `atipico-web--0000003` y `atipico-api--0000003` en `Running`, login y navegación operativos.
 - **Alcance:** un solo entorno (`Atipico`), con credenciales de desarrollo. No hay separación
   dev/prod todavía (§5.3).
 - **Infraestructura:** generada por `azd` a partir de `AppHost.cs`. No hay bicep en el

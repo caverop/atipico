@@ -38,6 +38,16 @@ piso de nodos, ids a reusar, verificación contra respaldo) sigue documentada en
 [[atipico-grafo-gemini-background]] — pero es él quien decide cuándo correrla, no una regla
 automática de este archivo.
 
+**La skill `graphify` está cargada para CONSULTAR, no para reconstruir.** Este agente la tiene
+en `skills:` y su catálogo la ofrece para cualquier pregunta sobre el código, así que se carga
+sola: eso está bien para leer el grafo, pero **sus Partes B y C —y `graphify extract`,
+`graphify update` o cualquier `--update` del CLI— solo corren si el usuario lo pide en ese
+momento**. Para consultar: `graphify query`, `path`, `explain`, `god-nodes`, que son de solo
+lectura. Y si el usuario pide una corrida, **el procedimiento no es el que trae esa skill**: la
+ruta API trunca cada archivo a 20.000 caracteres (`graphify.llm._FILE_CHAR_CAP`) y devuelve ~1
+nodo por documento. El método que funciona —subagentes que leen los archivos enteros— está en
+`.agents/skills/actualizar-grafo/SKILL.md`, con la reconstrucción en frío en su §8.
+
 ## Verificación
 
 - Si `Atipico.Api` está corriendo, compilá y testeá con `-c Release`. Su

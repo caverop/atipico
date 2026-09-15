@@ -196,14 +196,51 @@ de nodos**:
    `gemini-3.6-flash` anduvo: 2.8 s en un ping y la extracción completa sin un id perdido.
    **Ping barato antes de la corrida, y `GRAPHIFY_API_TIMEOUT` seteado** (150 s alcanza).
 
+5. **A escala de corpus, el camino del CLI colapsa a un nodo por documento.** Medido el
+   2026-09-14, tras borrar `graphify-out/` para reconstruir de cero:
+   `graphify extract specs --backend gemini` sobre **28 documentos devolvió 28 nodos** — ids que
+   son el stem del archivo (`numero_pedido`, `reservas`) y labels que son el título del spec.
+   Terminó con **exit 0** y un reporte que parece sano. Es el mismo defecto del prompt corto de
+   la sonda de arriba, a escala: la firma es **~1 nodo por archivo**, y así se reconoce. Además
+   `--out` es el directorio *padre*, no el destino: `--out graphify-out` escribe
+   `graphify-out/graphify-out/graph.json`. **Una reconstrucción en frío no se hace con el CLI**:
+   se hace con el prompt rico y lotes de ~6 documentos con piso por densidad. El procedimiento
+   completo está en `.agents/skills/actualizar-grafo/SKILL.md` §8.
+
+6. **La ruta API trunca cada archivo a 20.000 caracteres — y eso invalida la lectura optimista
+   de los pisos.** `graphify.llm._FILE_CHAR_CAP = 20000` y `_read_files` hace
+   `content[:_FILE_CHAR_CAP]`: medido el 2026-09-15, `numero-pedido.md` (61.678 bytes) mandó
+   **7.865** tokens de entrada con el cap y **20.025** con el cap en 500.000 — el modelo veía un
+   tercio del spec. Por eso el "**53 nodos, 31 ids coincidentes**" del 2026-09-14 **no prueba
+   que los guardas cierren la brecha**: con el documento truncado y los 53 ids servidos en el
+   prompt, el modelo tenía de dónde copiarlos. Con el cap parcheado y **sin** lista de ids, ese
+   archivo dio **26 nodos** (0,43 nodos/KB, la mitad del histórico). **Parchear
+   `_FILE_CHAR_CAP` es obligatorio antes de extraer**, y el techo de densidad de la ruta API es
+   ~0,43 nodos/KB: el grafo de 627 lo hicieron subagentes que leían los archivos, no requests
+   sueltos. Detalle y mediciones en `.agents/skills/actualizar-grafo/SKILL.md` §8.5.
+
+7. **La reconstrucción por subagentes funcionó, y es la que hay que usar (2026-09-15).** 7
+   subagentes de DSH —uno por grupo temático del índice de `specs/README.md`, ~4 specs cada uno—,
+   cada uno leyendo sus archivos **enteros**, con el prompt rico y un piso por archivo:
+   **1302 nodos y 1635 aristas** sobre 28 documentos, contra 627/805 del grafo anterior.
+   `numero-pedido` pasó de 53 a **140** nodos; `deploy-azure-aspire` de 13 a **67**;
+   `formato-spec` de 15 a **40**. Sin ids inválidos, sin aristas colgantes, sin nodos sin
+   evidencia, y el grafo quedó en **1618 aristas / 132 comunidades**, con el vault en 1434 notas.
+   **Conclusión: el grafo viejo estaba flaco, no este inflado** — la ruta API trunca a 20.000
+   caracteres y un request suelto no lee un spec de 60 KB; un subagente sí. **Para reconstruir,
+   subagentes; la API queda para lo incremental** (`SKILL.md` §8.6).
+
 Además: la **cuota del free tier es por modelo**, así que agotar `gemini-3-flash-preview`
 (4 × 429 más un 503 después de ~6 llamadas) no bloquea a los estables; y el 503 *"high demand"*
 es transitorio, vale reintentar. Costo de toda la corrida: **$0** (35k tokens de entrada, 23k de
 salida).
 
-Los scripts de esta corrida quedaron en `graphify-out/.graphify_gemini_merge.py` y
-`graphify-out/.graphify_gemini_fix.py` (gitignoreados): son el borrador del script reproducible
-que sigue pendiente, y el punto de partida para el que quiera cerrarlo.
+**Los borradores de esa corrida ya no existen.** Vivían en `graphify-out/` (gitignoreado) y ese
+directorio se borró entero el 2026-09-14 para reconstruir el grafo de cero, así que
+`.graphify_gemini_merge.py` y `.graphify_gemini_fix.py` se fueron con él. La idea del script
+reproducible también quedó descartada por el usuario ese día
+(`specs/actualizacion-grafo-script.md`, `descartado`): el procedimiento vive en la skill
+`.agents/skills/actualizar-grafo/`, y lo ejecuta el agente cuando el usuario lo pide.
 
 ## Entorno: lo que hay que saber para no re-descubrirlo
 
