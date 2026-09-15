@@ -1,6 +1,6 @@
 # Índice de specs
 
-25 specs, más este índice. Cada feature de Atipico tiene el suyo, y el spec es el
+26 specs, más este índice. Cada feature de Atipico tiene el suyo, y el spec es el
 registro permanente de la decisión — no una propuesta que se tira al implementar.
 
 El formato obligatorio está en **[formato-spec.md](formato-spec.md)**: leerlo antes de
@@ -17,7 +17,7 @@ escribir uno nuevo.
 | `en-produccion` | corrido contra la base real y verificado por el usuario |
 | `descartado` | abandonado; queda como registro del porqué |
 
-Hoy: **4 propuestos · 0 aprobados · 13 implementados · 8 en producción**.
+Hoy: **4 propuestos · 0 aprobados · 13 implementados · 8 en producción · 1 descartado**.
 
 ---
 
@@ -27,6 +27,7 @@ Hoy: **4 propuestos · 0 aprobados · 13 implementados · 8 en producción**.
 |---|---|---|
 | [formato-spec](formato-spec.md) | `implementado` | El formato de estos documentos: secciones obligatorias, silogismo, diagramas, artefactos |
 | [agente-db](agente-db.md) | `implementado` | Subagente `db` dueño de la base, y `Atipico.Database.Tests` (13/16 verde, 3 por drift real). Falta regenerar `schema_completo.sql` — bloqueado por credencial de Neon |
+| [actualizacion-grafo-script](actualizacion-grafo-script.md) | `descartado` | Proponía mecanizar la actualización del grafo en un script versionado; el usuario lo descartó el 2026-09-14, con el script ya escrito sin aprobación — se borró |
 
 ## Pedidos y sala
 

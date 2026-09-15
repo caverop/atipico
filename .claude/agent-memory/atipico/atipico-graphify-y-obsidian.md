@@ -72,13 +72,15 @@ el 2026-09-10: el resumen final fue el JSON entero, y el archivo estaba correcto
 `graphify-out/`. Verificar el disco antes de asumir que falló — y también antes de
 asumir que anduvo (un chunk cortado por límite de sesión alcanzó a escribir completo).
 
-**No hace falta ninguna clave de API.** La doc de la skill es tajante: *"graphify
-needs no API key. Never ask the user for one, and never block on one."* Cuando
-`GEMINI_API_KEY`/`GOOGLE_API_KEY` no está seteada — y en esta máquina **nunca lo
-estuvo**, verificado en entorno de proceso, User y Machine de Windows, `settings.json`
-y perfiles de shell — la extracción semántica la hace el agente anfitrión despachando
-subagentes. Solo lee las de Gemini; no lee `ANTHROPIC_API_KEY` ni `OPENAI_API_KEY`,
-aunque el mensaje de error del CLI sugiera lo contrario.
+**La clave ya existe (2026-09-14).** El usuario configuró `GEMINI_API_KEY` en el scope User de
+Windows, free tier de Google, y **la extracción semántica ahora la usa: va por la API, no por
+subagentes**. Ojo con la letra chica de la skill: dice que con la clave se llama a
+`extract_corpus_parallel(backend="gemini")` *"instead of dispatching subagents"*, y eso **no es
+equivalente** — esa llamada pelada devuelve ~20% de los nodos (15 contra 53 en el mismo
+documento) y mergearla destruye el archivo. La receta con guardas y la evidencia medida están
+en [[atipico-grafo-gemini-background]]. Sigue siendo cierto que graphify solo lee claves de
+Gemini; no lee `ANTHROPIC_API_KEY` ni `OPENAI_API_KEY`, aunque el mensaje de error del CLI
+sugiera lo contrario.
 
 **El binario suelto no hace la parte semántica, pero tampoco falla.** Verificado el
 2026-09-01 con backup: `graphify update specs` termina con exit 0 y anuncia *"no LLM
@@ -89,11 +91,15 @@ canónico — te quedan dos grafos distintos sin avisarte. No lo uses para actua
 (Antes esta nota decía que fallaba con *"no LLM API key found"*; eso era de una versión
 anterior y ya no es cierto — el modo silencioso es peor que el error.)
 
-**Consecuencia:** la automatización desatendida es imposible sin clave de Gemini. Un
-hook de git corre sin agente, así que un `post-commit` que dispare graphify sobre
-`specs/` no puede funcionar. Se intentó y se descartó. El grafo se actualiza pidiéndolo
-dentro de una sesión, que además encaja con [[atipico-spec-primero]]: cuando un spec
-cambia, el agente ya está en la conversación.
+**Consecuencia, actualizada el 2026-09-14:** tener la clave **no** volvió automática la
+actualización. El prompt con guardas (piso de nodos + lista de ids a reusar) y la verificación
+de perdidos/nuevos los arma el orquestador, así que un `post-commit` que dispare graphify sobre
+`specs/` sigue sin poder hacerlo bien — se intentó y se descartó. Lo que **sí** cambió: la
+brecha quedó reducida a un script versionado que arme el prompt y verifique los ids, así que la
+automatización desatendida dejó de ser imposible por falta de clave y pasó a ser una decisión
+pendiente del usuario. Por ahora el grafo se actualiza pidiéndolo dentro de una sesión, que
+además encaja con [[atipico-spec-primero]]: cuando un spec cambia, el agente ya está en la
+conversación.
 
 Costo de referencia (histórico, corpus de 10): una reconstrucción completa registró ~202k tokens
 de entrada en `graphify-out/cost.json`.

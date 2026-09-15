@@ -26,100 +26,17 @@ escribir un spec; no lo reconstruyas de memoria. `specs/README.md` es el índice
 todos, con su estado — actualizalo en el mismo turno en que un spec nace o cambia de
 estado.
 
-## El grafo se actualiza con el commit
+## El grafo lo mantiene el usuario
 
-**Si commiteás un cambio en `specs/`, actualizá el grafo en el mismo turno.** No lo
-dejes para después: es el único momento en que hay un agente en la conversación, y la
-extracción semántica de graphify la hacés vos.
+**No corras la extracción de graphify por tu cuenta.** Hasta el 2026-09-14 esta sección
+instruía actualizar el grafo de `specs/` en el mismo turno de cada commit; el usuario la
+sacó explícitamente ese día — el grafo lo actualiza él mismo, a mano, cuando quiere. No
+lo despaches como parte de commitear, ni lo ofrezcas de oficio.
 
-**Salvo que el cambio no le enseñe nada al grafo.** Una corrida cuesta ~90-110k tokens
-por archivo; un retoque de redacción no los vale. Se difiere solo si podés **señalar
-dónde el grafo ya tiene el dato**: una errata, un reacomodo de formato, o un hecho que
-otro spec ya aportó —como la fila del índice que repite un número de migración que el
-propio spec de esa feature ya declaró—. Si no podés nombrar la fuente que ya lo cubre,
-no es redundante: corré la extracción.
-
-Cuando difieras: **decilo en el mismo mensaje**, porque `detect_incremental` va a
-seguir reportando ese archivo hasta que alguien lo extraiga, y una deriva sin explicar
-envenena el chequeo. La deuda se salda sola con el próximo cambio de fondo a ese
-archivo. Dos topes: no difieras dos veces el mismo archivo, y no acumules más de un
-par de archivos diferidos — a partir de ahí corré, aunque cada cambio suelto parezca
-menor.
-
-1. Antes de despachar nada, **mirá el hit-rate de la caché**. Si da 0 hits, el prompt
-   de extracción cambió con una versión nueva de graphify y se re-extrae el corpus
-   entero, no solo lo que tocaste: decí el costo antes de arrancar, no después.
-2. Corré por la skill `/graphify`, nunca `graphify update <path>` del binario suelto
-   —ese es el modo estructural sin LLM, da nodos superficiales y los escribe en
-   `specs/graphify-out/` en vez del canónico— y siempre desde la raíz del repo.
-
-   **La extracción va a un subagente en segundo plano** (`Agent` con
-   `run_in_background: true`) — es el paso caro en tiempo (3–16 minutos por corrida) y
-   el que menos necesita que lo mires en vivo. **La orquestación no** — mergear,
-   rebuildear, verificar contra respaldo, podar duplicados y commitear los seguís
-   haciendo vos mismo, en el hilo principal, con Bash/Python directo. Ahí vive el
-   control, y no es delegable.
-
-   **Qué modelo:** `model: "sonnet"` para la próxima corrida — pedido el 2026-09-10 tras
-   tres corridas con Haiku que repitieron el mismo typo de ruta (una vez el propio
-   subagente lo dio por corregido en su resumen) y una que omitió, sin aviso, un id de
-   la lista de reuso. Es una comparación puntual, no todavía un cambio de default —
-   ver [[atipico-grafo-haiku-background]] y decidir después de ver cómo sale Sonnet.
-
-   Sea cual sea el modelo que extraiga, estos cuatro guardas son obligatorios, no
-   opcionales — atraparon dos incidentes reales el 2026-09-10 con un modelo más
-   capaz que Haiku (una extracción que se quedó corta por un prompt mal enfocado, y
-   nodos huérfanos por re-frasear el mismo concepto):
-   1. Piso explícito de nodos en el prompt, basado en la corrida anterior del mismo
-      archivo.
-   2. Lista de ids existentes a reusar verbatim, sacada de `graph.json` antes de
-      despachar.
-   3. Respaldo de `graph.json` (`cp graph.json .graphify_old.json`) y comparación de
-      ids perdidos/nuevos contra ese respaldo **antes** de aceptar el merge.
-   4. Buscar duplicados por prefijo de etiqueta (no por similitud de id) después del
-      merge, y podar los reales.
-   5. **Spot-check de contenido nuevo explícito — el piso de nodos no alcanza.** Buscar
-      en el grafo, por nombre o palabra clave, los conceptos que el prompt marcaba como
-      genuinamente nuevos. Verificado el 2026-09-10: Haiku cumplió el piso exacto y aun
-      así no agregó ninguno, y encima dejó una etiqueta reusada con un dato ya falso
-      ("5 propuestos" cuando el archivo decía "4"). Si falta, parchear `graph.json` a
-      mano es más barato que otra ronda — y después **resincronizar
-      `.graphify_extract.json`** con el `graph.json` parcheado, porque el rebuild lee de
-      ahí, no del `graph.json`, y si quedan desincronizados el guard de #479 rechaza
-      escribir por "achicar".
-   6. **Nunca confíes en el resumen del subagente — verificá vos mismo, siempre.** El
-      typo `pdiego`/`pdieg` en `source_file` ya salió **tres** corridas seguidas — una
-      vez el propio subagente lo dio como corregido en su resumen (mintiendo sin
-      querer). También pasó que omitió, sin aviso, un id de la lista de reuso que sí
-      tenía que reusar (guarda 3 no alcanza solo: el piso total puede seguir cumplido
-      aunque falte exactamente el nodo que pedías). El detalle completo, con los
-      comandos exactos de chequeo, está en
-      [[atipico-grafo-haiku-background]] — leerla antes de aceptar cualquier chunk, no
-      reconstruir de memoria.
-3. **Al empezar cualquier trabajo sobre specs, chequeá deriva primero.** El usuario
-   commitea desde su terminal y ahí no hay agente, así que la regla no se disparó:
-
-   ```bash
-   $(cat graphify-out/.graphify_python) -c "from graphify.detect import detect_incremental; from pathlib import Path; r=detect_incremental(Path('specs')); print('cambiados:', r.get('new_total',0), '| borrados:', len(r.get('deleted_files',[])))"
-   ```
-
-   Es la respuesta autoritativa: detecta contenido cambiado, no solo archivos nuevos.
-   Si hay deriva, decilo antes de empezar.
-
-**No hay hook, y no hay que volver a proponerlo.** Ni de git —corre sin agente, no
-tiene con qué hacer la parte semántica— ni de Claude Code, que viven en
-`settings.json` y no se tocan. Pero la razón de fondo es más simple: un hook solo
-podría *avisar*, nunca actualizar, y el aviso ya lo da el chequeo de arriba. Además
-**el grafo tiene un solo lector: vos, el agente.** El usuario confirmó el 2026-09-09
-que nunca abre `graph.html` por su cuenta. Así que el grafo solo necesita estar al día
-en el momento en que lo vas a usar, y ese es exactamente el momento en que chequeás.
-La ventana de desactualización cae donde nadie mira.
-
-**Por qué importa:** el grafo llegó a atrasarse 15 documentos sin que nada avisara, y
-lo que destapó al ponerlo al día fue una colisión de numeración de migraciones contra
-una que ya estaba en producción — anotada en un spec días antes como pendiente y nunca
-releída. El grafo es lo que vuelve a poner sobre la mesa lo que quedó escrito donde
-nadie mira.
+Si el usuario te pide ayuda puntual con una corrida, la receta con guardas (prompt rico,
+piso de nodos, ids a reusar, verificación contra respaldo) sigue documentada en
+[[atipico-grafo-gemini-background]] — pero es él quien decide cuándo correrla, no una regla
+automática de este archivo.
 
 ## Verificación
 

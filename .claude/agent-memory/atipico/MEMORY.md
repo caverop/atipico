@@ -4,8 +4,8 @@
 - [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; el formato canónico vive en `specs/formato-spec.md`, leerlo antes de escribir uno.
 - [Jira corto, spec largo](atipico-jira-corto-spec-largo.md) — el ticket lleva lo esencial y un puntero; el detalle vive en el spec.
 - [No commitear sin aprobación](atipico-no-commit-sin-aprobacion.md) — implementar y verificar sí, pero commit/push esperan el visto bueno explícito, aunque el spec ya esté aprobado.
-- [El grafo va con el commit](atipico-grafo-con-el-commit.md) — commiteás specs, actualizás el grafo en el mismo turno; un hook de git no puede.
-- [Extracción del grafo: Haiku en segundo plano](atipico-grafo-haiku-background.md) — la extracción va a Haiku en background; la orquestación (merge/rebuild/poda/commit) la seguís haciendo vos, en vivo, con los guardas siempre obligatorios.
+- [El grafo va con el commit (revertido)](atipico-grafo-con-el-commit.md) — desde el 2026-09-14 el agente ya NO actualiza el grafo al commitear; lo hace el usuario a mano.
+- [Extracción del grafo: Gemini por API](atipico-grafo-gemini-background.md) — la extracción va a la API de Gemini, pero solo con el prompt rico y los guardas que inyectás vos: la llamada pelada que documenta la skill devuelve ~20% de los nodos. La orquestación (merge/rebuild/poda/commit) sigue en vivo, y los guardas siguen siendo obligatorios.
 - [Runbook y verificación](atipico-runbook-y-verificacion.md) — pruebas de desarrollo, todas locales en Docker (usuario y agente); Neon (qa/production) nunca, salvo pedido explícito del usuario en el momento.
 - [Él hace las pruebas](atipico-user-tests-himself.md) — verificar con build, no levantar servidores ni Playwright salvo pedido.
 - [Bin bloqueado → Release](atipico-locked-bin-release-build.md) — con la API corriendo, `-c Release`; nunca matarle el proceso.
@@ -34,4 +34,4 @@
 - [PostgreSQL local](atipico-local-postgres-tooling.md) — el nativo en `C:\Program Files\PostgreSQL\18\bin\` nunca es la base de dev; desde 2026-09-10 esa es Docker en 5433, no Neon.
 - [aspire run sirve Debug](atipico-aspire-run-debug-rebuild.md) — compilás en Release y la pantalla no cambia; en el dashboard va Rebuild, no Reiniciar.
 - [Puerto zombi con Docker](atipico-docker-port-zombie-gotcha.md) — un `dotnet` en `127.0.0.1:<puerto>` tapa al contenedor mapeado al mismo puerto.
-- [graphify y Obsidian](atipico-graphify-y-obsidian.md) — graphify no necesita clave (el LLM es el agente); Obsidian ignora carpetas con punto, la memoria no entra al vault.
+- [graphify y Obsidian](atipico-graphify-y-obsidian.md) — la clave de Gemini ya está configurada y la usa la extracción; Obsidian ignora carpetas con punto, la memoria no entra al vault.
