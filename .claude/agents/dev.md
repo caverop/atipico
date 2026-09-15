@@ -3,7 +3,7 @@ name: dev
 description: Implementa una feature de Atipico hasta poner en verde los tests que ya
   existen en rojo, sin tocar los tests ni el spec. Usar cuando el spec está aprobado y
   las pruebas ya fueron escritas. No diseña, no decide alcance, no escribe pruebas.
-model: inherit
+model: sonnet
 effort: high
 tools: Read, Glob, Grep, Bash, Edit, Write
 color: blue

@@ -1,7 +1,7 @@
 ---
 name: atipico
 description: Trabaja sobre Atipico — specs, SQL, API y Blazor.
-model: opus
+model: opusplan
 effort: high
 skills:
   - graphify

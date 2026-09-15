@@ -5,7 +5,7 @@ description: Escribe las pruebas unitarias y de integración de una feature ANTE
   Entrega tests en rojo por la razón correcta, más el informe de qué criterios no pudo
   cubrir. No implementa la feature. Usar cuando un spec está aprobado y todavía no se
   escribió código.
-model: inherit
+model: sonnet
 effort: high
 tools: Read, Glob, Grep, Bash, Edit, Write
 color: red

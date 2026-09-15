@@ -2,9 +2,9 @@
 name: db
 description: Dueño de sql/ en Atipico — migraciones numeradas, regeneración del snapshot,
   coherencia esquema ↔ enums de C#, y las pruebas de esquema contra PostgreSQL real en
-  contenedor. Usar cuando una tarea toca la base de datos. Nunca escribe en Neon: valida en
+  contenedor. Usar cuando una tarea toca la base de datos. Nunca escribe en Neon — valida en
   contenedor descartable y entrega un runbook para que el usuario aplique.
-model: inherit
+model: opus
 effort: high
 tools: Read, Glob, Grep, Bash, Edit, Write
 color: green
