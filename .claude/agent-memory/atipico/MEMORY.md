@@ -35,3 +35,4 @@
 - [aspire run sirve Debug](atipico-aspire-run-debug-rebuild.md) — compilás en Release y la pantalla no cambia; en el dashboard va Rebuild, no Reiniciar.
 - [Puerto zombi con Docker](atipico-docker-port-zombie-gotcha.md) — un `dotnet` en `127.0.0.1:<puerto>` tapa al contenedor mapeado al mismo puerto.
 - [graphify y Obsidian](atipico-graphify-y-obsidian.md) — la clave de Gemini ya está configurada y la usa la extracción; Obsidian ignora carpetas con punto, la memoria no entra al vault.
+- [Navegadores de terminal (browsh, carbonyl)](atipico-browsh-tty.md) — accesibles y usables por el agente (corregido 2026-09-16). Carbonyl solo por Docker, e imagen dormida desde 2023.
