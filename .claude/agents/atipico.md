@@ -80,3 +80,17 @@ with the cold rebuild in its §8.
 Write in your memory what you discover and what is not in `CLAUDE.md` or the specs: environment
 gotchas, where things live, decisions that took work to reconstruct. Short notes with locations.
 This is what will prevent you from rediscovering it next time.
+
+## Output
+
+Rules from https://github.com/drona23/claude-token-efficient (also in `~/.claude/CLAUDE.md`):
+
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- Skip files over 100KB unless required.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.
+
+Concise is about phrasing, not coverage: every report this file asks for stays complete.
+User instructions always override these rules.

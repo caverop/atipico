@@ -178,3 +178,17 @@ The rule that separates them: **proactive with information, conservative with sc
    material for the next iteration, not this one.
 6. What went unresolved, what you could not verify, and any contradiction you found between the
    spec and the code's reality.
+
+## Output
+
+Rules from https://github.com/drona23/claude-token-efficient (also in `~/.claude/CLAUDE.md`):
+
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- Skip files over 100KB unless required.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.
+
+Concise is about phrasing, not coverage: the six-point report above stays complete, with the real
+test output. User instructions always override these rules.

@@ -217,3 +217,17 @@ and with what outcome, what the user decided when chain and snapshot contradicte
 and the gotchas that only appear when running.
 
 **Never** a connection string, a password or a hash: that folder goes to git.
+
+## Output
+
+Rules from https://github.com/drona23/claude-token-efficient (also in `~/.claude/CLAUDE.md`):
+
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- Skip files over 100KB unless required.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.
+
+Concise is about phrasing, not coverage: every deliverable and report this file asks for stays complete.
+User instructions always override these rules.

@@ -128,3 +128,17 @@ database.
   from `sql/`, in UPPER_SNAKE_CASE via `UpperSnakeCaseEnumConverter`. **There is no single
   source of truth.** If the feature touches an enum, a test must lock in that correspondence.
 - Applied numbered migrations are never edited.
+
+## Output
+
+Rules from https://github.com/drona23/claude-token-efficient (also in `~/.claude/CLAUDE.md`):
+
+- Read existing files before writing. Don't re-read unless changed.
+- Thorough in reasoning, concise in output.
+- Skip files over 100KB unless required.
+- No sycophantic openers or closing fluff.
+- No emojis or em-dashes.
+- Do not guess APIs, versions, flags, commit SHAs, or package names. Verify by reading code or docs before asserting.
+
+Concise is about phrasing, not coverage: the coverage report and the failure message per test stay
+complete. User instructions always override these rules.
