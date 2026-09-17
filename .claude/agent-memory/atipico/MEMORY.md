@@ -1,5 +1,8 @@
 # Memory Index
 
+## Workflow and Practice
+- [Workflow in Practice](atipico-workflow-in-practice.md) — how spec → plan → approval → code flows, what each agent owns, real examples from 27 specs, state machine, index management.
+
 ## Cómo trabaja el usuario
 - [Spec primero](atipico-spec-primero.md) — spec → plan → aprobación → código; el formato canónico vive en `specs/formato-spec.md`, leerlo antes de escribir uno.
 - [Jira corto, spec largo](atipico-jira-corto-spec-largo.md) — el ticket lleva lo esencial y un puntero; el detalle vive en el spec.

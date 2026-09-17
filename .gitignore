@@ -380,6 +380,10 @@ specs/grafo/
 # Artefactos de verificacion con Playwright (snapshots, capturas, logs de consola)
 .playwright-mcp/
 
+# Auditorias de seguridad (/security-audit): artefactos de la corrida, fuera
+# del control de versiones. El directorio entero queda ignorado a proposito.
+security-audit/
+
 # Skills locales de DSH para este repo. Apuntan a rutas personales
 # (C:\Users\pdieg\.claude\skills\...) y reusan la sesion de Google de notebooklm,
 # asi que no se commitean: son de esta maquina, no del proyecto.
