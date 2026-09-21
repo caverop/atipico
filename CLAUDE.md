@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Comunicación por Slack
+
+Cuando el trabajo sobre Atipico se conduce a través de Slack, informá al usuario por Slack en ambos extremos del flujo: cuando surja una consulta o duda que necesite su decisión, y cuando la tarea quede terminada. No dejes una pregunta ni una entrega solo en el hilo del agente si el usuario está del lado de Slack.
+
 ## What this is
 
 Atipico is a restaurant management system (orders, tables, dishes, accounts/billing) targeting the Bolivian market (`es-BO` currency formatting, Spanish domain names throughout). It's a .NET 10 solution with an ASP.NET Core Web API backend and a Blazor Server frontend, backed by PostgreSQL via EF Core.
